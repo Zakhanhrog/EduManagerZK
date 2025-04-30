@@ -80,7 +80,7 @@ public class ClassPanel extends JPanel {
         addClassButton = new JButton("Add Class", UIUtils.createImageIcon("/icons/add.png", "Add Class"));
         editClassButton = new JButton("Edit Class", UIUtils.createImageIcon("/icons/edit.png", "Edit Class"));
         deleteClassButton = new JButton("Delete Class", UIUtils.createImageIcon("/icons/delete.png", "Delete Class"));
-        refreshButton = new JButton("Refresh"); // <-- 2. KHỞI TẠO NÚT REFRESH
+        refreshButton = new JButton("Refresh", UIUtils.createImageIcon("/icons/refresh.png", "Refresh"));  // <-- 2. KHỞI TẠO NÚT REFRESH
         refreshButton.setToolTipText("Reload class data from storage"); // Thêm gợi ý
         enrollStudentButton = new JButton("Enroll Student");
         unenrollStudentButton = new JButton("Unenroll Student");

@@ -60,7 +60,7 @@ public class StudentPanel extends JPanel {
         addButton = new JButton("Add", UIUtils.createImageIcon("/icons/add.png", "Add"));
         editButton = new JButton("Edit", UIUtils.createImageIcon("/icons/edit.png", "Edit"));
         deleteButton = new JButton("Delete", UIUtils.createImageIcon("/icons/delete.png", "Delete"));
-        refreshButton = new JButton("Refresh"); // <-- 2. KHỞI TẠO NÚT REFRESH
+        refreshButton = new JButton("Refresh", UIUtils.createImageIcon("/icons/refresh.png", "Refresh"));  // <-- 2. KHỞI TẠO NÚT REFRESH
         refreshButton.setToolTipText("Reload student data from storage");
 
         // Search Components
