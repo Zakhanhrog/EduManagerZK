@@ -1,0 +1,105 @@
+package com.eduzk.model.entities;
+
+import java.io.Serializable;
+import java.util.Objects;
+
+public class User implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    private int userId;
+    private String username;
+    private String password; // Consider hashing passwords in a real application
+    private Role role;
+    private boolean active; // To enable/disable user accounts
+    private Integer teacherId;
+    private Integer studentId;
+
+    public User() {
+        this.active = true; // Default to active
+    }
+
+    public User(int userId, String username, String password, Role role, Integer teacherId) {
+        this.userId = userId;
+        this.username = username;
+        this.password = password;
+        this.role = role;
+        this.active = true;
+        this.teacherId = teacherId;
+        this.studentId = studentId;
+
+    }
+    public Integer getTeacherId() {
+        return teacherId;
+    }
+
+    public void setTeacherId(Integer teacherId) {
+        this.teacherId = teacherId;
+    }
+    public int getUserId() {
+        return userId;
+    }
+
+    public void setUserId(int userId) {
+        this.userId = userId;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    public Integer getStudentId() { return studentId; }
+    public void setStudentId(Integer studentId) { this.studentId = studentId; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        User user = (User) o;
+        return userId == user.userId;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(userId);
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "userId=" + userId +
+                ", username='" + username + '\'' +
+                ", role=" + role +
+                ", active=" + active +
+                ", teacherId=" + teacherId +
+                ", studentId=" + studentId +
+                '}';
+    }
+}
