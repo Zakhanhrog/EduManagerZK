@@ -117,7 +117,7 @@ public class MainView extends JFrame {
                     "Course List",
                     "Room List",
                     "Class List (Basic Info)",
-                    "Schedule (Current View/All)", // Cần làm rõ phạm vi
+                    "Schedule (Current View. All)", // Cần làm rõ phạm vi
                     // Thêm các lựa chọn khác nếu cần
     };
         String selectedOption = (String) JOptionPane.showInputDialog(

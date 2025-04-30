@@ -213,7 +213,7 @@ public class MainController {
                 case "Class List (Basic Info)":
                     exportClassData(sheet);
                     break;
-                case "Schedule (Current View/All)":
+                case "Schedule (Current View. All)":
                     exportScheduleData(sheet); // Cần lấy dữ liệu phù hợp
                     break;
                 // Thêm các case khác nếu cần
