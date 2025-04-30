@@ -34,6 +34,7 @@ public class StudentController {
         this.currentUser = currentUser;
         this.eduClassDAO = eduClassDAO;
         this.userDAO = userDAO;
+
     }
 
     public void setStudentPanel(StudentPanel studentPanel) {
@@ -134,6 +135,7 @@ public class StudentController {
             studentDAO.add(student);
             // Optionally refresh the view if the panel is set
             if (studentPanel != null) {
+                System.out.println("StudentController: Add successful, refreshing panel...");
                 studentPanel.refreshTable(); // Assumes StudentPanel has this method
                 UIUtils.showInfoMessage(studentPanel, "Success", "Student added successfully.");
             }

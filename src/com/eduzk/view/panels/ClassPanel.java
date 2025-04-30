@@ -30,6 +30,7 @@ public class ClassPanel extends JPanel {
     private JSplitPane splitPane;
     private JLabel selectedClassLabel; // Show details of selected class
     private TableRowSorter<DefaultTableModel> classSorter;
+    private JButton refreshButton;
 
     public ClassPanel(EduClassController controller) {
         this.controller = controller;
@@ -79,6 +80,8 @@ public class ClassPanel extends JPanel {
         addClassButton = new JButton("Add Class", UIUtils.createImageIcon("/icons/add.png", "Add Class"));
         editClassButton = new JButton("Edit Class", UIUtils.createImageIcon("/icons/edit.png", "Edit Class"));
         deleteClassButton = new JButton("Delete Class", UIUtils.createImageIcon("/icons/delete.png", "Delete Class"));
+        refreshButton = new JButton("Refresh"); // <-- 2. KHỞI TẠO NÚT REFRESH
+        refreshButton.setToolTipText("Reload class data from storage"); // Thêm gợi ý
         enrollStudentButton = new JButton("Enroll Student");
         unenrollStudentButton = new JButton("Unenroll Student");
         enrollStudentButton.setEnabled(false); // Disabled until a class is selected
@@ -95,6 +98,7 @@ public class ClassPanel extends JPanel {
         classActionPanel.add(addClassButton);
         classActionPanel.add(editClassButton);
         classActionPanel.add(deleteClassButton);
+        classActionPanel.add(refreshButton);
 
         // --- Left Panel (Class Table) ---
         JPanel leftPanel = new JPanel(new BorderLayout(0, 5));
@@ -164,6 +168,11 @@ public class ClassPanel extends JPanel {
         // --- Student Enrollment Actions ---
         enrollStudentButton.addActionListener(e -> enrollStudentAction());
         unenrollStudentButton.addActionListener(e -> unenrollStudentAction());
+        refreshButton.addActionListener(e -> {
+            System.out.println("ClassPanel: Refresh button clicked.");
+            refreshTable(); // Gọi lại chính phương thức refresh của panel này
+            UIUtils.showInfoMessage(this,"Refreshed", "Class list updated."); // Thông báo (tùy chọn)
+        });
 
 
         // --- Table Selection Listener ---
@@ -305,6 +314,10 @@ public class ClassPanel extends JPanel {
         if (controller == null) return;
         List<EduClass> classes = controller.getAllEduClasses();
         populateClassTable(classes);
+        if (classTableModel != null) { // Sử dụng classTableModel
+            classTableModel.fireTableDataChanged(); // Thông báo cho bảng lớp cập nhật
+            System.out.println(this.getClass().getSimpleName() + ": fireTableDataChanged() called for classTableModel.");
+        }
         // Clear student list when class table is refreshed
         studentTableModel.setRowCount(0);
         selectedClassLabel.setText("Select a class to see enrolled students.");
@@ -324,6 +337,10 @@ public class ClassPanel extends JPanel {
         int classId = (int) classTableModel.getValueAt(modelRow, 0);
         List<Student> students = controller.getEnrolledStudents(classId);
         populateStudentTable(students);
+        if (studentTableModel != null) {
+            studentTableModel.fireTableDataChanged(); // Thông báo cho bảng student cập nhật
+            System.out.println(this.getClass().getSimpleName() + ": fireTableDataChanged() called for studentTableModel.");
+        }
     }
 
 

@@ -19,6 +19,7 @@ public class RoomPanel extends JPanel {
     private JTable roomTable;
     private DefaultTableModel tableModel;
     private JButton addButton, editButton, deleteButton, searchButton;
+    private JButton refreshButton;
     private JTextField searchField; // Search by capacity
     private TableRowSorter<DefaultTableModel> sorter;
 
@@ -76,6 +77,8 @@ public class RoomPanel extends JPanel {
         addButton = new JButton("Add", UIUtils.createImageIcon("/icons/add.png", "Add"));
         editButton = new JButton("Edit", UIUtils.createImageIcon("/icons/edit.png", "Edit"));
         deleteButton = new JButton("Delete", UIUtils.createImageIcon("/icons/delete.png", "Delete"));
+        refreshButton = new JButton("Refresh"); // <-- 2. KHỞI TẠO NÚT REFRESH
+        refreshButton.setToolTipText("Reload student data from storage");
 
         // Search Components
         searchField = new JTextField(5); // Small field for capacity number
@@ -91,6 +94,7 @@ public class RoomPanel extends JPanel {
         searchPanel.add(searchButton);
 
         JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        actionPanel.add(refreshButton);
         actionPanel.add(addButton);
         actionPanel.add(editButton);
         actionPanel.add(deleteButton);
@@ -142,7 +146,12 @@ public class RoomPanel extends JPanel {
         });
 
         searchButton.addActionListener(e -> performSearch());
-        searchField.addActionListener(e -> performSearch()); // Enter key in search field
+        searchField.addActionListener(e -> performSearch());
+        refreshButton.addActionListener(e -> {
+            System.out.println("RoomPanel: Refresh button clicked.");
+            refreshTable(); // Gọi lại chính phương thức refresh của panel này
+            UIUtils.showInfoMessage(this,"Refreshed", "Room list updated."); // Thông báo (tùy chọn)
+        });
     }
 
     private void performSearch() {

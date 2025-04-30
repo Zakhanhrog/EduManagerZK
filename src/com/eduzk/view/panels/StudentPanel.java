@@ -20,6 +20,7 @@ public class StudentPanel extends JPanel {
     private JTable studentTable;
     private DefaultTableModel tableModel;
     private JButton addButton, editButton, deleteButton, searchButton;
+    private JButton refreshButton;
     private JTextField searchField;
     private TableRowSorter<DefaultTableModel> sorter;
 
@@ -59,6 +60,8 @@ public class StudentPanel extends JPanel {
         addButton = new JButton("Add", UIUtils.createImageIcon("/icons/add.png", "Add"));
         editButton = new JButton("Edit", UIUtils.createImageIcon("/icons/edit.png", "Edit"));
         deleteButton = new JButton("Delete", UIUtils.createImageIcon("/icons/delete.png", "Delete"));
+        refreshButton = new JButton("Refresh"); // <-- 2. KHỞI TẠO NÚT REFRESH
+        refreshButton.setToolTipText("Reload student data from storage");
 
         // Search Components
         searchField = new JTextField(20);
@@ -75,6 +78,11 @@ public class StudentPanel extends JPanel {
         searchPanel.add(searchButton);
 
         JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        actionPanel.add(refreshButton); // Thêm vào trước hoặc sau tùy ý
+        actionPanel.add(addButton);
+        actionPanel.add(editButton);
+        actionPanel.add(deleteButton);
+
         actionPanel.add(addButton);
         actionPanel.add(editButton);
         actionPanel.add(deleteButton);
@@ -129,6 +137,12 @@ public class StudentPanel extends JPanel {
 
         searchButton.addActionListener(e -> performSearch());
         searchField.addActionListener(e -> performSearch()); // Allow Enter key in search field
+        // --- 4. THÊM ACTIONLISTENER CHO REFRESH BUTTON ---
+        refreshButton.addActionListener(e -> {
+            System.out.println("StudentPanel: Refresh button clicked.");
+            refreshTable(); // Gọi lại chính phương thức refresh của panel này
+            UIUtils.showInfoMessage(this,"Refreshed", "Student list updated."); // Thông báo (tùy chọn)
+        });
 
     }
 
@@ -149,7 +163,6 @@ public class StudentPanel extends JPanel {
             // sorter.setRowFilter(rf);
         }
         populateTable(students); // Update table with search results
-
 
     }
 

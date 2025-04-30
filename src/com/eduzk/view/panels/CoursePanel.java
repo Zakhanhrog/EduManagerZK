@@ -19,6 +19,7 @@ public class CoursePanel extends JPanel {
     private JTable courseTable;
     private DefaultTableModel tableModel;
     private JButton addButton, editButton, deleteButton, searchButton;
+    private JButton refreshButton;
     private JTextField searchField;
     private TableRowSorter<DefaultTableModel> sorter;
 
@@ -41,6 +42,7 @@ public class CoursePanel extends JPanel {
         searchPanel.add(searchButton);
 
         JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        actionPanel.add(refreshButton);
         actionPanel.add(addButton);
         actionPanel.add(editButton);
         actionPanel.add(deleteButton);
@@ -97,6 +99,9 @@ public class CoursePanel extends JPanel {
         addButton = new JButton("Add", UIUtils.createImageIcon("/icons/add.png", "Add"));
         editButton = new JButton("Edit", UIUtils.createImageIcon("/icons/edit.png", "Edit"));
         deleteButton = new JButton("Delete", UIUtils.createImageIcon("/icons/delete.png", "Delete"));
+        refreshButton = new JButton("Refresh"); // <-- 2. KHỞI TẠO NÚT REFRESH
+        refreshButton.setToolTipText("Reload course data from storage"); // Thêm gợi ý
+
 
         // Search Components
         searchField = new JTextField(20);
@@ -143,6 +148,11 @@ public class CoursePanel extends JPanel {
 
         searchButton.addActionListener(e -> performSearch());
         searchField.addActionListener(e -> performSearch());
+        refreshButton.addActionListener(e -> {
+            System.out.println("CoursePanel: Refresh button clicked.");
+            refreshTable(); // Gọi lại chính phương thức refresh của panel này
+            UIUtils.showInfoMessage(this,"Refreshed", "Course list updated."); // Thông báo (tùy chọn)
+        });
     }
 
     private void performSearch() {

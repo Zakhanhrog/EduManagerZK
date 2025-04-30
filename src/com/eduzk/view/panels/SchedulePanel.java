@@ -22,6 +22,7 @@ public class SchedulePanel extends JPanel {
     private JTable scheduleTable;
     private DefaultTableModel tableModel;
     private JButton addButton, editButton, deleteButton, filterButton;
+    private JButton refreshButton;
     private CustomDatePicker startDatePicker;
     private CustomDatePicker endDatePicker;
     private TableRowSorter<DefaultTableModel> sorter;
@@ -91,6 +92,8 @@ public class SchedulePanel extends JPanel {
         addButton = new JButton("Add Entry", UIUtils.createImageIcon("/icons/add.png", "Add"));
         editButton = new JButton("Edit Entry", UIUtils.createImageIcon("/icons/edit.png", "Edit"));
         deleteButton = new JButton("Delete Entry", UIUtils.createImageIcon("/icons/delete.png", "Delete"));
+        refreshButton = new JButton("Refresh"); // <-- 2. KHỞI TẠO NÚT REFRESH
+        refreshButton.setToolTipText("Reload schedule data from storage");
         filterButton = new JButton("Load Schedule");
 
     }
@@ -106,6 +109,7 @@ public class SchedulePanel extends JPanel {
         filterPanel.add(filterButton);
 
         JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        actionPanel.add(refreshButton);
         actionPanel.add(addButton);
         actionPanel.add(editButton);
         actionPanel.add(deleteButton);
@@ -161,6 +165,12 @@ public class SchedulePanel extends JPanel {
                 UIUtils.showWarningMessage(this, "Selection Required", "Please select a schedule entry to delete.");
             }
         });
+        refreshButton.addActionListener(e -> {
+            System.out.println("SchedulePanel: Refresh button clicked.");
+            refreshScheduleView(); // Gọi lại chính phương thức refresh của panel này
+            UIUtils.showInfoMessage(this,"Refreshed", "Schedule list updated."); // Thông báo (tùy chọn)
+        });
+
     }
 
     private void openScheduleDialog(Schedule schedule) {
