@@ -1,5 +1,9 @@
 package com.eduzk.view;
 
+import javax.swing.JFileChooser;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import java.io.File;
+
 import com.eduzk.controller.*;
 import com.eduzk.model.entities.Role;
 import com.eduzk.model.entities.User;
@@ -88,6 +92,13 @@ public class MainView extends JFrame {
         fileMenu.add(exitItem);
         menuBar.add(fileMenu);
 
+        // Menu export
+        JMenu exportMenu = new JMenu("Export");
+        JMenuItem exportExcelItem = new JMenuItem("Export to Excel...");
+        exportExcelItem.addActionListener(e -> showExportExcelDialog()); // Gọi hàm mới
+        exportMenu.add(exportExcelItem);
+        menuBar.add(exportMenu);
+
         // Help Menu
         JMenu helpMenu = new JMenu("Help");
         JMenuItem aboutItem = new JMenuItem("About EduHub");
@@ -96,6 +107,59 @@ public class MainView extends JFrame {
         menuBar.add(helpMenu);
 
         setJMenuBar(menuBar);
+    }
+
+    private void showExportExcelDialog() {
+            // 1. Tạo các lựa chọn loại dữ liệu để export
+            String[] exportOptions = {
+                    "Student List",
+                    "Teacher List",
+                    "Course List",
+                    "Room List",
+                    "Class List (Basic Info)",
+                    "Schedule (Current View/All)", // Cần làm rõ phạm vi
+                    // Thêm các lựa chọn khác nếu cần
+    };
+        String selectedOption = (String) JOptionPane.showInputDialog(
+                this,                                     // Parent component
+                "Select data to export:",                 // Message
+                "Export to Excel",                        // Title
+                JOptionPane.PLAIN_MESSAGE,              // Message type
+                null,                                     // Icon (null for default)
+                exportOptions,                            // Array of choices
+                exportOptions[0]                          // Default choice
+        );
+
+        // 3. Nếu người dùng chọn một tùy chọn (không nhấn Cancel)
+        if (selectedOption != null) {
+            // 4. Hiển thị hộp thoại chọn nơi lưu file (JFileChooser)
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Save Excel File");
+            // Đặt tên file gợi ý và bộ lọc file .xlsx
+            String suggestedFileName = selectedOption.replace(" ", "_") + ".xlsx";
+            fileChooser.setSelectedFile(new File(suggestedFileName));
+            fileChooser.setFileFilter(new FileNameExtensionFilter("Excel Workbook (*.xlsx)", "xlsx"));
+
+            int userSelection = fileChooser.showSaveDialog(this);
+
+            if (userSelection == JFileChooser.APPROVE_OPTION) {
+                File fileToSave = fileChooser.getSelectedFile();
+                // Đảm bảo file có đuôi .xlsx
+                String filePath = fileToSave.getAbsolutePath();
+                if (!filePath.toLowerCase().endsWith(".xlsx")) {
+                    fileToSave = new File(filePath + ".xlsx");
+                }
+
+                // 5. Gọi Controller để thực hiện Export với lựa chọn và đường dẫn file
+                System.out.println("Export requested for: " + selectedOption + " to file: " + fileToSave.getAbsolutePath());
+                // Gọi phương thức export trong MainController (sẽ tạo ở bước sau)
+                mainController.exportDataToExcel(selectedOption, fileToSave);
+            } else {
+                System.out.println("Export save cancelled by user.");
+            }
+        } else {
+            System.out.println("Export type selection cancelled by user.");
+        }
     }
 
     private void performLogout() {
@@ -196,6 +260,7 @@ public class MainView extends JFrame {
 //        else if (selectedComponent instanceof TeacherPanel) ((TeacherPanel) selectedComponent).refreshTable();
         // Add refreshes for other panel types as needed for the default view
     }
+
 
     // --- THÊM PHƯƠNG THỨC HELPER NÀY VÀO MainView.java ---
     private void setPanelControlsEnabled(boolean isAdmin) {

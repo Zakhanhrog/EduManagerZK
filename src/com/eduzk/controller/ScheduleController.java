@@ -8,6 +8,7 @@ import com.eduzk.model.exceptions.DataAccessException;
 import com.eduzk.model.exceptions.ScheduleConflictException;
 import com.eduzk.utils.ValidationUtils;
 import com.eduzk.utils.UIUtils;
+import com.eduzk.view.MainView;
 import com.eduzk.view.panels.SchedulePanel; // To update the panel's table/view
 
 import java.time.LocalDate;
@@ -22,6 +23,7 @@ public class ScheduleController {
     private final IRoomDAO roomDAO;         // Needed for room selection/info
     private SchedulePanel schedulePanel;
     private final User currentUser;
+    private MainView mainView;
 
     public ScheduleController(IScheduleDAO scheduleDAO, IEduClassDAO eduClassDAO, ITeacherDAO teacherDAO, IRoomDAO roomDAO, User currentUser) {
         this.scheduleDAO = scheduleDAO;
@@ -33,6 +35,9 @@ public class ScheduleController {
 
     public void setSchedulePanel(SchedulePanel schedulePanel) {
         this.schedulePanel = schedulePanel;
+    }
+    public void setMainView(MainView mainView) {
+        this.mainView = mainView;
     }
 
     public List<Schedule> getSchedulesByDateRange(LocalDate start, LocalDate end) {
@@ -209,6 +214,43 @@ public class ScheduleController {
         } catch (DataAccessException e) {
             System.err.println("Error getting schedule by ID: " + e.getMessage());
             return null;
+        }
+    }
+    /**
+     * Lấy danh sách TẤT CẢ các lịch trình từ DAO.
+     * Được sử dụng cho chức năng export hoặc các chức năng cần xem toàn bộ lịch sử.
+     * @return Danh sách tất cả Schedule, hoặc danh sách rỗng nếu có lỗi hoặc không có dữ liệu.
+     */
+    public List<Schedule> getAllSchedules() {
+        System.out.println("ScheduleController: getAllSchedules() called.");
+        if (scheduleDAO == null) {
+            System.err.println("ScheduleController Error: scheduleDAO is null!");
+            // Có thể hiển thị lỗi UI ở đây không? Tùy ngữ cảnh gọi hàm này
+            // UIUtils.showErrorMessage(null, "Error", "Schedule data access is not available.");
+            return Collections.emptyList();
+        }
+        try {
+            // Gọi phương thức mới trong IScheduleDAO
+            return scheduleDAO.getAllSchedules();
+        } catch (DataAccessException e) {
+            System.err.println("Error loading all schedules from DAO: " + e.getMessage());
+            // Hiển thị lỗi cho người dùng (giả sử mainView có thể truy cập)
+            // Cần cẩn thận nếu hàm này được gọi từ luồng nền (ví dụ: export)
+            if (mainView != null) { // Kiểm tra mainView tồn tại (cần thêm getter/setter nếu chưa có)
+                UIUtils.showErrorMessage(mainView, "Error Loading Data", "Failed to load all schedule data.\n" + e.getMessage());
+            } else {
+                // Hoặc chỉ log lỗi nếu không có context UI
+                e.printStackTrace();
+            }
+            return Collections.emptyList(); // Trả về danh sách rỗng khi có lỗi
+        } catch (Exception e) {
+            // Bắt các lỗi không mong muốn khác
+            System.err.println("Unexpected error in getAllSchedules: " + e.getMessage());
+            e.printStackTrace();
+            if (mainView != null) {
+                UIUtils.showErrorMessage(mainView, "Unexpected Error", "An unexpected error occurred while loading all schedules.");
+            }
+            return Collections.emptyList();
         }
     }
 }

@@ -6,6 +6,7 @@ import com.eduzk.model.exceptions.ScheduleConflictException;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Collections;
 
 public interface IScheduleDAO {
 
@@ -80,4 +81,10 @@ public interface IScheduleDAO {
      * @throws DataAccessException if a data storage error occurs.
      */
     void delete(int id) throws DataAccessException;
+    /**
+     * Lấy tất cả các lịch trình đã lưu trong hệ thống.
+     * @return Danh sách tất cả các đối tượng Schedule. Trả về danh sách rỗng nếu không có.
+     * @throws DataAccessException Nếu có lỗi khi truy cập dữ liệu.
+     */
+    List<Schedule> getAllSchedules() throws DataAccessException;
 }

@@ -165,6 +165,20 @@ public class ScheduleDAOImpl extends BaseDAO<Schedule> implements IScheduleDAO {
             lock.writeLock().unlock();
         }
     }
+    @Override
+    public List<Schedule> getAllSchedules() throws DataAccessException {
+        // Gọi trực tiếp phương thức getAll() đã được kế thừa từ lớp BaseDAO.
+        // Phương thức này đã có sẵn logic đọc dataList với ReadLock.
+        System.out.println("ScheduleDAOImpl: getAllSchedules() called, delegating to BaseDAO.getAll()...");
+        try {
+            return super.getAll(); // Gọi hàm getAll() của lớp cha (BaseDAO)
+        } catch (Exception e) {
+            // Bắt lỗi chung và gói lại nếu cần, mặc dù getAll() của BaseDAO thường không ném lỗi nặng
+            System.err.println("Error in ScheduleDAOImpl.getAllSchedules while calling super.getAll(): " + e.getMessage());
+            // Có thể gói lại thành DataAccessException nếu muốn nhất quán
+            throw new DataAccessException("Failed to retrieve all schedules from BaseDAO.", e);
+        }
+    }
 
     // This method must be called within a write lock
     private void checkForConflicts(Schedule newSchedule) throws ScheduleConflictException {
