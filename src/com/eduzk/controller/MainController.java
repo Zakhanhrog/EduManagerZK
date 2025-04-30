@@ -1,22 +1,25 @@
 package com.eduzk.controller; // Hoặc com.eduhub
 
 // --- Import các lớp cần thiết ---
-import com.eduzk.model.entities.User;
-import com.eduzk.model.entities.Role;
-import com.eduzk.utils.UIUtils;        // Dùng để hiển thị thông báo
-import com.eduzk.view.MainView;        // Liên kết với View chính
-import com.eduzk.model.dao.impl.*;   // Import các lớp DAO implementation
-import com.eduzk.model.dao.interfaces.*; // Import các interface DAO (cần cho StudentController)
-
-import org.apache.poi.ss.usermodel.*; // Cell, Row, Sheet, Workbook
-import org.apache.poi.xssf.usermodel.XSSFWorkbook; // Cụ thể cho .xlsx
-import java.io.FileOutputStream;      // Để ghi file
-import java.io.IOException;           // Để bắt lỗi IO
-import java.io.File;                // Để làm việc với đối tượng File
-import java.util.List;              // Để làm việc với danh sách dữ liệu
-import com.eduzk.model.entities.*;   // Import các entities
-
-import javax.swing.JOptionPane;       // Dùng để hiển thị lỗi nghiêm trọng
+import com.eduzk.model.entities.*;
+import com.eduzk.utils.UIUtils;
+import com.eduzk.view.MainView;
+import com.eduzk.model.dao.impl.*;
+import com.eduzk.model.dao.interfaces.*;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.File;
+import java.util.List;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.util.Date;
+import java.util.Collections;
+import java.util.ArrayList;
+import javax.swing.JOptionPane;
+import java.awt.Component;
 
 /**
  * Controller chính quản lý luồng chính của ứng dụng sau khi đăng nhập.
@@ -25,11 +28,16 @@ import javax.swing.JOptionPane;       // Dùng để hiển thị lỗi nghiêm 
  * (Phiên bản này sử dụng đường dẫn tương đối cho thư mục dữ liệu)
  */
 public class MainController {
+    public static final String EXPORT_STUDENTS = "Student List";
+    public static final String EXPORT_TEACHERS = "Teacher List";
+    public static final String EXPORT_COURSES = "Course List";
+    public static final String EXPORT_ROOMS = "Room List";
+    public static final String EXPORT_CLASSES = "Class List (Basic Info)";
+    public static final String EXPORT_SCHEDULE = "Schedule (Current View. All)";
 
-    // Thông tin người dùng đang đăng nhập
     private final User loggedInUser;
-    // Tham chiếu đến cửa sổ chính
     private MainView mainView;
+    private final AuthController authController;
 
     // Các Controller con cho từng module chức năng
     private StudentController studentController;
@@ -38,10 +46,8 @@ public class MainController {
     private RoomController roomController;
     private EduClassController eduClassController;
     private ScheduleController scheduleController;
-    // Thêm UserController nếu cần chức năng quản lý người dùng từ Admin
 
     // --- Định nghĩa đường dẫn tương đối đến các file dữ liệu ---
-    // Giả định thư mục 'data' nằm cùng cấp với nơi ứng dụng được chạy
     private static final String DATA_DIR = "data/";
     private static final String ID_FILE = DATA_DIR + "next_ids.dat";
     private static final String USERS_FILE = DATA_DIR + "users.dat";
@@ -51,20 +57,20 @@ public class MainController {
     private static final String ROOMS_FILE = DATA_DIR + "rooms.dat";
     private static final String EDUCLASSES_FILE = DATA_DIR + "educlasses.dat";
     private static final String SCHEDULES_FILE = DATA_DIR + "schedules.dat";
-    // --- Kết thúc định nghĩa đường dẫn ---
 
     /**
      * Constructor chính, nhận User đã đăng nhập và khởi tạo các thành phần.
      * @param loggedInUser Đối tượng User chứa thông tin người đăng nhập.
      */
-    public MainController(User loggedInUser) {
+    public MainController(User loggedInUser, AuthController authController) {
         if (loggedInUser == null) {
-            // Xử lý lỗi nếu không có user đăng nhập (không nên xảy ra)
-            System.err.println("CRITICAL: MainController initialized with null user!");
-            JOptionPane.showMessageDialog(null, "Login information is missing. Application cannot continue.", "Fatal Error", JOptionPane.ERROR_MESSAGE);
+//            System.err.println("CRITICAL: MainController initialized with null user!");
+//            JOptionPane.showMessageDialog(null, "Login information is missing. Application cannot continue.", "Fatal Error", JOptionPane.ERROR_MESSAGE);
             System.exit(1);
         }
+        if (authController == null) { throw new IllegalArgumentException("AuthController cannot be null in MainController"); }
         this.loggedInUser = loggedInUser;
+        this.authController = authController;
         // Khởi tạo ngay lập tức các DAO và Controller con
         initializeDAOsAndControllers();
     }
@@ -163,16 +169,26 @@ public class MainController {
         if (mainView != null) {
             UIUtils.showInfoMessage(mainView, "About EduManager", "EduManager - Educational Management System\nVersion 1.0 (Basic)");
         }
+        if (this.authController != null) {
+            System.out.println("MainController: Calling authController.showLoginView()...");
+            this.authController.showLoginView(); // Gọi phương thức mới trong AuthController
+        } else {
+            System.err.println("MainController Error: authController is null, cannot show login view!");
+            // Có thể hiện lỗi ở đây không? Khó vì MainView sắp đóng.
+        }
     }
 
     /** Xử lý yêu cầu đăng xuất (logic cơ bản). */
     public void logout() {
-        System.out.println("Logout initiated in MainController.");
-        // Logic đầy đủ:
-        // 1. Đóng MainView hiện tại.
-        // 2. Gọi lại AuthController để hiển thị LoginView mới.
-        // Cần cơ chế liên lạc giữa các controller hoặc quay lại App.java.
-        // Tạm thời chỉ in ra thông báo. Việc đóng cửa sổ đã được xử lý trong MainView.performLogout().
+        System.out.println("MainController: logout() called.");
+        if (this.authController != null) {
+            System.out.println("MainController: Calling authController.showLoginView()...");
+            this.authController.showLoginView();
+        } else {
+            System.err.println("MainController Error: authController is null! Cannot show login view.");
+            JOptionPane.showMessageDialog(null, "Logout failed due to an internal error.", "Logout Error", JOptionPane.ERROR_MESSAGE);
+            System.exit(1);
+        }
     }
 
     // --- Getters cho các Controller con (để MainView có thể truyền chúng đi nếu cần) ---
@@ -191,30 +207,44 @@ public class MainController {
      * @param outputFile Đối tượng File đại diện cho file Excel cần lưu.
      */
     public void exportDataToExcel(String dataType, File outputFile) {
-        // Sử dụng try-with-resources để đảm bảo Workbook được đóng đúng cách
-        // Tạo một Workbook mới (định dạng .xlsx)
-        try (Workbook workbook = new XSSFWorkbook()) {
+        System.out.println("Starting Excel export for: " + dataType + " by user role: " + getUserRole()); // Log thêm role
+
+        Role userRole = getUserRole();
+        if (userRole == null) { // Không xác định được vai trò
+            UIUtils.showErrorMessage(mainView, "Permission Denied", "Cannot verify user permissions.");
+            return;
+        }
+        if (userRole == Role.STUDENT) { // Student không được export gì (theo logic hiện tại)
+            UIUtils.showErrorMessage(mainView, "Permission Denied", "Export function is not available for your role.");
+            return;
+        }
+        Workbook workbook = null;
+        try  {
+            workbook = new XSSFWorkbook();
             Sheet sheet = workbook.createSheet(dataType); // Tạo sheet với tên là loại dữ liệu
 
             // --- Logic lấy dữ liệu và ghi vào sheet dựa trên dataType ---
             switch (dataType) {
-                case "Student List":
+                case EXPORT_STUDENTS:
                     exportStudentData(sheet);
                     break;
-                case "Teacher List":
+                case EXPORT_TEACHERS:
+                    if (userRole != Role.ADMIN) throw new SecurityException("Permission denied for exporting teacher list.");
                     exportTeacherData(sheet);
                     break;
-                case "Course List":
+                case EXPORT_COURSES:
+                    if (userRole != Role.ADMIN) throw new SecurityException("Permission denied for exporting course list.");
                     exportCourseData(sheet);
                     break;
-                case "Room List":
+                case EXPORT_ROOMS:
+                    if (userRole != Role.ADMIN) throw new SecurityException("Permission denied for exporting room list.");
                     exportRoomData(sheet);
                     break;
-                case "Class List (Basic Info)":
+                case EXPORT_CLASSES:
                     exportClassData(sheet);
                     break;
-                case "Schedule (Current View. All)":
-                    exportScheduleData(sheet); // Cần lấy dữ liệu phù hợp
+                case EXPORT_SCHEDULE:
+                    exportScheduleData(sheet); // Truyền thêm timeStyle
                     break;
                 // Thêm các case khác nếu cần
                 default:
@@ -234,15 +264,23 @@ public class MainController {
                 UIUtils.showErrorMessage(mainView, "Export Error", "Could not write to file:\n" + outputFile.getName() + "\nError: " + e.getMessage());
             }
 
+        } catch (SecurityException secEx) { // Bắt lỗi phân quyền
+            System.err.println("Permission denied during export: " + secEx.getMessage());
+            UIUtils.showErrorMessage(mainView, "Permission Denied", "You do not have permission to export this data type.");
         } catch (Exception e) { // Bắt lỗi chung khi tạo Workbook hoặc lấy dữ liệu
             System.err.println("Error during Excel export process: " + e.getMessage());
             e.printStackTrace();
             UIUtils.showErrorMessage(mainView, "Export Error", "An unexpected error occurred during export.\nError: " + e.getMessage());
         }
+        finally {
+            // Đóng workbook
+            if (workbook != null) {
+                try { workbook.close(); } catch (IOException e) { /* Ignore close error */ }
+            }
+        }
     }
 
     // --- CÁC PHƯƠNG THỨC HELPER ĐỂ XUẤT TỪNG LOẠI DỮ LIỆU ---
-    // Bạn cần tự viết code chi tiết cho các phương thức này sử dụng Apache POI
 
     private void exportStudentData(Sheet sheet) {
         System.out.println("Exporting Student data...");
@@ -257,7 +295,6 @@ public class MainController {
         for (int i = 0; i < headers.length; i++) {
             Cell cell = headerRow.createCell(i);
             cell.setCellValue(headers[i]);
-            // (Tùy chọn: Định dạng tiêu đề - bold, background)
         }
 
         // Ghi dữ liệu từng học viên
@@ -269,8 +306,7 @@ public class MainController {
             // Xử lý ngày tháng (cần định dạng)
             Cell dobCell = row.createCell(2);
             if (student.getDateOfBirth() != null) {
-                dobCell.setCellValue(student.getDateOfBirth().toString()); // Hoặc dùng DateUtils.formatDate
-                // (Tùy chọn: Định dạng cell là Date trong Excel)
+                dobCell.setCellValue(student.getDateOfBirth().toString());
             } else {
                 dobCell.setCellValue("");
             }
@@ -391,10 +427,10 @@ public class MainController {
         List<Schedule> schedules = null;
         boolean useDateRange = false;
 
-        // LỰA CHỌN 2: Nếu không lấy được theo ngày hoặc muốn lấy tất cả
-        if (!useDateRange) { // Hoặc if (true) nếu luôn muốn lấy tất cả
+        // Lay tat ca khong lay theo ngay
+        if (!useDateRange) {
             System.out.println("Exporting ALL schedules...");
-            schedules = scheduleController.getAllSchedules(); // <-- Gọi hàm mới
+            schedules = scheduleController.getAllSchedules();
         }
 
         if (schedules == null || schedules.isEmpty()) { UIUtils.showInfoMessage(mainView, "Export Info", "No schedule data to export (for the selected range/all)."); return; }
@@ -413,7 +449,6 @@ public class MainController {
             if (schedule.getStartTime() != null) startCell.setCellValue(schedule.getStartTime().toString());
             Cell endCell = row.createCell(3);
             if (schedule.getEndTime() != null) endCell.setCellValue(schedule.getEndTime().toString());
-            // Dùng helper từ ScheduleController để lấy tên
             row.createCell(4).setCellValue(scheduleController.getClassNameById(schedule.getClassId()));
             row.createCell(5).setCellValue(scheduleController.getTeacherNameById(schedule.getTeacherId()));
             row.createCell(6).setCellValue(scheduleController.getRoomNameById(schedule.getRoomId()));

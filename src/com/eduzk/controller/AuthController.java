@@ -111,27 +111,23 @@ public class AuthController {
      * Đóng LoginView, mở MainView và truyền thông tin người dùng.
      */
     private void loginSuccess() {
+        System.out.println("AuthController: Login successful. Closing LoginView and opening MainView...");
         if (loginView != null) {
-            loginView.dispose(); // Đóng cửa sổ đăng nhập
+            loginView.dispose();
+            loginView = null;
         }
-        // Chuyển sang luồng EDT để mở cửa sổ chính
         SwingUtilities.invokeLater(() -> {
             try {
-                System.out.println("Login successful for user: " + loggedInUser.getUsername());
-                // Tạo MainController và MainView
-                MainController mainController = new MainController(loggedInUser);
+                MainController mainController = new MainController(loggedInUser, this); // <-- SỬA Ở ĐÂY
                 MainView mainView = new MainView(mainController);
-                // Liên kết chúng với nhau và hiển thị MainView
-                mainController.setMainView(mainView);
+                mainController.setMainView(mainView); // Liên kết MainController với MainView
                 mainView.setVisible(true);
+                System.out.println("AuthController: MainView opened.");
             } catch (Exception e) {
-                // Lỗi nghiêm trọng khi khởi tạo màn hình chính
                 System.err.println("!!! CRITICAL ERROR OPENING MAIN VIEW !!!");
                 e.printStackTrace();
-                JOptionPane.showMessageDialog(null,
-                        "Login successful, but failed to open the main application window.\nError: " + e.getMessage(),
-                        "Application Error", JOptionPane.ERROR_MESSAGE);
-                System.exit(1); // Thoát nếu không mở được màn hình chính
+                JOptionPane.showMessageDialog(null, "Failed to open the main application window.\nError: " + e.getMessage(), "Application Error", JOptionPane.ERROR_MESSAGE);
+                showLoginView();
             }
         });
     }
@@ -143,11 +139,8 @@ public class AuthController {
 
     /** Xử lý đăng xuất (logic cơ bản). */
     public void logout() {
-        System.out.println("User logged out: " + (loggedInUser != null ? loggedInUser.getUsername() : "null"));
+        System.out.println("AuthController: Clearing loggedInUser session.");
         this.loggedInUser = null;
-        // Logic đầy đủ cần đóng MainView và hiển thị lại LoginView.
-        // Điều này cần cơ chế điều hướng tốt hơn hoặc gọi lại App.main (không lý tưởng).
-        // Tạm thời chỉ reset user và dựa vào MainView tự đóng.
     }
 
     /**
@@ -307,5 +300,26 @@ public class AuthController {
             UIUtils.showErrorMessage(null, "Registration Error", "An unexpected error occurred during registration. Please try again.");
             return false;
         }
+    }
+
+    public void showLoginView() {
+        System.out.println("AuthController: showLoginView() called.");
+        // Đảm bảo thực hiện trên EDT
+        SwingUtilities.invokeLater(() -> {
+            try {
+                // Tạo một instance LoginView MỚI để đảm bảo trạng thái sạch
+                System.out.println("AuthController: Creating new LoginView instance...");
+                LoginView newLoginView = new LoginView(this); // Truyền AuthController này
+                this.loginView = newLoginView; // Cập nhật tham chiếu loginView hiện tại
+                System.out.println("AuthController: Setting new LoginView visible...");
+                newLoginView.setVisible(true);
+                System.out.println("AuthController: New LoginView should be visible.");
+            } catch (Exception e) {
+                System.err.println("!!! CRITICAL ERROR SHOWING LOGIN VIEW !!!");
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(null, "Failed to return to the login screen.\nError: " + e.getMessage(), "Application Error", JOptionPane.ERROR_MESSAGE);
+                System.exit(1); // Thoát nếu không thể quay lại màn hình login
+            }
+        });
     }
 }

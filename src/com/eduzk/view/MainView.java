@@ -1,5 +1,8 @@
 package com.eduzk.view;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.File;
@@ -8,7 +11,7 @@ import com.eduzk.controller.*;
 import com.eduzk.model.entities.Role;
 import com.eduzk.model.entities.User;
 import com.eduzk.utils.UIUtils;
-import com.eduzk.view.panels.*; // Import all panels
+import com.eduzk.view.panels.*;
 
 import javax.swing.*;
 import java.awt.*;
@@ -21,14 +24,12 @@ public class MainView extends JFrame {
     private JTabbedPane tabbedPane;
     private JLabel statusLabel;
 
-    // Panels for different modules
     private StudentPanel studentPanel;
     private TeacherPanel teacherPanel;
     private CoursePanel coursePanel;
     private RoomPanel roomPanel;
     private ClassPanel classPanel;
     private SchedulePanel schedulePanel;
-    // Add panels for User Management, Grades, Attendance etc.
 
     public MainView(MainController mainController) {
         this.mainController = mainController;
@@ -110,16 +111,43 @@ public class MainView extends JFrame {
     }
 
     private void showExportExcelDialog() {
-            // 1. Tạo các lựa chọn loại dữ liệu để export
-            String[] exportOptions = {
-                    "Student List",
-                    "Teacher List",
-                    "Course List",
-                    "Room List",
-                    "Class List (Basic Info)",
-                    "Schedule (Current View. All)", // Cần làm rõ phạm vi
-                    // Thêm các lựa chọn khác nếu cần
-    };
+        // --- LẤY VAI TRÒ USER HIỆN TẠI ---
+        Role currentUserRole = (mainController != null && mainController.getLoggedInUser() != null)
+                ? mainController.getLoggedInUser().getRole()
+                : null; // Hoặc Role mặc định nếu không có user? (Không nên xảy ra)
+
+        if (currentUserRole == null) {
+            UIUtils.showErrorMessage(this, "Error", "Cannot determine user role for export.");
+            return;
+        }
+        // --- TẠO DANH SÁCH TÙY CHỌN DỰA TRÊN ROLE ---
+        List<String> optionsList = new ArrayList<>();
+        if (currentUserRole == Role.ADMIN) {
+            // Admin có tất cả các quyền export
+            optionsList.add(MainController.EXPORT_STUDENTS); // Dùng hằng số đã tạo
+            optionsList.add(MainController.EXPORT_TEACHERS);
+            optionsList.add(MainController.EXPORT_COURSES);
+            optionsList.add(MainController.EXPORT_ROOMS);
+            optionsList.add(MainController.EXPORT_CLASSES);
+            optionsList.add(MainController.EXPORT_SCHEDULE);
+        } else if (currentUserRole == Role.TEACHER) {
+            // Teacher chỉ có quyền export dữ liệu liên quan đến họ
+            optionsList.add(MainController.EXPORT_SCHEDULE); // Lịch của tôi
+            optionsList.add(MainController.EXPORT_CLASSES); // Lớp của tôi
+            optionsList.add(MainController.EXPORT_STUDENTS); // Học viên trong lớp của tôi
+            // Không thêm Teacher List, Course List, Room List
+        }
+        // Không thêm tùy chọn cho STUDENT (hoặc thêm tùy chọn riêng nếu cần)
+
+        // Nếu không có tùy chọn nào cho vai trò hiện tại
+        if (optionsList.isEmpty()) {
+            UIUtils.showInfoMessage(this, "Export Not Available", "No export options available for your role.");
+            return;
+        }
+
+        // Chuyển List thành Array để dùng cho JOptionPane
+        String[] exportOptions = optionsList.toArray(new String[0]);
+
         String selectedOption = (String) JOptionPane.showInputDialog(
                 this,                                     // Parent component
                 "Select data to export:",                 // Message
@@ -165,20 +193,17 @@ public class MainView extends JFrame {
     private void performLogout() {
         // Confirmation dialog
         if (UIUtils.showConfirmDialog(this, "Logout", "Are you sure you want to logout?")) {
-            this.dispose(); // Close the main window
-            // Relaunch the login view - requires access to App's main logic or AuthController
-            // For now, just exit, but ideally it should show LoginView again.
-            // Let AuthController handle showing LoginView again after logout
-            // mainController.getAuthController().showLogin(); // If AuthController is accessible
-            System.out.println("Logout requested - closing main window.");
-            // A better approach involves a central navigation manager or callback to App.
-            // Simple temporary solution: Re-run App.main (not ideal)
-            // com.eduhub.App.main(null);
-            // Or, more cleanly, have AuthController handle the transition
-            // For now, we just dispose. The AuthController needs a method to re-show Login.
-            // If LoginView was just hidden, make it visible again.
-            // If not, AuthController needs to create and show a new one.
-            mainController.logout(); // Tell controller about logout
+            System.out.println("Logout confirmed by user.");
+            // 1. Gọi phương thức logout của MainController
+            if (mainController != null) {
+                mainController.logout();
+            } else {
+                System.err.println("MainView Error: mainController is null during logout!");
+            }
+            // 2. Đóng cửa sổ MainView hiện tại
+            this.dispose();
+        }else {
+            System.out.println("Logout cancelled by user.");
         }
     }
 
