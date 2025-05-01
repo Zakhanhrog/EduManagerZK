@@ -134,13 +134,15 @@ public class MainController {
     /** Hiển thị hộp thoại "About". */
     public void showAboutDialog() {
         if (mainView != null) {
-            UIUtils.showInfoMessage(mainView, "About EduManager", "EduManager - Educational Management System\nVersion 1.0 (Basic)");
-        }
-        if (this.authController != null) {
-            System.out.println("MainController: Calling authController.showLoginView()...");
-            this.authController.showLoginView();
+            UIUtils.showInfoMessage(mainView,
+                    "About EduManager",
+                    "EduManager - Educational Management System\nVersion 1.0 (Devoloper zakhanh)");
         } else {
-            System.err.println("MainController Error: authController is null, cannot show login view!");
+            System.err.println("MainController Warning: mainView is null when trying to show About dialog.");
+            JOptionPane.showMessageDialog(null,
+                    "EduManager - Educational Management System\nVersion 1.0 (Devoloper zakhanh)",
+                    "About EduManager",
+                    JOptionPane.INFORMATION_MESSAGE);
         }
     }
 
