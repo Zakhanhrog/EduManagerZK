@@ -18,15 +18,14 @@ public class User implements Serializable {
         this.active = true; // Default to active
     }
 
-    public User(int userId, String username, String password, Role role, Integer teacherId) {
+    public User(int userId, String username, String password, Role role, Integer teacherId, Integer studentId) {
         this.userId = userId;
         this.username = username;
         this.password = password;
         this.role = role;
         this.active = true;
-        this.teacherId = teacherId;
-        this.studentId = studentId;
-
+        this.teacherId = teacherId; // Kiểu Integer
+        this.studentId = studentId; // Kiểu Integer
     }
     public Integer getTeacherId() {
         return teacherId;

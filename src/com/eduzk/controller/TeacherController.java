@@ -209,8 +209,6 @@ public class TeacherController {
 
             // Vô hiệu hóa nút khi import
             teacherPanel.setAllButtonsEnabled(false);
-            // Có thể thêm Label "Importing..." vào Panel
-
             SwingWorker<List<String>, Void> worker = new SwingWorker<List<String>, Void>() {
                 private int successCount = 0;
                 private int errorCount = 0;

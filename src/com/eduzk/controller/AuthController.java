@@ -148,13 +148,10 @@ public class AuthController {
             // --- 3. Validation và Logic riêng theo từng Role ---
             if (role == Role.STUDENT) {
                 System.out.println("Processing STUDENT registration...");
-                // Validation: Username phải là SĐT hợp lệ
                 if (!ValidationUtils.isValidPhoneNumber(username)) {
                     UIUtils.showWarningMessage(null, "Registration Failed", "A valid phone number is required as username for student registration.");
                     return false;
                 }
-
-                // Kiểm tra sự tồn tại của Student bằng SĐT
                 if (this.studentDAO == null) {
                     throw new IllegalStateException("StudentDAO is not initialized in AuthController.");
                 }
@@ -168,7 +165,6 @@ public class AuthController {
                 studentIdToLink = existingStudent.getStudentId();
                 System.out.println("Found student ID: " + studentIdToLink + " for phone: " + username);
 
-                // Kiểm tra xem studentId này đã có tài khoản User nào liên kết chưa
                 System.out.println("Checking if student ID " + studentIdToLink + " already has an account...");
                 if (userDAO.findByStudentId(studentIdToLink).isPresent()) {
                     UIUtils.showWarningMessage(null, "Registration Failed", "An account already exists for the student with this phone number (Student ID: " + studentIdToLink + ").");
@@ -179,19 +175,14 @@ public class AuthController {
 
             } else if (role == Role.TEACHER) {
                 System.out.println("Processing TEACHER registration...");
-                // Validation: Username phải là username hợp lệ
                 if (!ValidationUtils.isValidUsername(username)) {
                     UIUtils.showWarningMessage(null, "Registration Failed", "Invalid username format for teacher (3-20 alphanumeric/underscore).");
                     return false;
                 }
-
-                // Validation: Teacher ID phải được cung cấp và hợp lệ
                 if (teacherIdInput == null || teacherIdInput <= 0) {
                     UIUtils.showWarningMessage(null, "Registration Failed", "A valid Teacher ID (provided by Admin) is required.");
                     return false;
                 }
-
-                // Kiểm tra sự tồn tại của Teacher bằng ID
                 if (this.teacherDAO == null) {
                     throw new IllegalStateException("TeacherDAO is not initialized in AuthController.");
                 } // Lỗi cấu hình

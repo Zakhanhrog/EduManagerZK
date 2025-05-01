@@ -63,7 +63,7 @@ public class StudentPanel extends JPanel {
         deleteButton = new JButton("Delete", UIUtils.createImageIcon("/icons/delete.png", "Delete"));
         refreshButton = new JButton("Refresh", UIUtils.createImageIcon("/icons/refresh.png", "Refresh"));  // <-- 2. KHỞI TẠO NÚT REFRESH
         refreshButton.setToolTipText("Reload student data from storage");
-        importButton = new JButton("Import Excel", UIUtils.createImageIcon("/icons/import.png", "Import"));
+        importButton = new JButton("Import", UIUtils.createImageIcon("/icons/import.png", "Import"));
         importButton.setToolTipText("Import student data from an Excel file (.xlsx)");
 
         // Search Components

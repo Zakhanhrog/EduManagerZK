@@ -1,5 +1,10 @@
 package com.eduzk.controller;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.io.IOException;
+import javax.swing.JOptionPane;
 import com.eduzk.model.entities.*;
 import com.eduzk.utils.UIUtils;
 import com.eduzk.view.MainView;
@@ -7,12 +12,11 @@ import com.eduzk.model.dao.impl.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.File;
 import java.util.List;
-import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import java.awt.Component;
 
 public class MainController {
     public static final String EXPORT_STUDENTS = "Student List";
@@ -21,10 +25,8 @@ public class MainController {
     public static final String EXPORT_ROOMS = "Room List";
     public static final String EXPORT_CLASSES = "Class List (Basic Info)";
     public static final String EXPORT_SCHEDULE = "Schedule (Current View. All)";
-
     private final User loggedInUser;
     private MainView mainView;
-
     private final AuthController authController;
     private StudentController studentController;
     private TeacherController teacherController;
@@ -32,7 +34,6 @@ public class MainController {
     private RoomController roomController;
     private EduClassController eduClassController;
     private ScheduleController scheduleController;
-
     private static final String DATA_DIR = "data/";
     private static final String ID_FILE = DATA_DIR + "next_ids.dat";
     private static final String USERS_FILE = DATA_DIR + "users.dat";
@@ -59,7 +60,6 @@ public class MainController {
             System.err.println("Error: MainView is null in setMainView!");
             return;
         }
-
         // 1. Truyền các controller con đã được khởi tạo vào MainView
         mainView.setControllers(
                 studentController,
@@ -93,9 +93,7 @@ public class MainController {
             roomController = new RoomController(roomDAO, loggedInUser);
             eduClassController = new EduClassController(eduClassDAO, courseDAO, teacherDAO, studentDAO, loggedInUser);
             scheduleController = new ScheduleController(scheduleDAO, eduClassDAO, teacherDAO, roomDAO, loggedInUser);
-
             System.out.println("DAOs and Controllers initialized successfully.");
-
         } catch (Exception e) {
             System.err.println("!!! CRITICAL ERROR DURING DAO/CONTROLLER INITIALIZATION !!!");
             e.printStackTrace();

@@ -45,9 +45,8 @@ public class App {
                 System.out.println("DAOs initialized.");
 
                 // 4. Tạo tài khoản mặc định nếu cần
-                // (Giữ lại logic này để tiện cho việc chạy lần đầu hoặc sau khi xóa data)
                 System.out.println("Checking/Initializing default accounts if necessary...");
-                initializeDefaultAccounts(userDAO, teacherDAO);
+                initializeDefaultAdminAccount(userDAO);
 
                 // 5. Khởi tạo AuthController và inject TeacherDAO
                 System.out.println("Initializing AuthController...");
@@ -78,51 +77,27 @@ public class App {
         System.out.println("main() method finished scheduling EDT task.");
     }
 
-    /**
-     * Phương thức helper tạo tài khoản mặc định (Giữ nguyên logic này).
-     * @param userDAO DAO User.
-     * @param teacherDAO DAO Teacher.
-     */
-    private static void initializeDefaultAccounts(UserDAOImpl userDAO, TeacherDAOImpl teacherDAO) {
+    private static void initializeDefaultAdminAccount(UserDAOImpl userDAO) {
         try {
+            System.out.println("Checking if any users exist...");
             if (userDAO.getAll().isEmpty()) {
-                System.out.println("No users found. Creating default accounts...");
-
-                // Tạo Admin
+                System.out.println("No users found. Creating default ADMIN account...");
                 try {
-                    User adminUser = new User(0, "admin", "admin", Role.ADMIN, null);
+                    User adminUser = new User(0, "admin", "admin", Role.ADMIN, null, null);
                     userDAO.add(adminUser);
-                    System.out.println("- Default admin user (admin/admin) created.");
-                } catch (Exception adminEx) { System.err.println("! Error creating admin user: " + adminEx.getMessage()); }
-
-                // Tạo Teacher
-                try {
-                    Integer teacherLinkId = 1; // <-- NHỚ SỬA ID NÀY NẾU CẦN
-                    if (teacherLinkId != null && teacherLinkId > 0) {
-                        Teacher existingTeacher = teacherDAO.getById(teacherLinkId);
-                        if (existingTeacher != null) {
-                            User teacherUser = new User(0, "teacher1", "teacher1", Role.TEACHER, teacherLinkId);
-                            userDAO.add(teacherUser);
-                            System.out.println("- Default teacher user (teacher1/teacher1) linked to Teacher ID " + teacherLinkId + " created.");
-                        } else { System.err.println("! Skipping teacher user creation: Teacher with ID " + teacherLinkId + " NOT FOUND."); }
-                    } else { System.err.println("! Skipping teacher user creation: Invalid teacherLinkId (" + teacherLinkId + ")."); }
-                } catch (Exception teacherEx) { System.err.println("! Error creating teacher user: " + teacherEx.getMessage()); }
-
-                // Tạo Student
-                try {
-                    User studentUser = new User(0, "student1", "student1", Role.STUDENT, null);
-                    userDAO.add(studentUser);
-                    System.out.println("- Default student user (student1/student1) created.");
-                } catch (Exception studentEx) { System.err.println("! Error creating student user: " + studentEx.getMessage()); }
-
-                System.out.println("Default account creation process finished.");
-
+                    System.out.println("- Default admin user (admin/admin) created successfully.");
+                } catch (Exception adminEx) {
+                    System.err.println("! Error creating default admin user: " + adminEx.getMessage());
+                    adminEx.printStackTrace();
+                }
             } else {
-                System.out.println("Users already exist. Skipping default account creation.");
+                System.out.println("Users already exist. Skipping default admin account creation.");
             }
         } catch (Exception generalEx) {
-            System.err.println("!! Error during default account check process: " + generalEx.getMessage());
+            System.err.println("!! Error during default admin account check/creation process: " + generalEx.getMessage());
             generalEx.printStackTrace();
         }
+
     }
+
 }
