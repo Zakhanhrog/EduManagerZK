@@ -3,7 +3,6 @@ package com.eduzk.model.dao.impl;
 import com.eduzk.model.dao.interfaces.ITeacherDAO;
 import com.eduzk.model.entities.Teacher;
 import com.eduzk.model.exceptions.DataAccessException;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -107,6 +106,51 @@ public class TeacherDAOImpl extends BaseDAO<Teacher> implements ITeacherDAO {
                     .collect(Collectors.toList());
         } finally {
             lock.readLock().unlock();
+        }
+    }
+    @Override
+    public int deleteMultiple(List<Integer> ids) throws DataAccessException {
+        if (ids == null || ids.isEmpty()) {
+            return 0; // Không có gì để xóa
+        }
+
+        int initialSize;
+        int finalSize;
+
+        lock.writeLock().lock(); // Lấy khóa ghi vì ta sẽ thay đổi dataList
+        try {
+            initialSize = dataList.size(); // Ghi lại kích thước ban đầu
+            System.out.println("TeacherDAOImpl.deleteMultiple: Initial size = " + initialSize + ", attempting to remove IDs: " + ids);
+
+            // Sử dụng removeIf để xóa hiệu quả các phần tử khớp với danh sách IDs
+            // Cần chuyển List<Integer> thành một cấu trúc cho phép kiểm tra nhanh (ví dụ: Set) nếu danh sách ID lớn
+            // Với danh sách nhỏ, contains() trên List cũng tạm ổn.
+            // List<Integer> finalIds = new ArrayList<>(ids); // Tạo bản copy final để dùng trong lambda
+            boolean removed = dataList.removeIf(teacher -> ids.contains(teacher.getTeacherId()));
+
+            finalSize = dataList.size(); // Ghi lại kích thước sau khi xóa
+            int deletedCount = initialSize - finalSize;
+            System.out.println("TeacherDAOImpl.deleteMultiple: Removed " + deletedCount + " items. Final size = " + finalSize);
+
+
+            // Chỉ gọi saveData MỘT LẦN nếu có sự thay đổi
+            if (deletedCount > 0) {
+                System.out.println("TeacherDAOImpl.deleteMultiple: Saving data after deletion...");
+                saveData(); // Lưu trạng thái mới của dataList vào file
+                System.out.println("TeacherDAOImpl.deleteMultiple: Data saved.");
+            } else {
+                System.out.println("TeacherDAOImpl.deleteMultiple: No items were removed matching the IDs.");
+            }
+
+            return deletedCount; // Trả về số lượng đã xóa
+
+        } catch (Exception e) { // Bắt lỗi chung khi remove hoặc save
+            // Gói lại lỗi thành DataAccessException để Controller xử lý nhất quán
+            System.err.println("Error during multiple delete operation: " + e.getMessage());
+            e.printStackTrace();
+            throw new DataAccessException("Error deleting multiple teachers.", e);
+        } finally {
+            lock.writeLock().unlock(); // Luôn nhả khóa ghi
         }
     }
 

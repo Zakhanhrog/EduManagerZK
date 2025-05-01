@@ -2,21 +2,24 @@ package com.eduzk.view;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.swing.JFileChooser;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.File;
-
 import com.eduzk.controller.*;
 import com.eduzk.model.entities.Role;
 import com.eduzk.model.entities.User;
 import com.eduzk.utils.UIUtils;
 import com.eduzk.view.panels.*;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import com.formdev.flatlaf.*;
+import com.formdev.flatlaf.themes.FlatMacDarkLaf;
+import com.formdev.flatlaf.themes.FlatMacLightLaf;
+
+import javax.swing.ButtonGroup;
+import javax.swing.JRadioButtonMenuItem;
 
 public class MainView extends JFrame {
 
@@ -43,31 +46,23 @@ public class MainView extends JFrame {
     private void initComponents() {
         tabbedPane = new JTabbedPane();
         statusLabel = new JLabel("Ready.");
-
-        // Instantiate panels (controllers will be set later via setControllers)
-        studentPanel = new StudentPanel(null); // Pass null controller initially
+        studentPanel = new StudentPanel(null);
         teacherPanel = new TeacherPanel(null);
         coursePanel = new CoursePanel(null);
         roomPanel = new RoomPanel(null);
         classPanel = new ClassPanel(null);
         schedulePanel = new SchedulePanel(null);
-        // Instantiate other panels...
     }
 
     private void setupLayout() {
         setTitle("EduZakhanh - Educational Management");
         setLayout(new BorderLayout());
-
-        // Add panels to tabbed pane (visibility controlled later by configureViewForUser)
-        // Icons can be added here using UIUtils.createImageIcon
         tabbedPane.addTab("Students", null, studentPanel, "Manage Students");
         tabbedPane.addTab("Teachers", null, teacherPanel, "Manage Teachers");
         tabbedPane.addTab("Courses", null, coursePanel, "Manage Courses");
         tabbedPane.addTab("Rooms", null, roomPanel, "Manage Rooms");
         tabbedPane.addTab("Classes", null, classPanel, "Manage Classes & Enrollment");
         tabbedPane.addTab("Schedule", null, schedulePanel, "Manage Class Schedules");
-        // Add other tabs...
-
         add(tabbedPane, BorderLayout.CENTER);
 
         // Status Bar
@@ -96,9 +91,33 @@ public class MainView extends JFrame {
         // Menu export
         JMenu exportMenu = new JMenu("Export");
         JMenuItem exportExcelItem = new JMenuItem("Export to Excel...");
-        exportExcelItem.addActionListener(e -> showExportExcelDialog()); // Gọi hàm mới
+        exportExcelItem.addActionListener(e -> showExportExcelDialog());
         exportMenu.add(exportExcelItem);
         menuBar.add(exportMenu);
+
+        // Themes
+        JMenu viewMenu = new JMenu("View");
+        JMenu themeMenu = new JMenu("Themes");
+        ButtonGroup themeGroup = new ButtonGroup();
+        JRadioButtonMenuItem lightThemeItem = createThemeMenuItem("Light", FlatLightLaf.class.getName(), themeGroup);
+        JRadioButtonMenuItem darkThemeItem = createThemeMenuItem("Dark", FlatDarkLaf.class.getName(), themeGroup);
+        JRadioButtonMenuItem intellijThemeItem = createThemeMenuItem("IntelliJ Light", FlatIntelliJLaf.class.getName(), themeGroup);
+        JRadioButtonMenuItem macLightThemeItem = createThemeMenuItem("Mac Light", FlatMacLightLaf.class.getName(), themeGroup);
+        JRadioButtonMenuItem macDarkThemeItem = createThemeMenuItem("Mac Dark", FlatMacDarkLaf.class.getName(), themeGroup);
+
+        themeMenu.add(lightThemeItem);
+        themeMenu.add(darkThemeItem);
+        themeMenu.add(intellijThemeItem);
+        themeMenu.add(macLightThemeItem);
+        themeMenu.add(macDarkThemeItem);
+        viewMenu.add(themeMenu);
+        menuBar.add(viewMenu);
+        String currentLaf = UIManager.getLookAndFeel().getClass().getName();
+        if (currentLaf.equals(FlatLightLaf.class.getName())) lightThemeItem.setSelected(true);
+        else if (currentLaf.equals(FlatDarkLaf.class.getName())) darkThemeItem.setSelected(true);
+        else if (currentLaf.equals(FlatIntelliJLaf.class.getName())) intellijThemeItem.setSelected(true);
+        else if (currentLaf.equals(FlatMacLightLaf.class.getName())) macLightThemeItem.setSelected(true);
+        else if (currentLaf.equals(FlatMacDarkLaf.class.getName())) macDarkThemeItem.setSelected(true);
 
         // Help Menu
         JMenu helpMenu = new JMenu("Help");
@@ -108,6 +127,17 @@ public class MainView extends JFrame {
         menuBar.add(helpMenu);
 
         setJMenuBar(menuBar);
+    }
+
+    private JRadioButtonMenuItem createThemeMenuItem(String text, String lafClassName, ButtonGroup group) {
+        JRadioButtonMenuItem menuItem = new JRadioButtonMenuItem(text);
+        menuItem.addActionListener(e -> {
+            if (mainController != null) {
+                mainController.setLookAndFeel(lafClassName);
+            }
+        });
+        group.add(menuItem);
+        return menuItem;
     }
 
     private void showExportExcelDialog() {
@@ -233,10 +263,14 @@ public class MainView extends JFrame {
         roomPanel.setController(rc);
         classPanel.setController(ecc);
         schedulePanel.setController(schc);
-        // Set controllers for other panels...
-
-        // Initial data load for the visible panel (optional, panels can load on visibility change)
         studentPanel.refreshTable();
+
+        if (sc != null) sc.setStudentPanel(studentPanel); // <-- Dòng quan trọng
+        if (tc != null) tc.setTeacherPanel(teacherPanel); // <-- Làm tương tự cho Teacher
+        if (cc != null) cc.setCoursePanel(coursePanel);   // <-- Làm tương tự cho Course
+        if (rc != null) rc.setRoomPanel(roomPanel);       // <-- Làm tương tự cho Room
+        if (ecc != null) ecc.setClassPanel(classPanel);     // <-- Làm tương tự cho Class
+        if (schc != null) schc.setSchedulePanel(schedulePanel); // <-- Làm tương tự cho Schedule
     }
 
     // Configure visible tabs based on user role
@@ -250,10 +284,7 @@ public class MainView extends JFrame {
 
         setTitle("EduZakhanh - Welcome, " + user.getUsername() + " (" + user.getRole().getDisplayName() + ")");
         statusLabel.setText("Logged in as: " + user.getRole().getDisplayName());
-
-        // Example: Hide/Show tabs based on role
-        tabbedPane.removeAll(); // Clear existing tabs first
-
+            tabbedPane.removeAll();
         if (user.getRole() == Role.ADMIN) {
             tabbedPane.addTab("Schedule", null, schedulePanel, "Manage Class Schedules");
             tabbedPane.addTab("Classes", null, classPanel, "Manage Classes & Enrollment");
@@ -261,64 +292,46 @@ public class MainView extends JFrame {
             tabbedPane.addTab("Teachers", null, teacherPanel, "Manage Teachers");
             tabbedPane.addTab("Courses", null, coursePanel, "Manage Courses");
             tabbedPane.addTab("Rooms", null, roomPanel, "Manage Rooms");
-            // Add Admin-specific tabs like User Management here
         } else if (user.getRole() == Role.TEACHER) {
-            // Teachers might only see Schedule, their Classes, related Students
             tabbedPane.addTab("My Schedule", null, schedulePanel, "View My Schedule"); // SchedulePanel needs to filter by teacher
             tabbedPane.addTab("My Classes", null, classPanel, "View My Classes & Students"); // ClassPanel needs filter/mode
             tabbedPane.addTab("My Students", null, studentPanel, "View Students in My Classes"); // StudentPanel needs filter/mode
-            // Add Grade/Attendance tabs for teachers
-        }else if (user.getRole() == Role.STUDENT) { // <-- THÊM KHỐI ELSE IF NÀY
-            // Student chỉ xem được lịch học và lớp học của mình (ví dụ)
+        }else if (user.getRole() == Role.STUDENT) {
             tabbedPane.addTab("My Schedule", null, schedulePanel, "View My Schedule");
             tabbedPane.addTab("My Classes", null, classPanel, "View My Classes");
-            // TODO: Thêm tab xem điểm
 
-            // Vô hiệu hóa tất cả các nút chỉnh sửa/thêm/xóa
-            setPanelControlsEnabled(false); // Gọi hàm helper mới
+            setPanelControlsEnabled(false);
         }
-        // Add configurations for other roles if needed
-
-        // Refresh the initially selected tab after configuration
-//        Component selectedComponent = tabbedPane.getSelectedComponent();
-//        if (selectedComponent instanceof StudentPanel) ((StudentPanel) selectedComponent).refreshTable();
-//        else if (selectedComponent instanceof TeacherPanel) ((TeacherPanel) selectedComponent).refreshTable();
-        // Add refreshes for other panel types as needed for the default view
     }
 
 
     // --- THÊM PHƯƠNG THỨC HELPER NÀY VÀO MainView.java ---
     private void setPanelControlsEnabled(boolean isAdmin) {
-        // Mặc định vô hiệu hóa các nút nhạy cảm nếu không phải Admin
-        // Sau đó có thể tùy chỉnh thêm cho Teacher nếu cần
 
         // Student Panel
         if (studentPanel != null) {
-            studentPanel.setAdminControlsEnabled(isAdmin); // Thêm phương thức này vào StudentPanel
+            studentPanel.setAdminControlsEnabled(isAdmin);
         }
         // Teacher Panel
         if (teacherPanel != null) {
-            teacherPanel.setAdminControlsEnabled(isAdmin); // Thêm phương thức này vào TeacherPanel
+            teacherPanel.setAdminControlsEnabled(isAdmin);
         }
         // Course Panel
         if (coursePanel != null) {
-            coursePanel.setAdminControlsEnabled(isAdmin); // Thêm phương thức này vào CoursePanel
+            coursePanel.setAdminControlsEnabled(isAdmin);
         }
         // Room Panel
         if (roomPanel != null) {
-            roomPanel.setAdminControlsEnabled(isAdmin); // Thêm phương thức này vào RoomPanel
+            roomPanel.setAdminControlsEnabled(isAdmin);
         }
         // Class Panel
         if (classPanel != null) {
-            classPanel.setAdminControlsEnabled(isAdmin); // Thêm phương thức này vào ClassPanel
-            // Teacher có thể cần Enroll/Unenroll? Tùy chỉnh nếu cần
-            // classPanel.setEnrollmentControlsEnabled(isAdmin || isTeacher);
+            classPanel.setAdminControlsEnabled(isAdmin);
         }
         // Schedule Panel
         if (schedulePanel != null) {
-            schedulePanel.setAdminControlsEnabled(isAdmin); // Thêm phương thức này vào SchedulePanel
+            schedulePanel.setAdminControlsEnabled(isAdmin);
         }
-        // ... Thêm cho các panel khác nếu có ...
     }
 
     public void refreshSelectedTab() {

@@ -5,14 +5,14 @@ import com.eduzk.model.entities.Student;
 import com.eduzk.utils.DateUtils;
 import com.eduzk.utils.UIUtils;
 import com.eduzk.view.dialogs.StudentDialog; // Import the dialog
-
-
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.util.List;
 import java.util.Vector;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 public class StudentPanel extends JPanel {
 
@@ -23,6 +23,7 @@ public class StudentPanel extends JPanel {
     private JButton refreshButton;
     private JTextField searchField;
     private TableRowSorter<DefaultTableModel> sorter;
+    private JButton importButton;
 
 
     public StudentPanel(StudentController controller) {
@@ -51,7 +52,7 @@ public class StudentPanel extends JPanel {
             }
         };
         studentTable = new JTable(tableModel);
-        studentTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); // Allow only one row selection
+        studentTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         studentTable.setAutoCreateRowSorter(true); // Enable basic sorting
         sorter = (TableRowSorter<DefaultTableModel>) studentTable.getRowSorter();
 
@@ -62,6 +63,8 @@ public class StudentPanel extends JPanel {
         deleteButton = new JButton("Delete", UIUtils.createImageIcon("/icons/delete.png", "Delete"));
         refreshButton = new JButton("Refresh", UIUtils.createImageIcon("/icons/refresh.png", "Refresh"));  // <-- 2. KHỞI TẠO NÚT REFRESH
         refreshButton.setToolTipText("Reload student data from storage");
+        importButton = new JButton("Import Excel", UIUtils.createImageIcon("/icons/import.png", "Import"));
+        importButton.setToolTipText("Import student data from an Excel file (.xlsx)");
 
         // Search Components
         searchField = new JTextField(20);
@@ -78,7 +81,8 @@ public class StudentPanel extends JPanel {
         searchPanel.add(searchButton);
 
         JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        actionPanel.add(refreshButton); // Thêm vào trước hoặc sau tùy ý
+        actionPanel.add(importButton);
+        actionPanel.add(refreshButton);
         actionPanel.add(addButton);
         actionPanel.add(editButton);
         actionPanel.add(deleteButton);
@@ -118,20 +122,51 @@ public class StudentPanel extends JPanel {
         });
 
         deleteButton.addActionListener(e -> {
-            int selectedRow = studentTable.getSelectedRow();
-            if (selectedRow >= 0) {
-                int modelRow = studentTable.convertRowIndexToModel(selectedRow);
-                int studentId = (int) tableModel.getValueAt(modelRow, 0);
-                String studentName = (String) tableModel.getValueAt(modelRow, 1); // Get name for confirmation
+            // Lấy tất cả các hàng đang được chọn trên VIEW
+            int[] selectedViewRows = studentTable.getSelectedRows();
 
-                if (UIUtils.showConfirmDialog(this, "Confirm Deletion", "Are you sure you want to delete student '" + studentName + "' (ID: " + studentId + ")?")) {
-                    if (controller != null) {
-                        controller.deleteStudent(studentId);
-                        // refreshTable() will be called by the controller on success
-                    }
+            if (selectedViewRows.length == 0) { // Không có hàng nào được chọn
+                UIUtils.showWarningMessage(this, "Selection Required", "Please select one or more students to delete.");
+                return;
+            }
+
+            // Chuyển đổi chỉ số hàng từ VIEW sang MODEL (quan trọng khi có sắp xếp/lọc)
+            // và lấy danh sách ID cần xóa
+            List<Integer> idsToDelete = new ArrayList<>();
+            List<String> namesToDelete = new ArrayList<>(); // Để hiển thị trong thông báo xác nhận
+            for (int viewRow : selectedViewRows) {
+                int modelRow = studentTable.convertRowIndexToModel(viewRow);
+                if (modelRow >= 0) { // Đảm bảo hàng vẫn tồn tại trong model
+                    idsToDelete.add((Integer) tableModel.getValueAt(modelRow, 0)); // Giả sử cột 0 là ID (Integer)
+                    namesToDelete.add((String) tableModel.getValueAt(modelRow, 1)); // Giả sử cột 1 là Name (String)
                 }
+            }
+
+            if (idsToDelete.isEmpty()) {
+                // Có thể xảy ra nếu các hàng được chọn đã bị xóa bởi thao tác khác
+                UIUtils.showWarningMessage(this, "Error", "Could not find selected students in the data model.");
+                return;
+            }
+
+            // Tạo thông điệp xác nhận
+            String confirmationMessage;
+            if (idsToDelete.size() == 1) {
+                confirmationMessage = "Are you sure you want to delete student '" + namesToDelete.get(0) + "' (ID: " + idsToDelete.get(0) + ")?";
             } else {
-                UIUtils.showWarningMessage(this, "Selection Required", "Please select a student to delete.");
+                confirmationMessage = "Are you sure you want to delete these " + idsToDelete.size() + " students?\n"
+                        + "(IDs: " + idsToDelete.toString() + ")"; // Hiển thị danh sách ID
+            }
+
+            // Hiển thị hộp thoại xác nhận
+            if (UIUtils.showConfirmDialog(this, "Confirm Deletion", confirmationMessage)) {
+                if (controller != null) {
+                    // Gọi phương thức xóa hàng loạt mới trong Controller
+                    System.out.println("Requesting deletion for student IDs: " + idsToDelete);
+                    controller.deleteStudents(idsToDelete); // <-- Gọi hàm xóa mới
+                    // Refresh sẽ được gọi trong controller nếu xóa thành công
+                } else {
+                    UIUtils.showErrorMessage(this, "Error", "Student Controller not available.");
+                }
             }
         });
 
@@ -143,6 +178,15 @@ public class StudentPanel extends JPanel {
             refreshTable(); // Gọi lại chính phương thức refresh của panel này
             UIUtils.showInfoMessage(this,"Refreshed", "Student list updated."); // Thông báo (tùy chọn)
         });
+
+        importButton.addActionListener(e -> {
+            if (controller != null) {
+                controller.importStudentsFromExcel(); // Gọi hàm mới trong controller
+            } else {
+                UIUtils.showErrorMessage(this, "Error", "Student Controller not available.");
+            }
+        });
+
 
     }
 
@@ -217,5 +261,16 @@ public class StudentPanel extends JPanel {
         // Các nút khác (Search) có thể luôn hiển thị/enabled
         // searchButton.setEnabled(true);
         // searchField.setEnabled(true);
+    }
+
+    public void setAllButtonsEnabled(boolean enabled) {
+        if (importButton != null) importButton.setEnabled(enabled);
+        if (refreshButton != null) refreshButton.setEnabled(enabled);
+        if (addButton != null) addButton.setEnabled(enabled);
+        if (editButton != null) editButton.setEnabled(enabled);
+        if (deleteButton != null) deleteButton.setEnabled(enabled);
+        // Có thể không cần vô hiệu hóa nút Search
+        // if (searchButton != null) searchButton.setEnabled(enabled);
+        // if (searchField != null) searchField.setEnabled(enabled);
     }
 }

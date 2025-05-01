@@ -19,6 +19,8 @@ import java.util.Collections;
 import java.util.ArrayList;
 import javax.swing.JOptionPane;
 import java.awt.Component;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 
 public class MainController {
     public static final String EXPORT_STUDENTS = "Student List";
@@ -177,9 +179,8 @@ public class MainController {
         Workbook workbook = null;
         try  {
             workbook = new XSSFWorkbook();
-            Sheet sheet = workbook.createSheet(dataType); // Tạo sheet với tên là loại dữ liệu
+            Sheet sheet = workbook.createSheet(dataType);
 
-            // --- Logic lấy dữ liệu và ghi vào sheet dựa trên dataType ---
             switch (dataType) {
                 case EXPORT_STUDENTS:
                     exportStudentData(sheet);
@@ -200,13 +201,12 @@ public class MainController {
                     exportClassData(sheet);
                     break;
                 case EXPORT_SCHEDULE:
-                    exportScheduleData(sheet); // Truyền thêm timeStyle
+                    exportScheduleData(sheet);
                     break;
-                // Thêm các case khác nếu cần
                 default:
                     System.err.println("Unsupported data type for export: " + dataType);
                     UIUtils.showWarningMessage(mainView, "Export Failed", "Data type '" + dataType + "' is not supported for export yet.");
-                    return; // Thoát nếu không hỗ trợ
+                    return;
             }
 
             // --- Ghi Workbook ra file ---
@@ -237,12 +237,11 @@ public class MainController {
     }
 
     // --- CÁC PHƯƠNG THỨC HELPER ĐỂ XUẤT TỪNG LOẠI DỮ LIỆU ---
-
     private void exportStudentData(Sheet sheet) {
         System.out.println("Exporting Student data...");
         if (studentController == null) { System.err.println("StudentController is null!"); return; }
 
-        List<Student> students = studentController.getAllStudents(); // Lấy danh sách student
+        List<Student> students = studentController.getAllStudents();
         if (students == null || students.isEmpty()) { UIUtils.showInfoMessage(mainView, "Export Info", "No student data to export."); return; }
 
         // Tạo hàng tiêu đề
@@ -259,7 +258,6 @@ public class MainController {
             Row row = sheet.createRow(rowNum++);
             row.createCell(0).setCellValue(student.getStudentId());
             row.createCell(1).setCellValue(student.getFullName());
-            // Xử lý ngày tháng (cần định dạng)
             Cell dobCell = row.createCell(2);
             if (student.getDateOfBirth() != null) {
                 dobCell.setCellValue(student.getDateOfBirth().toString());
@@ -271,8 +269,6 @@ public class MainController {
             row.createCell(5).setCellValue(student.getEmail());
             row.createCell(6).setCellValue(student.getParentName());
         }
-
-        // (Tùy chọn: Tự động điều chỉnh độ rộng cột)
         for (int i = 0; i < headers.length; i++) {
             sheet.autoSizeColumn(i);
         }
@@ -300,7 +296,7 @@ public class MainController {
             row.createCell(4).setCellValue(teacher.getEmail());
             Cell dobCell = row.createCell(5);
             if (teacher.getDateOfBirth() != null) dobCell.setCellValue(teacher.getDateOfBirth().toString());
-            row.createCell(6).setCellValue(teacher.isActive()); // Excel sẽ hiển thị TRUE/FALSE
+            row.createCell(6).setCellValue(teacher.isActive());
         }
         for (int i = 0; i < headers.length; i++) sheet.autoSizeColumn(i);
     }
@@ -410,5 +406,19 @@ public class MainController {
             row.createCell(6).setCellValue(scheduleController.getRoomNameById(schedule.getRoomId()));
         }
         for (int i = 0; i < headers.length; i++) sheet.autoSizeColumn(i);
+    }
+
+    public void setLookAndFeel(String lafClassName) {
+        try {
+            UIManager.setLookAndFeel(lafClassName);
+            if (mainView != null) {
+                SwingUtilities.updateComponentTreeUI(mainView);
+                System.out.println("Look and Feel updated to: " + lafClassName);
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to set Look and Feel to: " + lafClassName);
+            e.printStackTrace();
+            UIUtils.showErrorMessage(mainView, "Theme Error", "Could not apply the selected theme.");
+        }
     }
 }

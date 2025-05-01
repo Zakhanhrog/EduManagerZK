@@ -10,6 +10,7 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
@@ -22,6 +23,7 @@ public class TeacherPanel extends JPanel {
     private JButton refreshButton;
     private JTextField searchField;
     private TableRowSorter<DefaultTableModel> sorter;
+    private JButton importButton;
 
     public TeacherPanel(TeacherController controller) {
         this.controller = controller;
@@ -56,7 +58,7 @@ public class TeacherPanel extends JPanel {
             }
         };
         teacherTable = new JTable(tableModel);
-        teacherTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        teacherTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         teacherTable.setAutoCreateRowSorter(true);
         sorter = (TableRowSorter<DefaultTableModel>) teacherTable.getRowSorter();
 
@@ -65,7 +67,9 @@ public class TeacherPanel extends JPanel {
         editButton = new JButton("Edit", UIUtils.createImageIcon("/icons/edit.png", "Edit"));
         deleteButton = new JButton("Delete", UIUtils.createImageIcon("/icons/delete.png", "Delete"));
         refreshButton = new JButton("Refresh", UIUtils.createImageIcon("/icons/refresh.png", "Refresh"));  // <-- 2. KHỞI TẠO NÚT REFRESH
-        refreshButton.setToolTipText("Reload teacher data from storage"); // Thêm gợi ý
+        refreshButton.setToolTipText("Reload teacher data from storage");
+        importButton = new JButton("Import Excel", UIUtils.createImageIcon("/icons/import.png", "Refresh")); // <-- Khởi tạo
+        importButton.setToolTipText("Import teachers data from an Excel file (.xlsx)");
 
         // Search Components
         searchField = new JTextField(20);
@@ -81,7 +85,8 @@ public class TeacherPanel extends JPanel {
         searchPanel.add(searchButton);
 
         JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        actionPanel.add(refreshButton); // Thêm vào trước hoặc sau tùy ý
+        actionPanel.add(importButton);
+        actionPanel.add(refreshButton);
         actionPanel.add(addButton);
         actionPanel.add(editButton);
         actionPanel.add(deleteButton);
@@ -116,19 +121,47 @@ public class TeacherPanel extends JPanel {
         });
 
         deleteButton.addActionListener(e -> {
-            int selectedRow = teacherTable.getSelectedRow();
-            if (selectedRow >= 0) {
-                int modelRow = teacherTable.convertRowIndexToModel(selectedRow);
-                int teacherId = (int) tableModel.getValueAt(modelRow, 0);
-                String teacherName = (String) tableModel.getValueAt(modelRow, 1);
+            // --- THAY ĐỔI LOGIC XÓA ---
+            int[] selectedViewRows = teacherTable.getSelectedRows(); // Lấy TẤT CẢ các hàng đang được chọn (chỉ số trên VIEW)
 
-                if (UIUtils.showConfirmDialog(this, "Confirm Deletion", "Are you sure you want to delete teacher '" + teacherName + "' (ID: " + teacherId + ")?")) {
-                    if (controller != null) {
-                        controller.deleteTeacher(teacherId);
-                    }
+            if (selectedViewRows.length == 0) {
+                // Không có hàng nào được chọn
+                UIUtils.showWarningMessage(this, "Selection Required", "Please select at least one teacher to delete.");
+                return; // Thoát khỏi hành động
+            }
+
+            // Chuyển đổi chỉ số View sang chỉ số Model và lấy IDs
+            List<Integer> teacherIdsToDelete = new ArrayList<>();
+            List<String> teacherNamesToDelete = new ArrayList<>();
+            for (int viewRow : selectedViewRows) {
+                int modelRow = teacherTable.convertRowIndexToModel(viewRow); // Quan trọng: Chuyển sang Model index
+                teacherIdsToDelete.add((Integer) tableModel.getValueAt(modelRow, 0)); // Giả sử cột 0 là ID (Integer)
+                teacherNamesToDelete.add((String) tableModel.getValueAt(modelRow, 1)); // Giả sử cột 1 là Tên (String)
+            }
+
+            // Hiển thị thông báo xác nhận xóa nhiều
+            String confirmationMessage = "Are you sure you want to delete the following "
+                    + teacherIdsToDelete.size() + " teacher(s)?\n\n";
+            // Hiển thị tối đa 5-10 tên để xác nhận trực quan
+            int namesToShow = Math.min(teacherNamesToDelete.size(), 5);
+            for (int i = 0; i < namesToShow; i++) {
+                confirmationMessage += "- " + teacherNamesToDelete.get(i) + " (ID: " + teacherIdsToDelete.get(i) + ")\n";
+            }
+            if (teacherNamesToDelete.size() > namesToShow) {
+                confirmationMessage += "... and " + (teacherNamesToDelete.size() - namesToShow) + " more.";
+            }
+
+            if (UIUtils.showConfirmDialog(this, "Confirm Deletion", confirmationMessage)) {
+                System.out.println("Deletion confirmed for IDs: " + teacherIdsToDelete);
+                // Gọi phương thức xóa nhiều trong Controller
+                if (controller != null) {
+                    controller.deleteMultipleTeachers(teacherIdsToDelete); // Gọi hàm mới trong Controller
+                    // Controller sẽ gọi refreshTable sau khi xóa xong
+                } else {
+                    System.err.println("TeacherPanel Error: Controller is null, cannot delete.");
                 }
             } else {
-                UIUtils.showWarningMessage(this, "Selection Required", "Please select a teacher to delete.");
+                System.out.println("Deletion cancelled by user.");
             }
         });
 
@@ -139,6 +172,21 @@ public class TeacherPanel extends JPanel {
             refreshTable(); // Gọi lại chính phương thức refresh của panel này
             UIUtils.showInfoMessage(this,"Refreshed", "Teacher list updated."); // Thông báo (tùy chọn)
         });
+        importButton.addActionListener(e -> {
+            if (controller != null) {
+                controller.importTeachersFromExcel(); // Gọi hàm mới trong controller
+            } else {
+                UIUtils.showErrorMessage(this, "Error", "Teachers Controller not available.");
+            }
+        });
+
+    }
+    public void setAllButtonsEnabled(boolean enabled) {
+        if (importButton != null) importButton.setEnabled(enabled);
+        if (refreshButton != null) refreshButton.setEnabled(enabled);
+        if (addButton != null) addButton.setEnabled(enabled);
+        if (editButton != null) editButton.setEnabled(enabled);
+        if (deleteButton != null) deleteButton.setEnabled(enabled);
     }
 
     private void performSearch() {

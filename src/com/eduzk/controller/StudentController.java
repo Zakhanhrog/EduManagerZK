@@ -8,17 +8,24 @@ import com.eduzk.model.dao.interfaces.IEduClassDAO;
 import com.eduzk.model.entities.Student;
 import com.eduzk.model.entities.EduClass;
 import com.eduzk.model.exceptions.DataAccessException;
+import com.eduzk.utils.DateUtils;
 import com.eduzk.utils.ValidationUtils;
 import com.eduzk.utils.UIUtils; // For showing messages
 import com.eduzk.view.panels.StudentPanel; // To update the panel's table
 import com.eduzk.model.dao.interfaces.IUserDAO; // <-- THÊM IMPORT
 import com.eduzk.model.entities.User;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class StudentController {
@@ -234,5 +241,225 @@ public class StudentController {
     }
     public boolean isCurrentUserAdmin() {
         return this.currentUser != null && this.currentUser.getRole() == Role.ADMIN;
+    }
+
+    public void importStudentsFromExcel() {
+        if (studentPanel == null) {
+            System.err.println("StudentPanel is null in controller.");
+            return;
+        }
+        if (!isCurrentUserAdmin()) {
+            UIUtils.showErrorMessage(studentPanel, "Permission Denied", "Only administrators can import students data.");
+            return;
+        }
+
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Select Student Excel File");
+        fileChooser.setFileFilter(new FileNameExtensionFilter("Excel Files (*.xlsx)", "xlsx"));
+        fileChooser.setAcceptAllFileFilterUsed(false); // Chỉ chấp nhận .xlsx
+
+        int result = fileChooser.showOpenDialog(studentPanel); // Hiển thị dialog mở file
+
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            System.out.println("Importing students from: " + selectedFile.getAbsolutePath());
+
+            // --- Sử dụng SwingWorker để đọc và import trên luồng nền ---
+            // Hiển thị trạng thái chờ trên panel (ví dụ: thay đổi text của một label)
+            // studentPanel.showLoadingState(true); // Cần thêm hàm này vào StudentPanel
+
+            // Vô hiệu hóa các nút trong khi import
+            studentPanel.setAllButtonsEnabled(false); // Cần thêm hàm này vào StudentPanel
+
+
+            SwingWorker<List<String>, Void> worker = new SwingWorker<List<String>, Void>() {
+                private int successCount = 0;
+                private int errorCount = 0;
+
+                @Override
+                protected List<String> doInBackground() throws Exception {
+                    List<String> errors = new ArrayList<>();
+                    FileInputStream fis = null;
+                    Workbook workbook = null;
+                    try {
+                        fis = new FileInputStream(selectedFile);
+                        workbook = new XSSFWorkbook(fis); // Mở file .xlsx
+                        Sheet sheet = workbook.getSheetAt(0); // Giả sử dữ liệu ở sheet đầu tiên
+
+                        Iterator<Row> rowIterator = sheet.iterator();
+
+                        // Bỏ qua hàng tiêu đề (giả sử hàng đầu tiên là header)
+                        if (rowIterator.hasNext()) {
+                            rowIterator.next();
+                        }
+
+                        int rowNum = 1; // Bắt đầu từ hàng 1 (sau header)
+                        while (rowIterator.hasNext()) {
+                            Row row = rowIterator.next();
+                            rowNum++;
+                            try {
+                                // --- Đọc dữ liệu từ các ô ---
+                                // Quan trọng: Thứ tự cột phải khớp với file Excel mẫu
+                                // Cần xử lý cẩn thận kiểu dữ liệu và ô trống (null)
+                                String fullName = getStringCellValue(row.getCell(0)); // Cột 0: Full Name
+                                LocalDate dob = getDateCellValue(row.getCell(1));    // Cột 1: Date of Birth
+                                String gender = getStringCellValue(row.getCell(2));   // Cột 2: Gender
+                                String address = getStringCellValue(row.getCell(3));  // Cột 3: Address
+                                String parentName = getStringCellValue(row.getCell(4));// Cột 4: Parent Name
+                                String phone = getStringCellValue(row.getCell(5));    // Cột 5: Phone
+                                String email = getStringCellValue(row.getCell(6));    // Cột 6: Email
+
+                                // --- Validation cơ bản ---
+                                if (fullName == null || fullName.trim().isEmpty() || phone == null || phone.trim().isEmpty()) {
+                                    throw new IllegalArgumentException("Full Name and Phone are required.");
+                                }
+                                // Thêm validation khác nếu cần (SĐT, Email hợp lệ,...)
+
+                                // --- Tạo đối tượng Student ---
+                                Student newStudent = new Student();
+                                newStudent.setFullName(fullName.trim());
+                                newStudent.setDateOfBirth(dob);
+                                newStudent.setGender(gender != null ? gender.trim() : null);
+                                newStudent.setAddress(address != null ? address.trim() : null);
+                                newStudent.setParentName(parentName != null ? parentName.trim() : null);
+                                newStudent.setPhone(phone.trim()); // SĐT là username
+                                newStudent.setEmail(email != null ? email.trim() : null);
+
+                                // --- Gọi DAO để thêm ---
+                                // studentDAO.add sẽ tự xử lý ID
+                                studentDAO.add(newStudent);
+                                successCount++;
+
+                            } catch (Exception rowEx) {
+                                // Ghi lại lỗi cho hàng này
+                                String errorMsg = "Row " + rowNum + ": Error - " + rowEx.getMessage();
+                                System.err.println(errorMsg);
+                                errors.add(errorMsg);
+                                errorCount++;
+                            }
+                        } // Kết thúc while
+
+                    } finally {
+                        // Đóng workbook và input stream
+                        if (workbook != null) try { workbook.close(); } catch (IOException ignored) {}
+                        if (fis != null) try { fis.close(); } catch (IOException ignored) {}
+                    }
+                    return errors; // Trả về danh sách lỗi
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        List<String> errors = get(); // Lấy danh sách lỗi từ doInBackground
+                        // --- Cập nhật giao diện trên EDT ---
+                        if (studentPanel != null) {
+                            studentPanel.refreshTable(); // Làm mới bảng
+                            // studentPanel.showLoadingState(false); // Tắt trạng thái chờ
+                            studentPanel.setAllButtonsEnabled(true); // Bật lại các nút
+                        }
+
+                        // Hiển thị thông báo kết quả
+                        String message = "Import finished.\nSuccessfully imported: " + successCount + " students.\nErrors: " + errorCount;
+                        if (errorCount > 0) {
+                            message += "\n\nFirst few errors:\n" + String.join("\n", errors.stream().limit(5).toArray(String[]::new)); // Hiển thị tối đa 5 lỗi đầu
+                            UIUtils.showWarningMessage(studentPanel, "Import Partially Successful", message);
+                        } else {
+                            UIUtils.showInfoMessage(studentPanel, "Import Successful", message);
+                        }
+
+                    } catch (Exception e) {
+                        // Lỗi xảy ra trong quá trình import hoặc khi get() kết quả
+                        e.printStackTrace();
+                        UIUtils.showErrorMessage(studentPanel, "Import Error", "An error occurred during import: " + e.getMessage());
+                        if (studentPanel != null) {
+                            // studentPanel.showLoadingState(false);
+                            studentPanel.setAllButtonsEnabled(true);
+                        }
+                    }
+                }
+            };
+            worker.execute(); // Bắt đầu import nền
+        }
+    }
+
+    // --- HELPER ĐỌC GIÁ TRỊ TỪ Ô EXCEL (Cần thêm vào StudentController) ---
+
+    // Lấy giá trị String từ ô, xử lý ô null hoặc không phải String
+    private String getStringCellValue(Cell cell) {
+        if (cell == null) return null;
+        switch (cell.getCellType()) {
+            case STRING:
+                return cell.getStringCellValue();
+            case NUMERIC: // Nếu cột số nhưng muốn đọc thành String
+                // Có thể cần DataFormatter để đọc chính xác số hiển thị
+                // Tạm thời chuyển trực tiếp, có thể mất số 0 ở đầu
+                return String.valueOf((long)cell.getNumericCellValue());
+            case BOOLEAN:
+                return String.valueOf(cell.getBooleanCellValue());
+            case FORMULA: // Nếu là công thức, thử lấy kết quả đã tính
+                try { return cell.getStringCellValue(); } catch (IllegalStateException e) { return null; } // Có thể lỗi nếu công thức trả về số
+            default:
+                return null;
+        }
+    }
+
+    // Lấy giá trị LocalDate từ ô, xử lý ô null hoặc kiểu khác
+    private LocalDate getDateCellValue(Cell cell) {
+        if (cell == null) return null;
+        try {
+            if (cell.getCellType() == CellType.NUMERIC) {
+                if (DateUtil.isCellDateFormatted(cell)) {
+                    java.util.Date javaDate = cell.getDateCellValue();
+                    return javaDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+                } else {
+                    // Ô số nhưng không phải định dạng ngày tháng -> không đọc
+                    return null;
+                }
+            } else if (cell.getCellType() == CellType.STRING) {
+                // Thử parse ngày từ String nếu người dùng nhập text
+                return DateUtils.parseDate(cell.getStringCellValue()); // Cần DateUtils.parseDate chuẩn
+            }
+        } catch (Exception e) {
+            System.err.println("Error parsing date from cell: " + e.getMessage());
+            return null; // Trả về null nếu lỗi
+        }
+        return null;
+    }
+
+    public boolean deleteStudents(List<Integer> idsToDelete) {
+        if (idsToDelete == null || idsToDelete.isEmpty()) {
+            UIUtils.showWarningMessage(studentPanel, "Error", "No student IDs provided for deletion.");
+            return false;
+        }
+        // Không cần Confirmation Dialog ở đây vì nó đã được thực hiện ở Panel
+
+        try {
+            System.out.println("StudentController: Calling DAO to delete students with IDs: " + idsToDelete);
+            int deletedCount = studentDAO.deleteByIds(idsToDelete); // Gọi hàm DAO mới
+            System.out.println("StudentController: DAO reported " + deletedCount + " students deleted.");
+
+            if (deletedCount > 0) {
+                // Quan trọng: Gọi refresh sau khi xóa thành công
+                if (studentPanel != null) {
+                    studentPanel.refreshTable();
+                }
+                UIUtils.showInfoMessage(studentPanel, "Deletion Successful", deletedCount + " student(s) deleted successfully.");
+                return true;
+            } else {
+                // Không có student nào bị xóa (có thể ID không tồn tại)
+                UIUtils.showWarningMessage(studentPanel, "Deletion Info", "No matching students found for deletion.");
+                return false; // Coi như không thành công nếu không xóa được gì
+            }
+        } catch (DataAccessException e) {
+            System.err.println("Error deleting multiple students: " + e.getMessage());
+            e.printStackTrace();
+            UIUtils.showErrorMessage(studentPanel, "Deletion Error", "Failed to delete students: " + e.getMessage());
+            return false;
+        } catch (Exception e) {
+            System.err.println("Unexpected error during multiple deletion: " + e.getMessage());
+            e.printStackTrace();
+            UIUtils.showErrorMessage(studentPanel, "Unexpected Error", "An unexpected error occurred during deletion.");
+            return false;
+        }
     }
 }

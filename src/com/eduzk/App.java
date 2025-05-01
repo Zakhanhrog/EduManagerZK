@@ -1,43 +1,37 @@
-package com.eduzk; // Hoặc com.eduhub
+package com.eduzk;
 
-// Import các lớp cần thiết cơ bản
 import com.eduzk.controller.AuthController;
 import com.eduzk.model.dao.impl.UserDAOImpl;
-import com.eduzk.model.dao.impl.TeacherDAOImpl; // Vẫn cần để inject và kiểm tra Teacher ID
+import com.eduzk.model.dao.impl.TeacherDAOImpl;
 import com.eduzk.model.entities.Role;
 import com.eduzk.model.entities.User;
-import com.eduzk.model.entities.Teacher; // Vẫn cần để kiểm tra Teacher ID
+import com.eduzk.model.entities.Teacher;
 import com.eduzk.view.LoginView;
 import com.eduzk.model.dao.impl.StudentDAOImpl;
-import com.eduzk.model.entities.Student;
-
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException; // Import cho LookAndFeelException
-import javax.swing.JOptionPane;                   // Import để báo lỗi nghiêm trọng
+import javax.swing.UnsupportedLookAndFeelException;
+import javax.swing.JOptionPane;
+import com.formdev.flatlaf.FlatLightLaf;
+import com.formdev.flatlaf.FlatDarkLaf;
+import com.formdev.flatlaf.FlatIntelliJLaf;
 
-/**
- * Lớp chính khởi chạy ứng dụng EduManager (EduHub).
- * Phiên bản này sử dụng đường dẫn tương đối cho thư mục 'data'.
- * Phù hợp để chạy từ IDE hoặc dòng lệnh khi ở thư mục gốc dự án.
- */
+
 public class App {
-
-    /**
-     * Phương thức main, điểm vào của ứng dụng.
-     * @param args Tham số dòng lệnh (không sử dụng).
-     */
+    // look and feel
     public static void main(String[] args) {
-
-        // 1. Thiết lập Look and Feel (Giữ nguyên)
         try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-            System.out.println("System Look and Feel set successfully.");
-        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
-            System.err.println("Warning: Failed to set system look and feel. Using default.");
+            UIManager.setLookAndFeel( new FlatIntelliJLaf() );
+            System.out.println("FlatLaf Look and Feel initialized successfully.");
+        } catch( UnsupportedLookAndFeelException ex ) {
+            System.err.println( "Failed to initialize FlatLaf Look and Feel: " + ex.getMessage() );
+            ex.printStackTrace();
+        } catch (Exception e) {
+            System.err.println( "An error occurred while setting Look and Feel: " + e.getMessage());
+            e.printStackTrace();
         }
 
-        // 2. Chạy logic chính trên Event Dispatch Thread (EDT)
+        // Chạy logic chính trên Event Dispatch Thread (EDT)
         SwingUtilities.invokeLater(() -> {
             try { // Bắt lỗi khởi tạo trên EDT
 

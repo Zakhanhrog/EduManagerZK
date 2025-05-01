@@ -59,4 +59,11 @@ public interface IStudentDAO {
      * @return Optional chứa Student nếu tìm thấy, ngược lại là Optional rỗng.
      */
     Optional<Student> findByPhone(String phone);
+    /**
+     * Xóa nhiều học sinh dựa trên danh sách ID được cung cấp.
+     * @param ids Danh sách các ID của học sinh cần xóa.
+     * @return Số lượng bản ghi đã thực sự bị xóa.
+     * @throws DataAccessException Nếu có lỗi xảy ra trong quá trình xóa.
+     */
+    int deleteByIds(List<Integer> ids) throws DataAccessException;
 }

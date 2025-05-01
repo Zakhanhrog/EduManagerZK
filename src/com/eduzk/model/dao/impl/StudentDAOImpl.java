@@ -4,8 +4,10 @@ import com.eduzk.model.dao.interfaces.IStudentDAO;
 import com.eduzk.model.entities.Student;
 import com.eduzk.model.exceptions.DataAccessException;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class StudentDAOImpl extends BaseDAO<Student> implements IStudentDAO {
@@ -117,6 +119,37 @@ public class StudentDAOImpl extends BaseDAO<Student> implements IStudentDAO {
         } finally {
             lock.readLock().unlock();
         }
+    }
+    @Override
+    public int deleteByIds(List<Integer> ids) throws DataAccessException {
+        if (ids == null || ids.isEmpty()) {
+            return 0; // Không có gì để xóa
+        }
+        // Dùng Set để kiểm tra ID hiệu quả hơn trong removeIf
+        Set<Integer> idsToDeleteSet = new HashSet<>(ids);
+        int initialSize;
+        int removedCount = 0;
+
+        lock.writeLock().lock(); // Khóa để ghi
+        try {
+            initialSize = dataList.size();
+            // Sử dụng removeIf để xóa các phần tử khớp với ID trong Set
+            boolean changed = dataList.removeIf(student -> idsToDeleteSet.contains(student.getStudentId()));
+
+            if (changed) {
+                removedCount = initialSize - dataList.size(); // Tính số lượng đã xóa
+                System.out.println("Deleted " + removedCount + " students with IDs: " + ids);
+                saveData(); // Chỉ lưu lại file nếu có thay đổi
+            } else {
+                System.out.println("No students found matching IDs for deletion: " + ids);
+            }
+        } catch (Exception e) {
+            // Gói lại lỗi nếu cần
+            throw new DataAccessException("Error deleting multiple students.", e);
+        } finally {
+            lock.writeLock().unlock();
+        }
+        return removedCount; // Trả về số lượng đã xóa
     }
 
     // getAll() is inherited from BaseDAO

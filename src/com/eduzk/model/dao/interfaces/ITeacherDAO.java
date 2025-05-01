@@ -50,4 +50,11 @@ public interface ITeacherDAO {
      * @throws DataAccessException if a data storage error occurs or if deletion constraints are violated.
      */
     void delete(int id) throws DataAccessException;
+    /**
+     * Xóa nhiều giáo viên khỏi nguồn dữ liệu dựa trên danh sách ID.
+     * @param ids Danh sách các ID của giáo viên cần xóa.
+     * @return Số lượng bản ghi đã thực sự bị xóa.
+     * @throws DataAccessException Nếu có lỗi xảy ra trong quá trình truy cập hoặc lưu dữ liệu.
+     */
+    int deleteMultiple(List<Integer> ids) throws DataAccessException;
 }
