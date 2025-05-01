@@ -7,7 +7,7 @@ import com.eduzk.model.entities.Course;
 import com.eduzk.model.exceptions.DataAccessException;
 import com.eduzk.utils.ValidationUtils;
 import com.eduzk.utils.UIUtils;
-import com.eduzk.view.panels.CoursePanel; // To update the panel's table
+import com.eduzk.view.panels.CoursePanel;
 
 import java.util.Collections;
 import java.util.List;
@@ -39,7 +39,7 @@ public class CourseController {
 
     public List<Course> searchCoursesByName(String name) {
         if (!ValidationUtils.isNotEmpty(name)) {
-            return getAllCourses(); // Return all if search is empty
+            return getAllCourses();
         }
         try {
             return courseDAO.findByName(name);
@@ -55,12 +55,10 @@ public class CourseController {
             UIUtils.showWarningMessage(coursePanel, "Validation Error", "Course code and name cannot be empty.");
             return false;
         }
-        // Add more validation (credits, level)
-
         try {
             courseDAO.add(course);
             if (coursePanel != null) {
-                coursePanel.refreshTable(); // Assumes CoursePanel has this method
+                coursePanel.refreshTable();
                 UIUtils.showInfoMessage(coursePanel, "Success", "Course added successfully.");
             }
             return true;
@@ -76,8 +74,6 @@ public class CourseController {
             UIUtils.showWarningMessage(coursePanel, "Validation Error", "Invalid course data for update.");
             return false;
         }
-        // Add more validation...
-
         try {
             courseDAO.update(course);
             if (coursePanel != null) {
@@ -97,7 +93,6 @@ public class CourseController {
             UIUtils.showWarningMessage(coursePanel, "Error", "Invalid course ID for deletion.");
             return false;
         }
-        // Confirmation dialog in View layer
         try {
             courseDAO.delete(courseId);
             if (coursePanel != null) {

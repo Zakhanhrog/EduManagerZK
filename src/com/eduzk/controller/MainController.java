@@ -1,6 +1,5 @@
-package com.eduzk.controller; // Hoặc com.eduhub
+package com.eduzk.controller;
 
-// --- Import các lớp cần thiết ---
 import com.eduzk.model.entities.*;
 import com.eduzk.utils.UIUtils;
 import com.eduzk.view.MainView;
@@ -21,12 +20,6 @@ import java.util.ArrayList;
 import javax.swing.JOptionPane;
 import java.awt.Component;
 
-/**
- * Controller chính quản lý luồng chính của ứng dụng sau khi đăng nhập.
- * Khởi tạo các DAO và Controller con.
- * Liên kết với MainView.
- * (Phiên bản này sử dụng đường dẫn tương đối cho thư mục dữ liệu)
- */
 public class MainController {
     public static final String EXPORT_STUDENTS = "Student List";
     public static final String EXPORT_TEACHERS = "Teacher List";
@@ -37,9 +30,8 @@ public class MainController {
 
     private final User loggedInUser;
     private MainView mainView;
-    private final AuthController authController;
 
-    // Các Controller con cho từng module chức năng
+    private final AuthController authController;
     private StudentController studentController;
     private TeacherController teacherController;
     private CourseController courseController;
@@ -47,7 +39,6 @@ public class MainController {
     private EduClassController eduClassController;
     private ScheduleController scheduleController;
 
-    // --- Định nghĩa đường dẫn tương đối đến các file dữ liệu ---
     private static final String DATA_DIR = "data/";
     private static final String ID_FILE = DATA_DIR + "next_ids.dat";
     private static final String USERS_FILE = DATA_DIR + "users.dat";
@@ -58,33 +49,21 @@ public class MainController {
     private static final String EDUCLASSES_FILE = DATA_DIR + "educlasses.dat";
     private static final String SCHEDULES_FILE = DATA_DIR + "schedules.dat";
 
-    /**
-     * Constructor chính, nhận User đã đăng nhập và khởi tạo các thành phần.
-     * @param loggedInUser Đối tượng User chứa thông tin người đăng nhập.
-     */
     public MainController(User loggedInUser, AuthController authController) {
         if (loggedInUser == null) {
-//            System.err.println("CRITICAL: MainController initialized with null user!");
-//            JOptionPane.showMessageDialog(null, "Login information is missing. Application cannot continue.", "Fatal Error", JOptionPane.ERROR_MESSAGE);
             System.exit(1);
         }
         if (authController == null) { throw new IllegalArgumentException("AuthController cannot be null in MainController"); }
         this.loggedInUser = loggedInUser;
         this.authController = authController;
-        // Khởi tạo ngay lập tức các DAO và Controller con
         initializeDAOsAndControllers();
     }
 
-    /**
-     * Thiết lập tham chiếu đến MainView và cấu hình nó.
-     * Được gọi từ bên ngoài (thường là AuthController) sau khi MainController được tạo.
-     * @param mainView Instance của cửa sổ chính.
-     */
     public void setMainView(MainView mainView) {
         this.mainView = mainView;
         if (this.mainView == null) {
             System.err.println("Error: MainView is null in setMainView!");
-            return; // Không thể tiếp tục nếu view là null
+            return;
         }
 
         // 1. Truyền các controller con đã được khởi tạo vào MainView
@@ -95,7 +74,6 @@ public class MainController {
                 roomController,
                 eduClassController,
                 scheduleController
-                // Truyền các controller khác nếu có
         );
         if (scheduleController != null) { // Kiểm tra null trước khi gọi setter
             scheduleController.setMainView(mainView); // <-- THÊM DÒNG NÀY
@@ -108,13 +86,8 @@ public class MainController {
         mainView.refreshSelectedTab();
     }
 
-    /**
-     * Khởi tạo tất cả các đối tượng DAO và Controller con cần thiết cho ứng dụng.
-     * Sử dụng các đường dẫn file tương đối đã định nghĩa.
-     */
     private void initializeDAOsAndControllers() {
         try {
-            // Khởi tạo các DAO Implementation
             UserDAOImpl userDAO = new UserDAOImpl(USERS_FILE, ID_FILE); // Cần cho việc lấy thông tin user khác nếu là Admin
             StudentDAOImpl studentDAO = new StudentDAOImpl(STUDENTS_FILE, ID_FILE);
             TeacherDAOImpl teacherDAO = new TeacherDAOImpl(TEACHERS_FILE, ID_FILE);
@@ -122,7 +95,6 @@ public class MainController {
             RoomDAOImpl roomDAO = new RoomDAOImpl(ROOMS_FILE, ID_FILE);
             EduClassDAOImpl eduClassDAO = new EduClassDAOImpl(EDUCLASSES_FILE, ID_FILE);
             ScheduleDAOImpl scheduleDAO = new ScheduleDAOImpl(SCHEDULES_FILE, ID_FILE);
-
             studentController = new StudentController(studentDAO, eduClassDAO, userDAO, loggedInUser);// <-- Thêm userDAO
             teacherController = new TeacherController(teacherDAO, loggedInUser);
             courseController = new CourseController(courseDAO, loggedInUser);
@@ -130,22 +102,17 @@ public class MainController {
             eduClassController = new EduClassController(eduClassDAO, courseDAO, teacherDAO, studentDAO, loggedInUser);
             scheduleController = new ScheduleController(scheduleDAO, eduClassDAO, teacherDAO, roomDAO, loggedInUser);
 
-            // Khởi tạo các controller khác nếu cần (ví dụ: UserController cho Admin)
-
             System.out.println("DAOs and Controllers initialized successfully.");
 
         } catch (Exception e) {
-            // Lỗi nghiêm trọng trong quá trình khởi tạo DAO/Controller
             System.err.println("!!! CRITICAL ERROR DURING DAO/CONTROLLER INITIALIZATION !!!");
             e.printStackTrace();
             JOptionPane.showMessageDialog(null,
                     "A critical error occurred while initializing application components.\nError: " + e.getMessage(),
                     "Initialization Failed", JOptionPane.ERROR_MESSAGE);
-            System.exit(1); // Thoát nếu không khởi tạo được
+            System.exit(1);
         }
     }
-
-    // --- Các phương thức tiện ích và xử lý sự kiện chung ---
 
     public User getLoggedInUser() {
         return loggedInUser;
@@ -155,12 +122,10 @@ public class MainController {
         return loggedInUser != null ? loggedInUser.getRole() : null; // Trả về null nếu không có user
     }
 
-    /** Xử lý yêu cầu thoát ứng dụng (thường gọi từ MainView). */
     public void exitApplication() {
         if (UIUtils.showConfirmDialog(mainView, "Exit Confirmation", "Are you sure you want to exit EduManager?")) {
             System.out.println("Exiting application...");
-            // Có thể thêm các hành động dọn dẹp ở đây nếu cần (ví dụ: đóng kết nối DB)
-            System.exit(0); // Kết thúc tiến trình Java
+            System.exit(0);
         }
     }
 
@@ -171,10 +136,9 @@ public class MainController {
         }
         if (this.authController != null) {
             System.out.println("MainController: Calling authController.showLoginView()...");
-            this.authController.showLoginView(); // Gọi phương thức mới trong AuthController
+            this.authController.showLoginView();
         } else {
             System.err.println("MainController Error: authController is null, cannot show login view!");
-            // Có thể hiện lỗi ở đây không? Khó vì MainView sắp đóng.
         }
     }
 
@@ -191,7 +155,6 @@ public class MainController {
         }
     }
 
-    // --- Getters cho các Controller con (để MainView có thể truyền chúng đi nếu cần) ---
     public StudentController getStudentController() { return studentController; }
     public TeacherController getTeacherController() { return teacherController; }
     public CourseController getCourseController() { return courseController; }
@@ -199,22 +162,15 @@ public class MainController {
     public EduClassController getEduClassController() { return eduClassController; }
     public ScheduleController getScheduleController() { return scheduleController; }
 
-    // --- THÊM PHƯƠNG THỨC MỚI NÀY ---
-    /**
-     * Xử lý yêu cầu xuất dữ liệu ra file Excel.
-     * Gọi các Controller con để lấy dữ liệu và sử dụng Apache POI để ghi file.
-     * @param dataType Loại dữ liệu cần xuất (chuỗi từ JComboBox trong MainView).
-     * @param outputFile Đối tượng File đại diện cho file Excel cần lưu.
-     */
     public void exportDataToExcel(String dataType, File outputFile) {
         System.out.println("Starting Excel export for: " + dataType + " by user role: " + getUserRole()); // Log thêm role
 
         Role userRole = getUserRole();
-        if (userRole == null) { // Không xác định được vai trò
+        if (userRole == null) {
             UIUtils.showErrorMessage(mainView, "Permission Denied", "Cannot verify user permissions.");
             return;
         }
-        if (userRole == Role.STUDENT) { // Student không được export gì (theo logic hiện tại)
+        if (userRole == Role.STUDENT) {
             UIUtils.showErrorMessage(mainView, "Permission Denied", "Export function is not available for your role.");
             return;
         }
