@@ -4,21 +4,13 @@ import com.eduzk.model.entities.*;
 import com.eduzk.utils.UIUtils;
 import com.eduzk.view.MainView;
 import com.eduzk.model.dao.impl.*;
-import com.eduzk.model.dao.interfaces.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.File;
 import java.util.List;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZoneId;
-import java.util.Date;
-import java.util.Collections;
-import java.util.ArrayList;
 import javax.swing.JOptionPane;
-import java.awt.Component;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
@@ -77,13 +69,11 @@ public class MainController {
                 eduClassController,
                 scheduleController
         );
-        if (scheduleController != null) { // Kiểm tra null trước khi gọi setter
-            scheduleController.setMainView(mainView); // <-- THÊM DÒNG NÀY
+        if (scheduleController != null) {
+            scheduleController.setMainView(mainView);
         }
-
         // 2. Yêu cầu MainView tự cấu hình giao diện (tab, nút) dựa trên vai trò user
         mainView.configureViewForUser(loggedInUser);
-
         // 3. Yêu cầu MainView làm mới dữ liệu cho tab đang được chọn (tab mặc định)
         mainView.refreshSelectedTab();
     }
@@ -131,7 +121,6 @@ public class MainController {
         }
     }
 
-    /** Hiển thị hộp thoại "About". */
     public void showAboutDialog() {
         if (mainView != null) {
             UIUtils.showInfoMessage(mainView,
@@ -222,19 +211,13 @@ public class MainController {
                 UIUtils.showErrorMessage(mainView, "Export Error", "Could not write to file:\n" + outputFile.getName() + "\nError: " + e.getMessage());
             }
 
-        } catch (SecurityException secEx) { // Bắt lỗi phân quyền
+        } catch (SecurityException secEx) {
             System.err.println("Permission denied during export: " + secEx.getMessage());
             UIUtils.showErrorMessage(mainView, "Permission Denied", "You do not have permission to export this data type.");
-        } catch (Exception e) { // Bắt lỗi chung khi tạo Workbook hoặc lấy dữ liệu
+        } catch (Exception e) {
             System.err.println("Error during Excel export process: " + e.getMessage());
             e.printStackTrace();
             UIUtils.showErrorMessage(mainView, "Export Error", "An unexpected error occurred during export.\nError: " + e.getMessage());
-        }
-        finally {
-            // Đóng workbook
-            if (workbook != null) {
-                try { workbook.close(); } catch (IOException e) { /* Ignore close error */ }
-            }
         }
     }
 
@@ -381,7 +364,6 @@ public class MainController {
         List<Schedule> schedules = null;
         boolean useDateRange = false;
 
-        // Lay tat ca khong lay theo ngay
         if (!useDateRange) {
             System.out.println("Exporting ALL schedules...");
             schedules = scheduleController.getAllSchedules();

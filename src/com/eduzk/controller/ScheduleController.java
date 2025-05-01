@@ -14,6 +14,7 @@ import com.eduzk.view.panels.SchedulePanel; // To update the panel's table/view
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ScheduleController {
 
@@ -88,24 +89,61 @@ public class ScheduleController {
 
     public List<Teacher> getAllTeachersForSelection() {
         try {
-            // return teacherDAO.getAll().stream().filter(Teacher::isActive).collect(Collectors.toList());
-            return teacherDAO.getAll();
+            List<Teacher> allTeachers = teacherDAO.getAll();
+            if (allTeachers != null) {
+                return allTeachers.stream()
+                        .filter(Teacher::isActive)
+                        .collect(Collectors.toList());
+            } else {
+                return Collections.emptyList();
+            }
         } catch (DataAccessException e) {
-            System.err.println("Error loading teachers for schedule selection: " + e.getMessage());
+            System.err.println("Error loading active teachers for schedule selection: " + e.getMessage());
             return Collections.emptyList();
         }
     }
 
     public List<Room> getAllRoomsForSelection() {
         try {
-            // return roomDAO.getAll().stream().filter(Room::isAvailable).collect(Collectors.toList());
-            return roomDAO.getAll();
+            List<Room> allRooms = roomDAO.getAll();
+            if (allRooms != null) {
+                return allRooms.stream()
+                        .filter(Room::isAvailable) // Lọc Room available
+                        .collect(Collectors.toList());
+            } else {
+                return Collections.emptyList();
+            }
         } catch (DataAccessException e) {
-            System.err.println("Error loading rooms for schedule selection: " + e.getMessage());
+            System.err.println("Error loading available rooms for schedule selection: " + e.getMessage());
             return Collections.emptyList();
         }
     }
 
+    private Teacher getTeacherById(int id) {
+        if (this.teacherDAO == null) {
+            System.err.println("ScheduleController Error: teacherDAO is null!");
+            return null;
+        }
+        try {
+            return teacherDAO.getById(id);
+        } catch (Exception e) { // Bắt lỗi chung từ DAO
+            System.err.println("Error getting teacher by ID " + id + ": " + e.getMessage());
+            return null;
+        }
+    }
+
+    private Room getRoomById(int id) {
+        if (this.roomDAO == null) {
+            System.err.println("ScheduleController Error: roomDAO is null!");
+            return null;
+        }
+        try {
+            return roomDAO.getById(id);
+        } catch (Exception e) { // Bắt lỗi chung từ DAO
+            System.err.println("Error getting room by ID " + id + ": " + e.getMessage());
+            return null;
+        }
+    }
 
     public boolean addSchedule(Schedule schedule) {
         if (schedule == null || schedule.getClassId() <= 0 || schedule.getTeacherId() <= 0 || schedule.getRoomId() <= 0 ||
@@ -115,14 +153,23 @@ public class ScheduleController {
             UIUtils.showWarningMessage(schedulePanel, "Validation Error", "Please select Class, Teacher, Room and provide a valid Date and Time range.");
             return false;
         }
+        Teacher selectedTeacher = getTeacherById(schedule.getTeacherId());
+        Room selectedRoom = getRoomById(schedule.getRoomId());
+
+        if (selectedTeacher == null || selectedRoom == null) {
+            UIUtils.showErrorMessage(schedulePanel, "Error", "Selected Teacher or Room not found.");
+            return false; // Không tìm thấy đối tượng để kiểm tra
+        }
+        if (!selectedTeacher.isActive()) {
+            UIUtils.showWarningMessage(schedulePanel, "Validation Error", "Cannot schedule inactive teacher '" + selectedTeacher.getFullName() + "'.");
+            return false;
+        }
+        if (!selectedRoom.isAvailable()) {
+            UIUtils.showWarningMessage(schedulePanel, "Validation Error", "Cannot schedule in unavailable room '" + selectedRoom.getRoomNumber() + "'.");
+            return false;
+        }
 
         try {
-            // Fetch related entities to potentially display better conflict messages if needed, although DAO handles the check
-            // EduClass eduClass = eduClassDAO.getById(schedule.getClassId());
-            // Teacher teacher = teacherDAO.getById(schedule.getTeacherId());
-            // Room room = roomDAO.getById(schedule.getRoomId());
-            // Could add checks here e.g., if room capacity < class capacity
-
             scheduleDAO.add(schedule);
             if (schedulePanel != null) {
                 schedulePanel.refreshScheduleView(); // Assumes SchedulePanel has this method
@@ -148,6 +195,12 @@ public class ScheduleController {
             UIUtils.showWarningMessage(schedulePanel, "Validation Error", "Invalid schedule data for update.");
             return false;
         }
+        Teacher selectedTeacher = getTeacherById(schedule.getTeacherId());
+        Room selectedRoom = getRoomById(schedule.getRoomId());
+
+        if (selectedTeacher == null || selectedRoom == null) { return false; }
+        if (!selectedTeacher.isActive()) { return false; }
+        if (!selectedRoom.isAvailable()) { return false; }
 
         try {
             scheduleDAO.update(schedule);

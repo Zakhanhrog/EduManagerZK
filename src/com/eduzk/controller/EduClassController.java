@@ -79,9 +79,16 @@ public class EduClassController {
 
     public List<Teacher> getAllTeachersForSelection() {
         try {
-            return teacherDAO.getAll();
+            List<Teacher> allTeachers = teacherDAO.getAll();
+            if (allTeachers != null) {
+                return allTeachers.stream()
+                        .filter(Teacher::isActive)
+                        .collect(Collectors.toList());
+            } else {
+                return Collections.emptyList();
+            }
         } catch (DataAccessException e) {
-            System.err.println("Error loading teachers for selection: " + e.getMessage());
+            System.err.println("Error loading active teachers for selection: " + e.getMessage());
             return Collections.emptyList();
         }
     }
@@ -130,6 +137,14 @@ public class EduClassController {
             UIUtils.showWarningMessage(classPanel, "Validation Error", "Class name, course, teacher, and positive capacity are required.");
             return false;
         }
+        Teacher selectedTeacher = eduClass.getPrimaryTeacher();
+
+        if (!selectedTeacher.isActive()) {
+            UIUtils.showWarningMessage(classPanel,
+                    "Validation Error",
+                    "Cannot assign inactive teacher '" + selectedTeacher.getFullName() + "' to the class.");
+            return false;
+        }
         try {
             eduClassDAO.add(eduClass);
             if (classPanel != null) {
@@ -148,6 +163,11 @@ public class EduClassController {
         if (eduClass == null || eduClass.getClassId() <= 0 || !ValidationUtils.isNotEmpty(eduClass.getClassName()) ||
                 eduClass.getCourse() == null || eduClass.getPrimaryTeacher() == null || eduClass.getMaxCapacity() <= 0) {
             UIUtils.showWarningMessage(classPanel, "Validation Error", "Invalid class data for update.");
+            return false;
+        }
+        Teacher selectedTeacher = eduClass.getPrimaryTeacher();
+        if (!selectedTeacher.isActive()) {
+            UIUtils.showWarningMessage(classPanel, "Validation Error", "Cannot assign inactive teacher '" + selectedTeacher.getFullName() + "' to the class.");
             return false;
         }
         try {
