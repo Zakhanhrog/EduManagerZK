@@ -9,8 +9,7 @@ import com.eduzk.model.exceptions.ScheduleConflictException;
 import com.eduzk.utils.ValidationUtils;
 import com.eduzk.utils.UIUtils;
 import com.eduzk.view.MainView;
-import com.eduzk.view.panels.SchedulePanel; // To update the panel's table/view
-
+import com.eduzk.view.panels.SchedulePanel;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
@@ -19,9 +18,9 @@ import java.util.stream.Collectors;
 public class ScheduleController {
 
     private final IScheduleDAO scheduleDAO;
-    private final IEduClassDAO eduClassDAO; // Needed for class selection/info
-    private final ITeacherDAO teacherDAO;   // Needed for teacher selection/info
-    private final IRoomDAO roomDAO;         // Needed for room selection/info
+    private final IEduClassDAO eduClassDAO;
+    private final ITeacherDAO teacherDAO;
+    private final IRoomDAO roomDAO;
     private SchedulePanel schedulePanel;
     private final User currentUser;
     private MainView mainView;
@@ -33,14 +32,12 @@ public class ScheduleController {
         this.roomDAO = roomDAO;
         this.currentUser = currentUser;
     }
-
     public void setSchedulePanel(SchedulePanel schedulePanel) {
         this.schedulePanel = schedulePanel;
     }
     public void setMainView(MainView mainView) {
         this.mainView = mainView;
     }
-
     public List<Schedule> getSchedulesByDateRange(LocalDate start, LocalDate end) {
         if (start == null || end == null || end.isBefore(start)) {
             // Default to today or a week? Handle invalid range.
@@ -69,13 +66,11 @@ public class ScheduleController {
             return Collections.emptyList();
         }
     }
-
     private int getTeacherIdForUser(User user) {
         if (user != null && user.getRole() == Role.TEACHER && user.getTeacherId() != null) {
             return user.getTeacherId();
         }
         return -1;
-
     }
 
     public List<EduClass> getAllClassesForSelection() {
@@ -126,7 +121,7 @@ public class ScheduleController {
         }
         try {
             return teacherDAO.getById(id);
-        } catch (Exception e) { // Bắt lỗi chung từ DAO
+        } catch (Exception e) {
             System.err.println("Error getting teacher by ID " + id + ": " + e.getMessage());
             return null;
         }
@@ -139,7 +134,7 @@ public class ScheduleController {
         }
         try {
             return roomDAO.getById(id);
-        } catch (Exception e) { // Bắt lỗi chung từ DAO
+        } catch (Exception e) {
             System.err.println("Error getting room by ID " + id + ": " + e.getMessage());
             return null;
         }
@@ -158,7 +153,7 @@ public class ScheduleController {
 
         if (selectedTeacher == null || selectedRoom == null) {
             UIUtils.showErrorMessage(schedulePanel, "Error", "Selected Teacher or Room not found.");
-            return false; // Không tìm thấy đối tượng để kiểm tra
+            return false;
         }
         if (!selectedTeacher.isActive()) {
             UIUtils.showWarningMessage(schedulePanel, "Validation Error", "Cannot schedule inactive teacher '" + selectedTeacher.getFullName() + "'.");
@@ -172,13 +167,13 @@ public class ScheduleController {
         try {
             scheduleDAO.add(schedule);
             if (schedulePanel != null) {
-                schedulePanel.refreshScheduleView(); // Assumes SchedulePanel has this method
+                schedulePanel.refreshScheduleView();
                 UIUtils.showInfoMessage(schedulePanel, "Success", "Schedule added successfully.");
             }
             return true;
         } catch (ScheduleConflictException e) {
             System.err.println("Schedule Conflict: " + e.getMessage());
-            UIUtils.showErrorMessage(schedulePanel, "Schedule Conflict", e.getMessage()); // Show specific conflict message
+            UIUtils.showErrorMessage(schedulePanel, "Schedule Conflict", e.getMessage());
             return false;
         } catch (DataAccessException | IllegalArgumentException e) {
             System.err.println("Error adding schedule: " + e.getMessage());
@@ -225,7 +220,6 @@ public class ScheduleController {
             UIUtils.showWarningMessage(schedulePanel, "Error", "Invalid schedule ID for deletion.");
             return false;
         }
-        // Confirmation dialog in View layer
         try {
             scheduleDAO.delete(scheduleId);
             if (schedulePanel != null) {
@@ -240,9 +234,6 @@ public class ScheduleController {
         }
     }
 
-    // --- Helper methods to get entity names for display (avoids passing full objects everywhere) ---
-    // These can be used by the SchedulePanel/Dialog to display names instead of just IDs.
-
     public String getClassNameById(int classId) {
         EduClass ec = eduClassDAO.getById(classId);
         return ec != null ? ec.getClassName() : "Unknown Class";
@@ -255,7 +246,6 @@ public class ScheduleController {
 
     public String getRoomNameById(int roomId) {
         Room r = roomDAO.getById(roomId);
-        // Use the room's toString() or a specific format
         return r != null ? r.toString() : "Unknown Room";
     }
 
@@ -269,35 +259,25 @@ public class ScheduleController {
             return null;
         }
     }
-    /**
-     * Lấy danh sách TẤT CẢ các lịch trình từ DAO.
-     * Được sử dụng cho chức năng export hoặc các chức năng cần xem toàn bộ lịch sử.
-     * @return Danh sách tất cả Schedule, hoặc danh sách rỗng nếu có lỗi hoặc không có dữ liệu.
-     */
+
     public List<Schedule> getAllSchedules() {
         System.out.println("ScheduleController: getAllSchedules() called.");
         if (scheduleDAO == null) {
             System.err.println("ScheduleController Error: scheduleDAO is null!");
-            // Có thể hiển thị lỗi UI ở đây không? Tùy ngữ cảnh gọi hàm này
-            // UIUtils.showErrorMessage(null, "Error", "Schedule data access is not available.");
+             UIUtils.showErrorMessage(null, "Error", "Schedule data access is not available.");
             return Collections.emptyList();
         }
         try {
-            // Gọi phương thức mới trong IScheduleDAO
             return scheduleDAO.getAllSchedules();
         } catch (DataAccessException e) {
             System.err.println("Error loading all schedules from DAO: " + e.getMessage());
-            // Hiển thị lỗi cho người dùng (giả sử mainView có thể truy cập)
-            // Cần cẩn thận nếu hàm này được gọi từ luồng nền (ví dụ: export)
-            if (mainView != null) { // Kiểm tra mainView tồn tại (cần thêm getter/setter nếu chưa có)
+            if (mainView != null) {
                 UIUtils.showErrorMessage(mainView, "Error Loading Data", "Failed to load all schedule data.\n" + e.getMessage());
             } else {
-                // Hoặc chỉ log lỗi nếu không có context UI
                 e.printStackTrace();
             }
-            return Collections.emptyList(); // Trả về danh sách rỗng khi có lỗi
+            return Collections.emptyList();
         } catch (Exception e) {
-            // Bắt các lỗi không mong muốn khác
             System.err.println("Unexpected error in getAllSchedules: " + e.getMessage());
             e.printStackTrace();
             if (mainView != null) {
