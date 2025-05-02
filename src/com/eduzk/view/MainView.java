@@ -22,6 +22,7 @@ import javax.swing.ButtonGroup;
 import javax.swing.JRadioButtonMenuItem;
 import java.net.URL;
 import javax.swing.border.EmptyBorder;
+import com.formdev.flatlaf.extras.FlatSVGIcon;
 
 public class MainView extends JFrame {
 
@@ -299,51 +300,48 @@ public class MainView extends JFrame {
 
         tabbedPane.removeAll();
 
-        // --- Load các icon (giữ nguyên) ---
-        // *** NHỚ THAY ĐỔI TÊN FILE ICON CHO ĐÚNG ***
-        Icon scheduleIcon = loadTabIcon("/icons/schedule_icon.png");
-        Icon classesIcon = loadTabIcon("/icons/classes_icon.png");
-        Icon studentsIcon = loadTabIcon("/icons/students_icon.png");
-        Icon teachersIcon = loadTabIcon("/icons/teachers_icon.png");
-        Icon coursesIcon = loadTabIcon("/icons/courses_icon.png");
-        Icon roomsIcon = loadTabIcon("/icons/rooms_icon.png");
+        // --- Load các SVG icon ---
+        // *** THAY THẾ TÊN FILE .svg CHO ĐÚNG VỚI FILE CỦA BẠN ***
+        Icon scheduleIcon = loadTabSVGICon("/icons/schedule.svg"); // Đổi sang .svg
+        Icon classesIcon = loadTabSVGICon("/icons/classes.svg");
+        Icon studentsIcon = loadTabSVGICon("/icons/students.svg");
+        Icon teachersIcon = loadTabSVGICon("/icons/teachers.svg");
+        Icon coursesIcon = loadTabSVGICon("/icons/courses.svg");
+        Icon roomsIcon = loadTabSVGICon("/icons/rooms.svg");
 
-        // --- Thêm tab và đặt component tùy chỉnh ---
+        // --- Thêm tab và đặt component tùy chỉnh (Logic giữ nguyên) ---
         boolean isAdmin = (user.getRole() == Role.ADMIN);
-        int tabIndex = 0; // Theo dõi index của tab
+        int tabIndex = 0;
 
         if (isAdmin) {
-            // 1. Schedule
-            tabbedPane.addTab(null, null, schedulePanel, "Manage Class Schedules"); // Thêm panel chính trước
-            JPanel scheduleTabComp = createTabComponent("Schedule", scheduleIcon); // Tạo component tab
-            tabbedPane.setTabComponentAt(tabIndex++, scheduleTabComp); // Đặt component vào tab
+            tabbedPane.addTab(null, null, schedulePanel, "Manage Class Schedules");
+            JPanel scheduleTabComp = createTabComponent("Schedule", scheduleIcon); // Truyền SVG Icon
+            tabbedPane.setTabComponentAt(tabIndex++, scheduleTabComp);
 
-            // 2. Classes
             tabbedPane.addTab(null, null, classPanel, "Manage Classes & Enrollment");
-            JPanel classesTabComp = createTabComponent("Classes", classesIcon);
+            JPanel classesTabComp = createTabComponent("Classes", classesIcon);     // Truyền SVG Icon
             tabbedPane.setTabComponentAt(tabIndex++, classesTabComp);
 
-            // 3. Students
+            // ... Làm tương tự cho Students, Teachers, Courses, Rooms ...
             tabbedPane.addTab(null, null, studentPanel, "Manage Students");
             JPanel studentsTabComp = createTabComponent("Students", studentsIcon);
             tabbedPane.setTabComponentAt(tabIndex++, studentsTabComp);
 
-            // 4. Teachers
             tabbedPane.addTab(null, null, teacherPanel, "Manage Teachers");
             JPanel teachersTabComp = createTabComponent("Teachers", teachersIcon);
             tabbedPane.setTabComponentAt(tabIndex++, teachersTabComp);
 
-            // 5. Courses
             tabbedPane.addTab(null, null, coursePanel, "Manage Courses");
             JPanel coursesTabComp = createTabComponent("Courses", coursesIcon);
             tabbedPane.setTabComponentAt(tabIndex++, coursesTabComp);
 
-            // 6. Rooms
             tabbedPane.addTab(null, null, roomPanel, "Manage Rooms");
             JPanel roomsTabComp = createTabComponent("Rooms", roomsIcon);
             tabbedPane.setTabComponentAt(tabIndex++, roomsTabComp);
 
+
         } else if (user.getRole() == Role.TEACHER) {
+            // ... Làm tương tự cho các tab của Teacher ...
             tabbedPane.addTab(null, null, schedulePanel, "View My Schedule");
             JPanel scheduleTabComp = createTabComponent("My Schedule", scheduleIcon);
             tabbedPane.setTabComponentAt(tabIndex++, scheduleTabComp);
@@ -357,6 +355,7 @@ public class MainView extends JFrame {
             tabbedPane.setTabComponentAt(tabIndex++, studentsTabComp);
 
         } else if (user.getRole() == Role.STUDENT) {
+            // ... Làm tương tự cho các tab của Student ...
             tabbedPane.addTab(null, null, schedulePanel, "View My Schedule");
             JPanel scheduleTabComp = createTabComponent("My Schedule", scheduleIcon);
             tabbedPane.setTabComponentAt(tabIndex++, scheduleTabComp);
@@ -435,21 +434,26 @@ public class MainView extends JFrame {
             statusLabel.setText(text == null ? "" : text); // Xử lý text null
         }
     }
-    private Icon loadTabIcon(String path) {
+    private Icon loadTabSVGICon(String path) { // Đổi tên để rõ ràng hơn (tùy chọn)
         if (path == null || path.isEmpty()) {
             return null;
         }
         try {
             URL iconUrl = getClass().getResource(path);
             if (iconUrl != null) {
-                return new ImageIcon(iconUrl); // Tạo ImageIcon từ URL
+                // *** SỬA Ở ĐÂY: Tạo FlatSVGIcon thay vì ImageIcon ***
+                // Có thể đặt kích thước mặc định nhỏ hơn nếu SVG gốc quá lớn
+                // Ví dụ: return new FlatSVGIcon(iconUrl).derive(16, 16);
+                return new FlatSVGIcon(iconUrl); // Load với kích thước gốc của SVG (hoặc theo viewBox)
             } else {
-                System.err.println("Warning: Tab icon resource not found at: " + path);
-                return null; // Trả về null nếu không tìm thấy
+                System.err.println("Warning: Tab SVG icon resource not found at: " + path);
+                return null;
             }
         } catch (Exception e) {
-            System.err.println("Error loading tab icon from path: " + path + " - " + e.getMessage());
-            return null;
+            // Lỗi này có thể xảy ra nếu file SVG không hợp lệ hoặc jsvg có vấn đề
+            System.err.println("Error loading/parsing SVG tab icon from path: " + path + " - " + e.getMessage());
+            // e.printStackTrace(); // Bỏ comment dòng này để xem chi tiết lỗi nếu cần
+            return null; // Trả về null khi có lỗi
         }
     }
     private JPanel createTabComponent(final String title, final Icon icon) {
