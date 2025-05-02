@@ -15,6 +15,9 @@ import javax.swing.JOptionPane;
 import com.formdev.flatlaf.FlatLightLaf;
 import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatIntelliJLaf;
+import com.formdev.flatlaf.themes.FlatMacDarkLaf;
+import com.formdev.flatlaf.themes.FlatMacLightLaf;
+
 
 public class App {
     // look and feel
@@ -23,7 +26,7 @@ public class App {
             System.setProperty( "apple.laf.useScreenMenuBar", "true" );
             System.setProperty( "apple.awt.application.name", "EduZakhanh" );
             System.setProperty( "apple.awt.application.appearance", "light" );
-            UIManager.setLookAndFeel( new FlatIntelliJLaf() );
+            UIManager.setLookAndFeel( new FlatMacLightLaf());
             System.out.println("FlatLaf Look and Feel initialized successfully.");
         } catch( UnsupportedLookAndFeelException ex ) {
             System.err.println( "Failed to initialize FlatLaf Look and Feel: " + ex.getMessage() );
@@ -35,8 +38,7 @@ public class App {
 
         // Chạy logic chính trên Event Dispatch Thread (EDT)
         SwingUtilities.invokeLater(() -> {
-            try { // Bắt lỗi khởi tạo trên EDT
-
+            try {
                 // 3. Khởi tạo DAO với đường dẫn TƯƠNG ĐỐI
                 System.out.println("Initializing DAOs using relative paths...");
                 final String dataDir = "data/"; // Thư mục dữ liệu tương đối

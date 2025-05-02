@@ -20,6 +20,8 @@ import com.formdev.flatlaf.themes.FlatMacLightLaf;
 import javax.swing.border.Border;
 import javax.swing.ButtonGroup;
 import javax.swing.JRadioButtonMenuItem;
+import java.net.URL;
+import javax.swing.border.EmptyBorder;
 
 public class MainView extends JFrame {
 
@@ -68,19 +70,10 @@ public class MainView extends JFrame {
         tabbedPane.addTab("Schedule", null, schedulePanel, "Manage Class Schedules");
         add(tabbedPane, BorderLayout.CENTER);
         add(statusBar, BorderLayout.SOUTH);
-
-        // Status Bar
-        /*JPanel statusBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        statusBar.setBorder(BorderFactory.createEtchedBorder());
-        statusBar.add(statusLabel);
-        add(statusBar, BorderLayout.SOUTH);*/
-
-
     }
 
     private void createMenuBar() {
         JMenuBar menuBar = new JMenuBar();
-
         // File Menu
         JMenu fileMenu = new JMenu("Main");
         JMenuItem logoutItem = new JMenuItem("Logout");
@@ -285,12 +278,12 @@ public class MainView extends JFrame {
         schedulePanel.setController(schc);
         studentPanel.refreshTable();
 
-        if (sc != null) sc.setStudentPanel(studentPanel); // <-- Dòng quan trọng
-        if (tc != null) tc.setTeacherPanel(teacherPanel); // <-- Làm tương tự cho Teacher
-        if (cc != null) cc.setCoursePanel(coursePanel);   // <-- Làm tương tự cho Course
-        if (rc != null) rc.setRoomPanel(roomPanel);       // <-- Làm tương tự cho Room
-        if (ecc != null) ecc.setClassPanel(classPanel);     // <-- Làm tương tự cho Class
-        if (schc != null) schc.setSchedulePanel(schedulePanel); // <-- Làm tương tự cho Schedule
+        if (sc != null) sc.setStudentPanel(studentPanel);
+        if (tc != null) tc.setTeacherPanel(teacherPanel);
+        if (cc != null) cc.setCoursePanel(coursePanel);
+        if (rc != null) rc.setRoomPanel(roomPanel);
+        if (ecc != null) ecc.setClassPanel(classPanel);
+        if (schc != null) schc.setSchedulePanel(schedulePanel);
     }
 
     // Configure visible tabs based on user role
@@ -298,54 +291,85 @@ public class MainView extends JFrame {
         if (user == null) {
             UIUtils.showErrorMessage(this, "Error", "No logged in user found. Exiting.");
             System.exit(1);
-            String windowTitle = "EduZakhanh - Welcome, " + user.getUsername() + " (" + user.getRole().getDisplayName() + ")";
-            setTitle(windowTitle); // Gọi setTitle đã override (tự động cập nhật menu bar Mac)
-            setStatusText("Logged in as: " + user.getRole().getDisplayName()); // Gọi hàm setStatusText mới
-
-            tabbedPane.removeAll();
-            // Biến isAdmin để dễ đọc hơn
-            boolean isAdmin = (user.getRole() == Role.ADMIN);
-
-            if (isAdmin) {
-                tabbedPane.addTab("Schedule", null, schedulePanel, "Manage Class Schedules");
-                tabbedPane.addTab("Classes", null, classPanel, "Manage Classes & Enrollment");
-                tabbedPane.addTab("Students", null, studentPanel, "Manage Students");
-                tabbedPane.addTab("Teachers", null, teacherPanel, "Manage Teachers");
-                tabbedPane.addTab("Courses", null, coursePanel, "Manage Courses");
-                tabbedPane.addTab("Rooms", null, roomPanel, "Manage Rooms");
-            } else if (user.getRole() == Role.TEACHER) {
-                tabbedPane.addTab("My Schedule", null, schedulePanel, "View My Schedule");
-                tabbedPane.addTab("My Classes", null, classPanel, "View My Classes & Students");
-                tabbedPane.addTab("My Students", null, studentPanel, "View Students in My Classes");
-            } else if (user.getRole() == Role.STUDENT) {
-                tabbedPane.addTab("My Schedule", null, schedulePanel, "View My Schedule");
-                tabbedPane.addTab("My Classes", null, classPanel, "View My Classes");
-            }
-
-            // Gọi setPanelControlsEnabled dựa trên vai trò
-            setPanelControlsEnabled(isAdmin);
         }
 
-        setTitle("EduZakhanh - Welcome, " + user.getUsername() + " (" + user.getRole().getDisplayName() + ")");
-        statusLabel.setText("Logged in as: " + user.getRole().getDisplayName());
-            tabbedPane.removeAll();
-        if (user.getRole() == Role.ADMIN) {
-            tabbedPane.addTab("Schedule", null, schedulePanel, "Manage Class Schedules");
-            tabbedPane.addTab("Classes", null, classPanel, "Manage Classes & Enrollment");
-            tabbedPane.addTab("Students", null, studentPanel, "Manage Students");
-            tabbedPane.addTab("Teachers", null, teacherPanel, "Manage Teachers");
-            tabbedPane.addTab("Courses", null, coursePanel, "Manage Courses");
-            tabbedPane.addTab("Rooms", null, roomPanel, "Manage Rooms");
+        String windowTitle = "EduZakhanh - Welcome, " + user.getUsername() + " (" + user.getRole().getDisplayName() + ")";
+        setTitle(windowTitle);
+        setStatusText("Logged in as: " + user.getRole().getDisplayName());
+
+        tabbedPane.removeAll();
+
+        // --- Load các icon (giữ nguyên) ---
+        // *** NHỚ THAY ĐỔI TÊN FILE ICON CHO ĐÚNG ***
+        Icon scheduleIcon = loadTabIcon("/icons/schedule_icon.png");
+        Icon classesIcon = loadTabIcon("/icons/classes_icon.png");
+        Icon studentsIcon = loadTabIcon("/icons/students_icon.png");
+        Icon teachersIcon = loadTabIcon("/icons/teachers_icon.png");
+        Icon coursesIcon = loadTabIcon("/icons/courses_icon.png");
+        Icon roomsIcon = loadTabIcon("/icons/rooms_icon.png");
+
+        // --- Thêm tab và đặt component tùy chỉnh ---
+        boolean isAdmin = (user.getRole() == Role.ADMIN);
+        int tabIndex = 0; // Theo dõi index của tab
+
+        if (isAdmin) {
+            // 1. Schedule
+            tabbedPane.addTab(null, null, schedulePanel, "Manage Class Schedules"); // Thêm panel chính trước
+            JPanel scheduleTabComp = createTabComponent("Schedule", scheduleIcon); // Tạo component tab
+            tabbedPane.setTabComponentAt(tabIndex++, scheduleTabComp); // Đặt component vào tab
+
+            // 2. Classes
+            tabbedPane.addTab(null, null, classPanel, "Manage Classes & Enrollment");
+            JPanel classesTabComp = createTabComponent("Classes", classesIcon);
+            tabbedPane.setTabComponentAt(tabIndex++, classesTabComp);
+
+            // 3. Students
+            tabbedPane.addTab(null, null, studentPanel, "Manage Students");
+            JPanel studentsTabComp = createTabComponent("Students", studentsIcon);
+            tabbedPane.setTabComponentAt(tabIndex++, studentsTabComp);
+
+            // 4. Teachers
+            tabbedPane.addTab(null, null, teacherPanel, "Manage Teachers");
+            JPanel teachersTabComp = createTabComponent("Teachers", teachersIcon);
+            tabbedPane.setTabComponentAt(tabIndex++, teachersTabComp);
+
+            // 5. Courses
+            tabbedPane.addTab(null, null, coursePanel, "Manage Courses");
+            JPanel coursesTabComp = createTabComponent("Courses", coursesIcon);
+            tabbedPane.setTabComponentAt(tabIndex++, coursesTabComp);
+
+            // 6. Rooms
+            tabbedPane.addTab(null, null, roomPanel, "Manage Rooms");
+            JPanel roomsTabComp = createTabComponent("Rooms", roomsIcon);
+            tabbedPane.setTabComponentAt(tabIndex++, roomsTabComp);
+
         } else if (user.getRole() == Role.TEACHER) {
-            tabbedPane.addTab("My Schedule", null, schedulePanel, "View My Schedule"); // SchedulePanel needs to filter by teacher
-            tabbedPane.addTab("My Classes", null, classPanel, "View My Classes & Students"); // ClassPanel needs filter/mode
-            tabbedPane.addTab("My Students", null, studentPanel, "View Students in My Classes"); // StudentPanel needs filter/mode
-        }else if (user.getRole() == Role.STUDENT) {
-            tabbedPane.addTab("My Schedule", null, schedulePanel, "View My Schedule");
-            tabbedPane.addTab("My Classes", null, classPanel, "View My Classes");
+            tabbedPane.addTab(null, null, schedulePanel, "View My Schedule");
+            JPanel scheduleTabComp = createTabComponent("My Schedule", scheduleIcon);
+            tabbedPane.setTabComponentAt(tabIndex++, scheduleTabComp);
 
-            setPanelControlsEnabled(false);
+            tabbedPane.addTab(null, null, classPanel, "View My Classes & Students");
+            JPanel classesTabComp = createTabComponent("My Classes", classesIcon);
+            tabbedPane.setTabComponentAt(tabIndex++, classesTabComp);
+
+            tabbedPane.addTab(null, null, studentPanel, "View Students in My Classes");
+            JPanel studentsTabComp = createTabComponent("My Students", studentsIcon);
+            tabbedPane.setTabComponentAt(tabIndex++, studentsTabComp);
+
+        } else if (user.getRole() == Role.STUDENT) {
+            tabbedPane.addTab(null, null, schedulePanel, "View My Schedule");
+            JPanel scheduleTabComp = createTabComponent("My Schedule", scheduleIcon);
+            tabbedPane.setTabComponentAt(tabIndex++, scheduleTabComp);
+
+            tabbedPane.addTab(null, null, classPanel, "View My Classes");
+            JPanel classesTabComp = createTabComponent("My Classes", classesIcon);
+            tabbedPane.setTabComponentAt(tabIndex++, classesTabComp);
         }
+
+        setPanelControlsEnabled(isAdmin);
+
+        tabbedPane.revalidate();
+        tabbedPane.repaint();
     }
 
 
@@ -410,5 +434,64 @@ public class MainView extends JFrame {
         if (statusLabel != null) { // Kiểm tra null
             statusLabel.setText(text == null ? "" : text); // Xử lý text null
         }
+    }
+    private Icon loadTabIcon(String path) {
+        if (path == null || path.isEmpty()) {
+            return null;
+        }
+        try {
+            URL iconUrl = getClass().getResource(path);
+            if (iconUrl != null) {
+                return new ImageIcon(iconUrl); // Tạo ImageIcon từ URL
+            } else {
+                System.err.println("Warning: Tab icon resource not found at: " + path);
+                return null; // Trả về null nếu không tìm thấy
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading tab icon from path: " + path + " - " + e.getMessage());
+            return null;
+        }
+    }
+    private JPanel createTabComponent(final String title, final Icon icon) {
+        // Panel chính cho tab, dùng BoxLayout để xếp dọc
+        JPanel tabComponent = new JPanel();
+        tabComponent.setLayout(new BoxLayout(tabComponent, BoxLayout.Y_AXIS)); // Xếp dọc
+        tabComponent.setOpaque(false); // QUAN TRỌNG: Để nền tab của LookAndFeel hiển thị qua
+
+        // Label chứa Icon
+        JLabel iconLabel = new JLabel(icon);
+        iconLabel.setAlignmentX(Component.CENTER_ALIGNMENT); // Căn giữa icon theo chiều ngang
+        iconLabel.setOpaque(false);
+
+        // Label chứa Text
+        JLabel textLabel = new JLabel(title);
+        textLabel.setAlignmentX(Component.CENTER_ALIGNMENT); // Căn giữa text theo chiều ngang
+        textLabel.setOpaque(false);
+        // Đặt font và màu giống như tab mặc định (tùy chọn, nhưng nên làm)
+        Font tabFont = UIManager.getFont("TabbedPane.font");
+        if (tabFont != null) {
+            // Có thể làm font nhỏ hơn một chút nếu cần
+            // textLabel.setFont(tabFont.deriveFont(tabFont.getSize2D() - 1f));
+            textLabel.setFont(tabFont);
+        }
+        Color tabForeground = UIManager.getColor("TabbedPane.foreground");
+        if (tabForeground != null) {
+            textLabel.setForeground(tabForeground);
+        }
+
+
+        // Thêm icon vào panel
+        tabComponent.add(iconLabel);
+
+        // Thêm khoảng cách nhỏ giữa icon và text
+        tabComponent.add(Box.createRigidArea(new Dimension(0, 3))); // 3 pixel dọc
+
+        // Thêm text vào panel
+        tabComponent.add(textLabel);
+
+        // Thêm một chút padding xung quanh để không bị sát viền tab
+        tabComponent.setBorder(new EmptyBorder(4, 0, 2, 0)); // top, left, bottom, right
+
+        return tabComponent;
     }
 }
