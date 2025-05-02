@@ -1,7 +1,7 @@
 package com.eduzk.view;
 
 import com.eduzk.controller.AuthController;
-
+import com.formdev.flatlaf.FlatClientProperties;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -29,11 +29,23 @@ public class LoginView extends JFrame {
 
     private void initComponents() {
         usernameField = new JTextField(20);
-        passwordField = new JPasswordField(20);
+        passwordField = new JPasswordField();
         loginButton = new JButton("Login");
         registerButton = new JButton("Register");
-        statusLabel = new JLabel(" "); // Initialize with space for layout stability
-        statusLabel.setForeground(Color.RED);
+        statusLabel = new JLabel(" ");
+        statusLabel.setForeground(UIManager.getColor("Label.errorForeground"));
+        statusLabel.setHorizontalAlignment(SwingConstants.CENTER);
+    }
+    private void styleComponents() {
+        usernameField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Enter your username");
+        passwordField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Enter your password");
+        loginButton.putClientProperty(FlatClientProperties.BUTTON_TYPE, "primary");
+        registerButton.putClientProperty(FlatClientProperties.BUTTON_TYPE, "borderless");
+        passwordField.putClientProperty(FlatClientProperties.STYLE, "showRevealButton: true");
+
+        // Font labelFont = UIManager.getFont("Label.font");
+        // usernameLabel.setFont(labelFont.deriveFont(labelFont.getSize() + 1f));
+        // passwordLabel.setFont(labelFont.deriveFont(labelFont.getSize() + 1f));
     }
 
     private void setupLayout() {
@@ -42,46 +54,61 @@ public class LoginView extends JFrame {
         setResizable(false);
 
         JPanel mainPanel = new JPanel(new GridBagLayout());
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(25, 30, 25, 30));
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.anchor = GridBagConstraints.WEST;
+        // Label
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.anchor = GridBagConstraints.LINE_END;
+        gbc.insets = new Insets(5, 5, 5, 10);
+        mainPanel.add(new JLabel("Password:"), gbc);
 
         // Username Label and Field
-        gbc.gridx = 0;
         gbc.gridy = 0;
         mainPanel.add(new JLabel("Username:"), gbc);
 
+        // Cấu hình chung cho TextField/PasswordField
         gbc.gridx = 1;
-        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.LINE_START;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
-        mainPanel.add(usernameField, gbc);
-
-        // Password Label and Field
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        gbc.fill = GridBagConstraints.NONE; // Reset fill
-        gbc.weightx = 0.0;             // Reset weight
-        mainPanel.add(new JLabel("Password:"), gbc);
-
-        gbc.gridx = 1;
-        gbc.gridy = 1;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1.0;
+        gbc.insets = new Insets(5, 0, 5, 5);
         mainPanel.add(passwordField, gbc);
 
-        // Button Panel (Chứa cả Login và Register)
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
-        buttonPanel.add(loginButton);
-        buttonPanel.add(registerButton);
+        // Username Field
+        gbc.gridy = 0;
+        mainPanel.add(usernameField, gbc);
 
-        // Login Button
+        // Password Field
+        gbc.gridy = 1;
+        mainPanel.add(passwordField, gbc);
+
+        // --- Panel chứa nút bấm: Dùng GridBagLayout để kiểm soát tốt hơn ---
+        JPanel buttonPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints btnGbc = new GridBagConstraints();
+
+        // Cấu hình chung cho nút trong buttonPanel
+        btnGbc.insets = new Insets(15, 5, 5, 5); // Khoảng cách trên cùng (từ password), giữa 2 nút
+        btnGbc.fill = GridBagConstraints.HORIZONTAL; // Làm 2 nút có chiều rộng bằng nhau (tùy chọn)
+        btnGbc.weightx = 0.5; // Chia đều không gian
+
+        // Register Button (đặt bên trái)
+        btnGbc.gridx = 0;
+        btnGbc.gridy = 0;
+        buttonPanel.add(registerButton, btnGbc);
+
+        // Login Button (đặt bên phải)
+        btnGbc.gridx = 1;
+        btnGbc.gridy = 0;
+        buttonPanel.add(loginButton, btnGbc);
+
+        // Thêm buttonPanel vào mainPanel
         gbc.gridx = 0;
         gbc.gridy = 2;
-        gbc.gridwidth = 2; // Span across both columns
+        gbc.gridwidth = 2; // Span 2 cột
         gbc.anchor = GridBagConstraints.CENTER;
-        gbc.fill = GridBagConstraints.NONE;
+        gbc.fill = GridBagConstraints.HORIZONTAL; // Cho buttonPanel giãn theo chiều ngang
+        gbc.insets = new Insets(15, 5, 5, 5); // Khoảng cách trên (từ password field)
         mainPanel.add(buttonPanel, gbc);
 
 
@@ -90,8 +117,9 @@ public class LoginView extends JFrame {
         gbc.gridy = 3;
         gbc.gridwidth = 2;
         gbc.anchor = GridBagConstraints.CENTER;
+        gbc.fill = GridBagConstraints.HORIZONTAL; // Cho label chiếm hết chiều ngang
+        gbc.insets = new Insets(10, 5, 0, 5); // Khoảng cách trên (từ nút), dưới (0)
         mainPanel.add(statusLabel, gbc);
-
 
         add(mainPanel);
     }
@@ -131,48 +159,91 @@ public class LoginView extends JFrame {
     }
 
     private void configureWindow() {
-        pack(); // Adjust window size to fit components
-        setLocationRelativeTo(null); // Center on screen (uses UIUtils internally in newer Swing)
-        // For older Java or more precise centering: UIUtils.centerWindow(this);
+        pack();
+        setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            public void windowOpened(java.awt.event.WindowEvent evt) {
+                usernameField.requestFocusInWindow();
+            }
+        });
     }
 
 
     private void performLogin() {
-        String username = usernameField.getText();
+        String username = usernameField.getText().trim(); // Trim whitespace
         String password = new String(passwordField.getPassword());
-        statusLabel.setText(" "); // Clear previous status
+        statusLabel.setText(" ");
 
-        // Disable button during login attempt
-        loginButton.setEnabled(false);
-        statusLabel.setText("Logging in...");
+        if (username.isEmpty() || password.isEmpty()) {
+            showLoginError("Username and password cannot be empty.");
+            if (username.isEmpty()) {
+                usernameField.requestFocusInWindow();
+            } else {
+                passwordField.requestFocusInWindow();
+            }
+            return;
+        }
 
-        // Use SwingWorker for background task to avoid freezing UI
-        SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+        setLoginInProgress(true);
+
+        SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
+            private String errorMessage = null;
+
             @Override
-            protected Void doInBackground() throws Exception {
-                authController.attemptLogin(username, password);
-                return null;
+            protected Boolean doInBackground() throws Exception {
+                try {
+                    return authController.attemptLogin(username, password);
+                } catch (Exception e) {
+                    errorMessage = "Login failed: " + e.getMessage();
+                    e.printStackTrace();
+                    return false;
+                }
             }
 
             @Override
             protected void done() {
-                // Re-enable button and clear status label on completion (success or failure)
-                loginButton.setEnabled(true);
-                statusLabel.setText(" "); // Clear "Logging in..."
-                // Error messages are shown by the controller via UIUtils
+                setLoginInProgress(false);
+                try {
+                    boolean loggedIn = get();
+                    if (!loggedIn) {
+                        if (errorMessage == null) {
+                             showLoginError("Invalid username or password.");
+                        } else {
+                            showLoginError(errorMessage); // Hiển thị lỗi exception
+                        }
+                    }
+                } catch (Exception e) {
+                    showLoginError("An unexpected error occurred during login.");
+                    e.printStackTrace();
+                }
             }
         };
         worker.execute();
 
     }
+    private void setLoginInProgress(boolean inProgress) {
+        usernameField.setEnabled(!inProgress);
+        passwordField.setEnabled(!inProgress);
+        loginButton.setEnabled(!inProgress);
+        registerButton.setEnabled(!inProgress);
+        if (inProgress) {
+            statusLabel.setText("Logging in...");
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        } else {
+            statusLabel.setText(" ");
+            setCursor(Cursor.getDefaultCursor());
+        }
+    }
 
-    // Method for controller to potentially show messages directly (alternative to UIUtils)
     public void showLoginError(String message) {
         statusLabel.setText(message);
-        // Optional: Clear password field on error
         passwordField.setText("");
-        usernameField.requestFocusInWindow(); // Focus username again
+        if (usernameField.getText().isEmpty()) {
+            usernameField.requestFocusInWindow();
+        } else {
+            passwordField.requestFocusInWindow();
+        }
     }
 
 }

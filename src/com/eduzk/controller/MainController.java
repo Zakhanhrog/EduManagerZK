@@ -1,8 +1,5 @@
 package com.eduzk.controller;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.io.IOException;
 import javax.swing.JOptionPane;
 import com.eduzk.model.entities.*;
@@ -16,7 +13,6 @@ import java.io.File;
 import java.util.List;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
-import java.awt.Component;
 
 public class MainController {
     public static final String EXPORT_STUDENTS = "Student List";
@@ -146,12 +142,24 @@ public class MainController {
         }
     }
 
-    public StudentController getStudentController() { return studentController; }
-    public TeacherController getTeacherController() { return teacherController; }
-    public CourseController getCourseController() { return courseController; }
-    public RoomController getRoomController() { return roomController; }
-    public EduClassController getEduClassController() { return eduClassController; }
-    public ScheduleController getScheduleController() { return scheduleController; }
+    public StudentController getStudentController() {
+        return studentController;
+    }
+    public TeacherController getTeacherController() {
+        return teacherController;
+    }
+    public CourseController getCourseController() {
+        return courseController;
+    }
+    public RoomController getRoomController() {
+        return roomController;
+    }
+    public EduClassController getEduClassController() {
+        return eduClassController;
+    }
+    public ScheduleController getScheduleController() {
+        return scheduleController;
+    }
 
     public void exportDataToExcel(String dataType, File outputFile) {
         System.out.println("Starting Excel export for: " + dataType + " by user role: " + getUserRole()); // Log thêm role

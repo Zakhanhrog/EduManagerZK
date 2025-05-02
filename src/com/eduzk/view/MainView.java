@@ -17,7 +17,7 @@ import java.awt.event.WindowEvent;
 import com.formdev.flatlaf.*;
 import com.formdev.flatlaf.themes.FlatMacDarkLaf;
 import com.formdev.flatlaf.themes.FlatMacLightLaf;
-
+import javax.swing.border.Border;
 import javax.swing.ButtonGroup;
 import javax.swing.JRadioButtonMenuItem;
 
@@ -26,13 +26,13 @@ public class MainView extends JFrame {
     private final MainController mainController;
     private JTabbedPane tabbedPane;
     private JLabel statusLabel;
-
     private StudentPanel studentPanel;
     private TeacherPanel teacherPanel;
     private CoursePanel coursePanel;
     private RoomPanel roomPanel;
     private ClassPanel classPanel;
     private SchedulePanel schedulePanel;
+    private JPanel statusBar;
 
     public MainView(MainController mainController) {
         this.mainController = mainController;
@@ -41,6 +41,7 @@ public class MainView extends JFrame {
         createMenuBar();
         setupWindowListener();
         configureWindow();
+        updateStatusBarAppearance();
     }
 
     private void initComponents() {
@@ -52,6 +53,8 @@ public class MainView extends JFrame {
         roomPanel = new RoomPanel(null);
         classPanel = new ClassPanel(null);
         schedulePanel = new SchedulePanel(null);
+        statusBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 3));
+        statusBar.add(statusLabel);
     }
 
     private void setupLayout() {
@@ -64,12 +67,15 @@ public class MainView extends JFrame {
         tabbedPane.addTab("Classes", null, classPanel, "Manage Classes & Enrollment");
         tabbedPane.addTab("Schedule", null, schedulePanel, "Manage Class Schedules");
         add(tabbedPane, BorderLayout.CENTER);
+        add(statusBar, BorderLayout.SOUTH);
 
         // Status Bar
-        JPanel statusBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        /*JPanel statusBar = new JPanel(new FlowLayout(FlowLayout.LEFT));
         statusBar.setBorder(BorderFactory.createEtchedBorder());
         statusBar.add(statusLabel);
-        add(statusBar, BorderLayout.SOUTH);
+        add(statusBar, BorderLayout.SOUTH);*/
+
+
     }
 
     private void createMenuBar() {
@@ -112,12 +118,16 @@ public class MainView extends JFrame {
         themeMenu.add(macDarkThemeItem);
         viewMenu.add(themeMenu);
         menuBar.add(viewMenu);
+
         String currentLaf = UIManager.getLookAndFeel().getClass().getName();
-        if (currentLaf.equals(FlatLightLaf.class.getName())) lightThemeItem.setSelected(true);
-        else if (currentLaf.equals(FlatDarkLaf.class.getName())) darkThemeItem.setSelected(true);
-        else if (currentLaf.equals(FlatIntelliJLaf.class.getName())) intellijThemeItem.setSelected(true);
-        else if (currentLaf.equals(FlatMacLightLaf.class.getName())) macLightThemeItem.setSelected(true);
-        else if (currentLaf.equals(FlatMacDarkLaf.class.getName())) macDarkThemeItem.setSelected(true);
+        for (MenuElement element : themeMenu.getPopupMenu().getSubElements()) {
+            if (element instanceof JRadioButtonMenuItem) {
+                JRadioButtonMenuItem item = (JRadioButtonMenuItem) element;
+                if (item.getActionCommand() != null && item.getActionCommand().equals(currentLaf)) {
+                    item.setSelected(true);
+                }
+            }
+        }
 
         // Help Menu
         JMenu helpMenu = new JMenu("Help");
@@ -131,13 +141,28 @@ public class MainView extends JFrame {
 
     private JRadioButtonMenuItem createThemeMenuItem(String text, String lafClassName, ButtonGroup group) {
         JRadioButtonMenuItem menuItem = new JRadioButtonMenuItem(text);
+        menuItem.setActionCommand(lafClassName);
         menuItem.addActionListener(e -> {
             if (mainController != null) {
                 mainController.setLookAndFeel(lafClassName);
+                updateStatusBarAppearance();
             }
         });
         group.add(menuItem);
         return menuItem;
+    }
+
+    private void updateStatusBarAppearance() {
+        if (statusBar != null) {
+            Color borderColor = UIManager.getColor("Component.borderColor");
+            if (borderColor == null) {
+                borderColor = Color.LIGHT_GRAY;
+            }
+            Border topBorder = BorderFactory.createMatteBorder(1, 0, 0, 0, borderColor);
+            statusBar.setBorder(topBorder);
+            statusBar.revalidate();
+            statusBar.repaint();
+        }
     }
 
     private void showExportExcelDialog() {
@@ -167,9 +192,6 @@ public class MainView extends JFrame {
             optionsList.add(MainController.EXPORT_STUDENTS); // Học viên trong lớp của tôi
             // Không thêm Teacher List, Course List, Room List
         }
-        // Không thêm tùy chọn cho STUDENT (hoặc thêm tùy chọn riêng nếu cần)
-
-        // Nếu không có tùy chọn nào cho vai trò hiện tại
         if (optionsList.isEmpty()) {
             UIUtils.showInfoMessage(this, "Export Not Available", "No export options available for your role.");
             return;
@@ -276,10 +298,34 @@ public class MainView extends JFrame {
     // Configure visible tabs based on user role
     public void configureViewForUser(User user) {
         if (user == null) {
-            // Should not happen if login is successful, handle defensively
             UIUtils.showErrorMessage(this, "Error", "No logged in user found. Exiting.");
             System.exit(1);
-            return;
+            String windowTitle = "EduZakhanh - Welcome, " + user.getUsername() + " (" + user.getRole().getDisplayName() + ")";
+            setTitle(windowTitle); // Gọi setTitle đã override (tự động cập nhật menu bar Mac)
+            setStatusText("Logged in as: " + user.getRole().getDisplayName()); // Gọi hàm setStatusText mới
+
+            tabbedPane.removeAll();
+            // Biến isAdmin để dễ đọc hơn
+            boolean isAdmin = (user.getRole() == Role.ADMIN);
+
+            if (isAdmin) {
+                tabbedPane.addTab("Schedule", null, schedulePanel, "Manage Class Schedules");
+                tabbedPane.addTab("Classes", null, classPanel, "Manage Classes & Enrollment");
+                tabbedPane.addTab("Students", null, studentPanel, "Manage Students");
+                tabbedPane.addTab("Teachers", null, teacherPanel, "Manage Teachers");
+                tabbedPane.addTab("Courses", null, coursePanel, "Manage Courses");
+                tabbedPane.addTab("Rooms", null, roomPanel, "Manage Rooms");
+            } else if (user.getRole() == Role.TEACHER) {
+                tabbedPane.addTab("My Schedule", null, schedulePanel, "View My Schedule");
+                tabbedPane.addTab("My Classes", null, classPanel, "View My Classes & Students");
+                tabbedPane.addTab("My Students", null, studentPanel, "View Students in My Classes");
+            } else if (user.getRole() == Role.STUDENT) {
+                tabbedPane.addTab("My Schedule", null, schedulePanel, "View My Schedule");
+                tabbedPane.addTab("My Classes", null, classPanel, "View My Classes");
+            }
+
+            // Gọi setPanelControlsEnabled dựa trên vai trò
+            setPanelControlsEnabled(isAdmin);
         }
 
         setTitle("EduZakhanh - Welcome, " + user.getUsername() + " (" + user.getRole().getDisplayName() + ")");
@@ -352,7 +398,19 @@ public class MainView extends JFrame {
             } else if (selectedComponent instanceof SchedulePanel) {
                 ((SchedulePanel) selectedComponent).refreshScheduleView();
             }
-            // Thêm else if cho các panel khác nếu có
+        }
+    }
+    @Override
+    public void setTitle(String title) {
+        super.setTitle(title); // Gọi hàm gốc để đặt tiêu đề cửa sổ
+        // Cập nhật tên ứng dụng trên thanh menu của macOS nếu đang chạy trên Mac
+        if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
+            System.setProperty("apple.awt.application.name", title);
+        }
+    }
+    public void setStatusText(String text) {
+        if (statusLabel != null) { // Kiểm tra null
+            statusLabel.setText(text == null ? "" : text); // Xử lý text null
         }
     }
 }

@@ -1,8 +1,8 @@
 #Next Available IDs for EduHub Entities
-#Thu May 01 21:00:05 ICT 2025
+#Fri May 02 09:11:28 ICT 2025
 educlass=1
-schedule=1
-teacher=1
+schedule=2
+teacher=4
 student=1
 course=1
 user=2

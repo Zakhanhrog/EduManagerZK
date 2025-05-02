@@ -21,6 +21,9 @@ public class App {
     // look and feel
     public static void main(String[] args) {
         try {
+            System.setProperty( "apple.laf.useScreenMenuBar", "true" );
+            System.setProperty( "apple.awt.application.name", "EduZakhanh" );
+            System.setProperty( "apple.awt.application.appearance", "light" );
             UIManager.setLookAndFeel( new FlatIntelliJLaf() );
             System.out.println("FlatLaf Look and Feel initialized successfully.");
         } catch( UnsupportedLookAndFeelException ex ) {
@@ -51,7 +54,7 @@ public class App {
                 // 5. Khởi tạo AuthController và inject TeacherDAO
                 System.out.println("Initializing AuthController...");
                 AuthController authController = new AuthController(userDAO);
-                authController.setTeacherDAO(teacherDAO); // Vẫn inject DAO này
+                authController.setTeacherDAO(teacherDAO);
                 authController.setStudentDAO(studentDAO);
                 System.out.println("AuthController initialized.");
 

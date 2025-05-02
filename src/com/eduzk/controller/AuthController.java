@@ -39,11 +39,11 @@ public class AuthController {
         this.loginView = loginView;
     }
 
-    public void attemptLogin(String username, String password) {
+    public boolean attemptLogin(String username, String password) {
         // Validation cơ bản đầu vào
         if (!ValidationUtils.isNotEmpty(username) || !ValidationUtils.isNotEmpty(password)) {
             UIUtils.showWarningMessage(loginView, "Login Failed", "Username/Phone and password cannot be empty.");
-            return;
+            return false;
         }
         try {
             // Tìm user bằng username (hoặc SĐT đã đăng ký làm username)
@@ -55,23 +55,30 @@ public class AuthController {
                     if (user.isActive()) {
                         this.loggedInUser = user;
                         loginSuccess();
+                        return true;
+
                     } else {
                         UIUtils.showErrorMessage(loginView, "Login Failed", "User account is inactive. Please contact administrator.");
+                        return false;
                     }
                 } else {
                     UIUtils.showErrorMessage(loginView, "Login Failed", "Invalid username/phone or password.");
+                    return false;
                 }
             } else {
                 UIUtils.showErrorMessage(loginView, "Login Failed", "Invalid username/phone or password.");
+                return false;
             }
         } catch (DataAccessException e) {
             System.err.println("Login DAO Error: " + e.getMessage());
             e.printStackTrace(); // In stack trace ra console để debug
             UIUtils.showErrorMessage(loginView, "Login Error", "A data access error occurred. Please try again later or contact support.");
+            return false;
         } catch (Exception e) {
             System.err.println("Unexpected Login Error: " + e.getMessage());
             e.printStackTrace();
             UIUtils.showErrorMessage(loginView, "Login Error", "An unexpected error occurred during login.");
+            return false;
         }
     }
 
