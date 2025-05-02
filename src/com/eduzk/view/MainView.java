@@ -301,8 +301,7 @@ public class MainView extends JFrame {
         tabbedPane.removeAll();
 
         // --- Load các SVG icon ---
-        // *** THAY THẾ TÊN FILE .svg CHO ĐÚNG VỚI FILE CỦA BẠN ***
-        Icon scheduleIcon = loadTabSVGICon("/icons/schedule.svg"); // Đổi sang .svg
+        Icon scheduleIcon = loadTabSVGICon("/icons/schedule.svg");
         Icon classesIcon = loadTabSVGICon("/icons/classes.svg");
         Icon studentsIcon = loadTabSVGICon("/icons/students.svg");
         Icon teachersIcon = loadTabSVGICon("/icons/teachers.svg");

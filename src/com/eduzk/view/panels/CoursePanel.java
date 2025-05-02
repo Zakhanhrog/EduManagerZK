@@ -4,7 +4,6 @@ import com.eduzk.controller.CourseController;
 import com.eduzk.model.entities.Course;
 import com.eduzk.utils.UIUtils;
 import com.eduzk.view.dialogs.CourseDialog; // Import the dialog
-
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
@@ -12,6 +11,9 @@ import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.util.List;
 import java.util.Vector;
+import javax.swing.Icon;
+import java.net.URL;
+import com.formdev.flatlaf.extras.FlatSVGIcon;
 
 public class CoursePanel extends JPanel {
 
@@ -94,21 +96,29 @@ public class CoursePanel extends JPanel {
         TableColumn descCol = courseTable.getColumnModel().getColumn(5);
         descCol.setPreferredWidth(300);
 
-
         // Buttons
-        addButton = new JButton("Add", UIUtils.createImageIcon("/icons/add.png", "Add"));
-        editButton = new JButton("Edit", UIUtils.createImageIcon("/icons/edit.png", "Edit"));
-        deleteButton = new JButton("Delete", UIUtils.createImageIcon("/icons/delete.png", "Delete"));
-        refreshButton = new JButton("Refresh", UIUtils.createImageIcon("/icons/refresh.png", "Refresh"));  // <-- 2. KHỞI TẠO NÚT REFRESH
-        refreshButton.setToolTipText("Reload course data from storage"); // Thêm gợi ý
+        int iconSize = 16;
+        addButton = new JButton("Add Class"); // Bỏ icon khỏi constructor
+        Icon addIcon = loadSVGIconButton("/icons/add.svg", iconSize);
+        if (addIcon != null) addButton.setIcon(addIcon);
 
+        editButton = new JButton("Edit Class");
+        Icon editIcon = loadSVGIconButton("/icons/edit.svg", iconSize);
+        if (editIcon != null) editButton.setIcon(editIcon);
+
+        deleteButton = new JButton("Delete Class");
+        Icon deleteIcon = loadSVGIconButton("/icons/delete.svg", iconSize);
+        if (deleteIcon != null) deleteButton.setIcon(deleteIcon);
+
+        refreshButton = new JButton("Refresh");
+        Icon refreshIcon = loadSVGIconButton("/icons/refresh.svg", iconSize);
+        if (refreshIcon != null) refreshButton.setIcon(refreshIcon);
+        refreshButton.setToolTipText("Reload class data from storage");
 
         // Search Components
         searchField = new JTextField(20);
         searchButton = new JButton("Search by Name");
     }
-
-    // ... (Phần initComponents và setupLayout đã có ở trên)
 
     private void setupActions() {
         addButton.addActionListener(e -> openCourseDialog(null));
@@ -165,9 +175,6 @@ public class CoursePanel extends JPanel {
         } else {
             // Search via controller
             courses = controller.searchCoursesByName(searchText);
-            // Optional: Use RowFilter if filtering in memory
-            // RowFilter<DefaultTableModel, Object> rf = RowFilter.regexFilter("(?i)" + searchText, 2); // Column 2 = Name
-            // sorter.setRowFilter(rf);
         }
         populateTable(courses);
     }
@@ -207,11 +214,24 @@ public class CoursePanel extends JPanel {
     }
 
     public void setAdminControlsEnabled(boolean isAdmin) {
-        addButton.setVisible(isAdmin); // Hoặc setEnabled(isAdmin)
+        addButton.setVisible(isAdmin);
         editButton.setVisible(isAdmin);
         deleteButton.setVisible(isAdmin);
-        // Các nút khác (Search) có thể luôn hiển thị/enabled
-        // searchButton.setEnabled(true);
-        // searchField.setEnabled(true);
     }
-} // End of CoursePanel class
+
+    private Icon loadSVGIconButton(String path, int size) {
+        if (path == null || path.isEmpty()) return null;
+        try {
+            URL iconUrl = getClass().getResource(path);
+            if (iconUrl != null) {
+                return new FlatSVGIcon(iconUrl).derive(size, size);
+            } else {
+                System.err.println("Warning: Button SVG icon resource not found at: " + path + " in " + getClass().getSimpleName());
+                return null;
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading/parsing SVG button icon from path: " + path + " - " + e.getMessage());
+            return null;
+        }
+    }
+}

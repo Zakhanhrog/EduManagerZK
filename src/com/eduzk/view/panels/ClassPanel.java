@@ -7,8 +7,6 @@ import com.eduzk.model.entities.Student;
 import com.eduzk.model.entities.Teacher;
 import com.eduzk.utils.UIUtils;
 import com.eduzk.view.dialogs.ClassDialog; // Dialog for add/edit class
-// Consider a separate dialog for student selection/enrollment
-
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
@@ -17,6 +15,9 @@ import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.util.List;
 import java.util.Vector;
+import javax.swing.Icon;
+import java.net.URL;
+import com.formdev.flatlaf.extras.FlatSVGIcon;
 
 public class ClassPanel extends JPanel {
 
@@ -47,6 +48,7 @@ public class ClassPanel extends JPanel {
     }
 
     private void initComponents() {
+
         // --- Class Table ---
         classTableModel = new DefaultTableModel(
                 new Object[]{"ID", "Class Name", "Course", "Teacher", "Year", "Semester", "Capacity", "Enrolled"}, 0) {
@@ -77,16 +79,28 @@ public class ClassPanel extends JPanel {
         enrolledStudentTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         // --- Buttons ---
-        addClassButton = new JButton("Add Class", UIUtils.createImageIcon("/icons/add.png", "Add Class"));
-        editClassButton = new JButton("Edit Class", UIUtils.createImageIcon("/icons/edit.png", "Edit Class"));
-        deleteClassButton = new JButton("Delete Class", UIUtils.createImageIcon("/icons/delete.png", "Delete Class"));
-        refreshButton = new JButton("Refresh", UIUtils.createImageIcon("/icons/refresh.png", "Refresh"));  // <-- 2. KHỞI TẠO NÚT REFRESH
-        refreshButton.setToolTipText("Reload class data from storage"); // Thêm gợi ý
+        int iconSize = 16;
+        addClassButton = new JButton("Add Class"); // Bỏ icon khỏi constructor
+        Icon addIcon = loadSVGIconButton("/icons/add.svg", iconSize);
+        if (addIcon != null) addClassButton.setIcon(addIcon);
+
+        editClassButton = new JButton("Edit Class");
+        Icon editIcon = loadSVGIconButton("/icons/edit.svg", iconSize);
+        if (editIcon != null) editClassButton.setIcon(editIcon);
+
+        deleteClassButton = new JButton("Delete Class");
+        Icon deleteIcon = loadSVGIconButton("/icons/delete.svg", iconSize);
+        if (deleteIcon != null) deleteClassButton.setIcon(deleteIcon);
+
+        refreshButton = new JButton("Refresh");
+        Icon refreshIcon = loadSVGIconButton("/icons/refresh.svg", iconSize);
+        if (refreshIcon != null) refreshButton.setIcon(refreshIcon);
+        refreshButton.setToolTipText("Reload class data from storage");
+
         enrollStudentButton = new JButton("Enroll Student");
         unenrollStudentButton = new JButton("Unenroll Student");
         enrollStudentButton.setEnabled(false); // Disabled until a class is selected
         unenrollStudentButton.setEnabled(false);
-
         selectedClassLabel = new JLabel("Select a class to see enrolled students.");
         selectedClassLabel.setFont(selectedClassLabel.getFont().deriveFont(Font.ITALIC));
         selectedClassLabel.setBorder(BorderFactory.createEmptyBorder(5, 0, 5, 0));
@@ -382,5 +396,20 @@ public class ClassPanel extends JPanel {
         // Nút Enroll/Unenroll có thể cần logic khác (ví dụ: cả Admin và Teacher)
         enrollStudentButton.setVisible(isAdmin); // Hoặc logic phức tạp hơn
         unenrollStudentButton.setVisible(isAdmin);
+    }
+    private Icon loadSVGIconButton(String path, int size) {
+        if (path == null || path.isEmpty()) return null;
+        try {
+            URL iconUrl = getClass().getResource(path);
+            if (iconUrl != null) {
+                return new FlatSVGIcon(iconUrl).derive(size, size);
+            } else {
+                System.err.println("Warning: Button SVG icon resource not found at: " + path + " in " + getClass().getSimpleName());
+                return null;
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading/parsing SVG button icon from path: " + path + " - " + e.getMessage());
+            return null;
+        }
     }
 }

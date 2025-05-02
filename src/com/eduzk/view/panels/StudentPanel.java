@@ -5,14 +5,17 @@ import com.eduzk.model.entities.Student;
 import com.eduzk.utils.DateUtils;
 import com.eduzk.utils.UIUtils;
 import com.eduzk.view.dialogs.StudentDialog; // Import the dialog
+import com.formdev.flatlaf.extras.FlatSVGIcon;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
+import java.net.URL;
 import java.util.List;
 import java.util.Vector;
 import java.util.ArrayList;
 import java.util.Arrays;
+import javax.swing.Icon;
 
 public class StudentPanel extends JPanel {
 
@@ -58,12 +61,28 @@ public class StudentPanel extends JPanel {
 
 
         // Buttons
-        addButton = new JButton("Add", UIUtils.createImageIcon("/icons/add.png", "Add"));
-        editButton = new JButton("Edit", UIUtils.createImageIcon("/icons/edit.png", "Edit"));
-        deleteButton = new JButton("Delete", UIUtils.createImageIcon("/icons/delete.png", "Delete"));
-        refreshButton = new JButton("Refresh", UIUtils.createImageIcon("/icons/refresh.png", "Refresh"));  // <-- 2. KHỞI TẠO NÚT REFRESH
+        int iconSize = 16;
+
+        addButton = new JButton("Add");
+        Icon addIcon = loadSVGIconButton("/icons/add.svg", iconSize);
+        if (addIcon != null) addButton.setIcon(addIcon);
+
+        editButton = new JButton("Edit");
+        Icon editIcon = loadSVGIconButton("/icons/edit.svg", iconSize);
+        if (editIcon != null) editButton.setIcon(editIcon);
+
+        deleteButton = new JButton("Delete");
+        Icon deleteIcon = loadSVGIconButton("/icons/delete.svg", iconSize);
+        if (deleteIcon != null) deleteButton.setIcon(deleteIcon);
+
+        refreshButton = new JButton("Refresh");
+        Icon refreshIcon = loadSVGIconButton("/icons/refresh.svg", iconSize);
+        if (refreshIcon != null) refreshButton.setIcon(refreshIcon);
         refreshButton.setToolTipText("Reload student data from storage");
-        importButton = new JButton("Import", UIUtils.createImageIcon("/icons/import.png", "Import"));
+
+        importButton = new JButton("Import");
+        Icon importIcon = loadSVGIconButton("/icons/import.svg", iconSize);
+        if (importIcon != null) importButton.setIcon(importIcon);
         importButton.setToolTipText("Import student data from an Excel file (.xlsx)");
 
         // Search Components
@@ -269,8 +288,20 @@ public class StudentPanel extends JPanel {
         if (addButton != null) addButton.setEnabled(enabled);
         if (editButton != null) editButton.setEnabled(enabled);
         if (deleteButton != null) deleteButton.setEnabled(enabled);
-        // Có thể không cần vô hiệu hóa nút Search
-        // if (searchButton != null) searchButton.setEnabled(enabled);
-        // if (searchField != null) searchField.setEnabled(enabled);
+    }
+    private Icon loadSVGIconButton(String path, int size) {
+        if (path == null || path.isEmpty()) return null;
+        try {
+            URL iconUrl = getClass().getResource(path);
+            if (iconUrl != null) {
+                return new FlatSVGIcon(iconUrl).derive(size, size);
+            } else {
+                System.err.println("Warning: Button SVG icon resource not found at: " + path + " in " + getClass().getSimpleName());
+                return null;
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading/parsing SVG button icon from path: " + path + " - " + e.getMessage());
+            return null;
+        }
     }
 }
