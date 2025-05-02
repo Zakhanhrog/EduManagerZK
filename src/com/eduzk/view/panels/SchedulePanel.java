@@ -91,7 +91,7 @@ public class SchedulePanel extends JPanel {
 
 
         // Buttons
-        int iconSize = 16;
+        int iconSize = 20;
 
         addButton = new JButton("Add Entry");
         Icon addIcon = loadSVGIconButton("/icons/add.svg", iconSize);
@@ -116,7 +116,7 @@ public class SchedulePanel extends JPanel {
 
     private void setupLayout() {
         // --- Top Panel (Filters and Actions) ---
-        JPanel topPanel = new JPanel(new BorderLayout(20, 0)); // Add gap between filters and actions
+        JPanel topPanel = new JPanel(new BorderLayout(20, 0));
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         filterPanel.add(new JLabel("From:"));
         filterPanel.add(startDatePicker);
@@ -174,7 +174,6 @@ public class SchedulePanel extends JPanel {
                 if (UIUtils.showConfirmDialog(this, "Confirm Deletion", "Delete schedule entry?\n" + desc)) {
                     if (controller != null) {
                         controller.deleteSchedule(scheduleId);
-                        // Refresh handled by controller
                     }
                 }
             } else {
@@ -198,8 +197,6 @@ public class SchedulePanel extends JPanel {
         Window parentWindow = SwingUtilities.getWindowAncestor(this);
         ScheduleDialog dialog = new ScheduleDialog((Frame) parentWindow, controller, schedule);
         dialog.setVisible(true);
-        // Refresh potentially handled by controller after save
-        // refreshScheduleView(); // Or refresh here after dialog closes, if controller doesn't
     }
 
     // Called by controller or filter button action
@@ -223,7 +220,7 @@ public class SchedulePanel extends JPanel {
     }
 
     private void populateTable(List<Schedule> schedules) {
-        tableModel.setRowCount(0); // Clear existing data
+        tableModel.setRowCount(0);
         if (schedules != null && controller != null) {
             for (Schedule schedule : schedules) {
                 Vector<Object> row = new Vector<>();
@@ -241,12 +238,9 @@ public class SchedulePanel extends JPanel {
     }
 
     public void setAdminControlsEnabled(boolean isAdmin) {
-        addButton.setVisible(isAdmin); // Hoặc setEnabled(isAdmin)
+        addButton.setVisible(isAdmin);
         editButton.setVisible(isAdmin);
         deleteButton.setVisible(isAdmin);
-        // Các nút khác (Search) có thể luôn hiển thị/enabled
-//         searchButton.setEnabled(true);
-//         searchField.setEnabled(true);
     }
 
     private Icon loadSVGIconButton(String path, int size) {

@@ -97,7 +97,7 @@ public class CoursePanel extends JPanel {
         descCol.setPreferredWidth(300);
 
         // Buttons
-        int iconSize = 16;
+        int iconSize = 20;
         addButton = new JButton("Add Class"); // Bỏ icon khỏi constructor
         Icon addIcon = loadSVGIconButton("/icons/add.svg", iconSize);
         if (addIcon != null) addButton.setIcon(addIcon);

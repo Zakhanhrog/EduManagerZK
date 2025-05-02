@@ -65,7 +65,7 @@ public class TeacherPanel extends JPanel {
         sorter = (TableRowSorter<DefaultTableModel>) teacherTable.getRowSorter();
 
         // Buttons
-        int iconSize = 16;
+        int iconSize = 20;
 
         addButton = new JButton("Add");
         Icon addIcon = loadSVGIconButton("/icons/add.svg", iconSize);

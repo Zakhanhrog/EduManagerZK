@@ -79,7 +79,7 @@ public class ClassPanel extends JPanel {
         enrolledStudentTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         // --- Buttons ---
-        int iconSize = 16;
+        int iconSize = 20;
         addClassButton = new JButton("Add Class"); // Bỏ icon khỏi constructor
         Icon addIcon = loadSVGIconButton("/icons/add.svg", iconSize);
         if (addIcon != null) addClassButton.setIcon(addIcon);

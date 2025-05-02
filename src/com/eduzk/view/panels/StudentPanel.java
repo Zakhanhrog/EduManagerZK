@@ -61,7 +61,7 @@ public class StudentPanel extends JPanel {
 
 
         // Buttons
-        int iconSize = 16;
+        int iconSize = 20;
 
         addButton = new JButton("Add");
         Icon addIcon = loadSVGIconButton("/icons/add.svg", iconSize);
