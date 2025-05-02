@@ -82,7 +82,7 @@ public class MainView extends JFrame {
         JMenuBar menuBar = new JMenuBar();
 
         // File Menu
-        JMenu fileMenu = new JMenu("File");
+        JMenu fileMenu = new JMenu("Main");
         JMenuItem logoutItem = new JMenuItem("Logout");
         JMenuItem exitItem = new JMenuItem("Exit");
 
@@ -215,7 +215,6 @@ public class MainView extends JFrame {
             // 4. Hiển thị hộp thoại chọn nơi lưu file (JFileChooser)
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setDialogTitle("Save Excel File");
-            // Đặt tên file gợi ý và bộ lọc file .xlsx
             String suggestedFileName = selectedOption.replace(" ", "_") + ".xlsx";
             fileChooser.setSelectedFile(new File(suggestedFileName));
             fileChooser.setFileFilter(new FileNameExtensionFilter("Excel Workbook (*.xlsx)", "xlsx"));
@@ -224,7 +223,6 @@ public class MainView extends JFrame {
 
             if (userSelection == JFileChooser.APPROVE_OPTION) {
                 File fileToSave = fileChooser.getSelectedFile();
-                // Đảm bảo file có đuôi .xlsx
                 String filePath = fileToSave.getAbsolutePath();
                 if (!filePath.toLowerCase().endsWith(".xlsx")) {
                     fileToSave = new File(filePath + ".xlsx");

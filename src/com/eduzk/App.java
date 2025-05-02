@@ -16,7 +16,6 @@ import com.formdev.flatlaf.FlatLightLaf;
 import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatIntelliJLaf;
 
-
 public class App {
     // look and feel
     public static void main(String[] args) {

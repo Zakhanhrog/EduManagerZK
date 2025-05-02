@@ -9,6 +9,8 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import com.eduzk.view.dialogs.RegisterDialog;
+import java.net.URL;
+import com.formdev.flatlaf.extras.FlatSVGIcon;
 
 public class LoginView extends JFrame {
 
@@ -17,7 +19,8 @@ public class LoginView extends JFrame {
     private JPasswordField passwordField;
     private JButton loginButton;
     private JButton registerButton;
-    private JLabel statusLabel; // Optional: For messages like "Logging in..."
+    private JLabel statusLabel;
+    private JLabel logoLabel;
 
     public LoginView(AuthController authController) {
         this.authController = authController;
@@ -35,6 +38,8 @@ public class LoginView extends JFrame {
         statusLabel = new JLabel(" ");
         statusLabel.setForeground(UIManager.getColor("Label.errorForeground"));
         statusLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        logoLabel = new JLabel(); // Tạo JLabel trống trước
+        logoLabel.setHorizontalAlignment(SwingConstants.CENTER);
     }
     private void styleComponents() {
         usernameField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Enter your username");
@@ -43,10 +48,8 @@ public class LoginView extends JFrame {
         registerButton.putClientProperty(FlatClientProperties.BUTTON_TYPE, "borderless");
         passwordField.putClientProperty(FlatClientProperties.STYLE, "showRevealButton: true");
 
-        // Font labelFont = UIManager.getFont("Label.font");
-        // usernameLabel.setFont(labelFont.deriveFont(labelFont.getSize() + 1f));
-        // passwordLabel.setFont(labelFont.deriveFont(labelFont.getSize() + 1f));
     }
+
 
     private void setupLayout() {
         setTitle("EduZakhanh - Login");
@@ -54,73 +57,122 @@ public class LoginView extends JFrame {
         setResizable(false);
 
         JPanel mainPanel = new JPanel(new GridBagLayout());
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(25, 30, 25, 30));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 30, 15, 30)); // Giảm nhẹ padding trên/dưới tổng thể
         GridBagConstraints gbc = new GridBagConstraints();
-        // Label
+
+        // --- 1. THÊM SPACER Ở TRÊN CÙNG ---
         gbc.gridx = 0;
-        gbc.gridy = 1;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        gbc.weightx = 0;
+        gbc.weighty = 0.7;
+        gbc.fill = GridBagConstraints.VERTICAL;
+        mainPanel.add(Box.createVerticalGlue(), gbc);
+
+        try {
+            URL logoUrl = getClass().getResource("/icons/logo.svg");
+            if (logoUrl != null) {
+//                FlatSVGIcon svgIcon = new FlatSVGIcon(logoUrl).derive(180, -1);
+                FlatSVGIcon svgIcon = new FlatSVGIcon(logoUrl);
+                logoLabel.setIcon(svgIcon);
+            } else {
+                System.err.println("LoginView Error: Logo SVG resource not found!");
+                logoLabel.setText("[Logo Not Found]");
+            }
+        } catch (Exception e) {
+            System.err.println("LoginView Error: Could not load logo SVG - " + e.getMessage());
+            logoLabel.setText("[Error Loading Logo]");
+            e.printStackTrace();
+        }
+
+        // Thiết lập ràng buộc cho logoLabel (đã dịch xuống)
+        gbc.gridx = 0;
+        gbc.gridy = 1;       // Logo ở hàng 1
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.weightx = 0;
+        gbc.weighty = 0;     // *** Logo không có weighty ***
+        gbc.insets = new Insets(0, 5, 20, 5); // Khoảng cách dưới logo (20), trên (0 vì đã có spacer)
+        mainPanel.add(logoLabel, gbc);
+
+        // --- 3. Thêm Username Label và Field (ở gridy = 2) ---
+        gbc.gridwidth = 1; // Reset
+        gbc.fill = GridBagConstraints.NONE;
+
+        gbc.gridx = 0;
+        gbc.gridy = 2;       // Hàng 2
         gbc.anchor = GridBagConstraints.LINE_END;
+        gbc.insets = new Insets(5, 5, 5, 10);
+        mainPanel.add(new JLabel("Username:"), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridy = 2;       // Hàng 2
+        gbc.anchor = GridBagConstraints.LINE_START;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+        gbc.insets = new Insets(5, 0, 5, 5);
+        mainPanel.add(usernameField, gbc);
+
+        // --- 4. Thêm Password Label và Field (ở gridy = 3) ---
+        gbc.weightx = 0.0; // Reset
+
+        gbc.gridx = 0;
+        gbc.gridy = 3;       // Hàng 3
+        gbc.anchor = GridBagConstraints.LINE_END;
+        gbc.fill = GridBagConstraints.NONE;
         gbc.insets = new Insets(5, 5, 5, 10);
         mainPanel.add(new JLabel("Password:"), gbc);
 
-        // Username Label and Field
-        gbc.gridy = 0;
-        mainPanel.add(new JLabel("Username:"), gbc);
-
-        // Cấu hình chung cho TextField/PasswordField
         gbc.gridx = 1;
+        gbc.gridy = 3;       // Hàng 3
         gbc.anchor = GridBagConstraints.LINE_START;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
         gbc.insets = new Insets(5, 0, 5, 5);
         mainPanel.add(passwordField, gbc);
 
-        // Username Field
-        gbc.gridy = 0;
-        mainPanel.add(usernameField, gbc);
-
-        // Password Field
-        gbc.gridy = 1;
-        mainPanel.add(passwordField, gbc);
-
-        // --- Panel chứa nút bấm: Dùng GridBagLayout để kiểm soát tốt hơn ---
+        // --- 5. Thêm Button Panel (ở gridy = 4) ---
         JPanel buttonPanel = new JPanel(new GridBagLayout());
         GridBagConstraints btnGbc = new GridBagConstraints();
-
-        // Cấu hình chung cho nút trong buttonPanel
-        btnGbc.insets = new Insets(15, 5, 5, 5); // Khoảng cách trên cùng (từ password), giữa 2 nút
-        btnGbc.fill = GridBagConstraints.HORIZONTAL; // Làm 2 nút có chiều rộng bằng nhau (tùy chọn)
-        btnGbc.weightx = 0.5; // Chia đều không gian
-
-        // Register Button (đặt bên trái)
+        btnGbc.fill = GridBagConstraints.HORIZONTAL;
+        btnGbc.weightx = 0.5;
+        btnGbc.insets = new Insets(0, 5, 0, 5);
         btnGbc.gridx = 0;
         btnGbc.gridy = 0;
         buttonPanel.add(registerButton, btnGbc);
-
-        // Login Button (đặt bên phải)
         btnGbc.gridx = 1;
         btnGbc.gridy = 0;
         buttonPanel.add(loginButton, btnGbc);
 
-        // Thêm buttonPanel vào mainPanel
         gbc.gridx = 0;
-        gbc.gridy = 2;
-        gbc.gridwidth = 2; // Span 2 cột
-        gbc.anchor = GridBagConstraints.CENTER;
-        gbc.fill = GridBagConstraints.HORIZONTAL; // Cho buttonPanel giãn theo chiều ngang
-        gbc.insets = new Insets(15, 5, 5, 5); // Khoảng cách trên (từ password field)
-        mainPanel.add(buttonPanel, gbc);
-
-
-        // Status Label
-        gbc.gridx = 0;
-        gbc.gridy = 3;
+        gbc.gridy = 4;       // Hàng 4
         gbc.gridwidth = 2;
         gbc.anchor = GridBagConstraints.CENTER;
-        gbc.fill = GridBagConstraints.HORIZONTAL; // Cho label chiếm hết chiều ngang
-        gbc.insets = new Insets(10, 5, 0, 5); // Khoảng cách trên (từ nút), dưới (0)
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 0;
+        gbc.insets = new Insets(20, 5, 5, 5);
+        mainPanel.add(buttonPanel, gbc);
+
+        // --- 6. Thêm Status Label (ở gridy = 5) ---
+        gbc.gridx = 0;
+        gbc.gridy = 5;       // Hàng 5
+        gbc.gridwidth = 2;
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(10, 5, 5, 5); // Giảm khoảng cách dưới status label
         mainPanel.add(statusLabel, gbc);
 
+        // --- 7. THÊM SPACER Ở DƯỚI CÙNG (ở gridy = 6) ---
+        gbc.gridx = 0;
+        gbc.gridy = 6;      // Hàng cuối cùng
+        gbc.gridwidth = 2;
+        gbc.weightx = 0;
+        gbc.weighty = 0.3;  // *** Trọng số nhỏ hơn ở dưới ***
+        gbc.fill = GridBagConstraints.VERTICAL;
+        mainPanel.add(Box.createVerticalGlue(), gbc);
+
+        // Thêm panel chính vào JFrame
         add(mainPanel);
     }
 
@@ -160,6 +212,7 @@ public class LoginView extends JFrame {
 
     private void configureWindow() {
         pack();
+        setMinimumSize(new Dimension(400, 140));
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         addWindowListener(new java.awt.event.WindowAdapter() {
