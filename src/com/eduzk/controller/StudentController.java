@@ -25,6 +25,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.Optional;
 import com.eduzk.view.MainView;
+import java.util.HashMap;
+import java.util.Map;
 
 public class StudentController {
     private final IStudentDAO studentDAO;
@@ -288,34 +290,38 @@ public class StudentController {
             System.out.println("Importing students from: " + selectedFile.getAbsolutePath());
             studentPanel.setAllButtonsEnabled(false);
 
-            SwingWorker<List<String>, Void> worker = new SwingWorker<List<String>, Void>() {
-                private int successCount = 0;
+            SwingWorker<Map<String, Object>, Void> worker = new SwingWorker<Map<String, Object>, Void>(){
+                /*private int successCount = 0;
                 private int errorCount = 0;
                 private int processedCount = 0;
-                private boolean anyUserAdded = false;
+                private boolean anyUserAdded = false;*/
 
                 @Override
-                protected List<String> doInBackground() throws Exception {
+                protected Map<String, Object> doInBackground() throws Exception {
                     List<String> errors = new ArrayList<>();
+                    List<Student> validStudentsToImport = new ArrayList<>(); // Danh sách Student hợp lệ
+                    List<User> validUsersToCreate = new ArrayList<>();       // Danh sách User tương ứng
+
+                    int processedCount = 0;
+                    int validationErrorCount = 0;
                     FileInputStream fis = null;
                     Workbook workbook = null;
+
                     try {
                         fis = new FileInputStream(selectedFile);
                         workbook = new XSSFWorkbook(fis);
                         Sheet sheet = workbook.getSheetAt(0);
                         Iterator<Row> rowIterator = sheet.iterator();
-                        if (rowIterator.hasNext()) rowIterator.next(); // Skip header
+                        if (rowIterator.hasNext()) rowIterator.next(); // Bỏ qua header
 
                         int rowNum = 1;
                         while (rowIterator.hasNext()) {
                             Row row = rowIterator.next();
                             rowNum++;
                             processedCount++;
-                            Student addedStudent = null;
-                            boolean studentAddSuccess = false;
-                            boolean userAddSuccess = false;
+
                             try {
-                                // --- 1. ĐỌC DỮ LIỆU STUDENT TỪ EXCEL ---
+                                // --- 1. ĐỌC & VALIDATE DỮ LIỆU STUDENT ---
                                 String fullName = getStringCellValue(row.getCell(0));
                                 LocalDate dob = getDateCellValue(row.getCell(1));
                                 String gender = getStringCellValue(row.getCell(2));
@@ -324,127 +330,173 @@ public class StudentController {
                                 String phone = getStringCellValue(row.getCell(5)); // Dùng làm username
                                 String email = getStringCellValue(row.getCell(6));
 
-                                // --- 2. VALIDATION DỮ LIỆU STUDENT ---
-                                if (!ValidationUtils.isNotEmpty(fullName)) { throw new IllegalArgumentException("Full Name required."); }
+                                // --- Validation ---
+                                if (!ValidationUtils.isNotEmpty(fullName)) throw new IllegalArgumentException("Full Name required.");
+                                // Phone là bắt buộc và hợp lệ để làm username
                                 if (!ValidationUtils.isNotEmpty(phone) || !ValidationUtils.isValidPhoneNumber(phone)) {
-                                    throw new IllegalArgumentException("A valid Phone Number required (used as username).");
+                                    throw new IllegalArgumentException("Valid Phone Number required (used as username).");
                                 }
-                                // Thêm validation email nếu muốn
+                                // Kiểm tra trùng username (Phone) ngay bây giờ trong bảng User
+                                if (userDAO.findByUsername(phone.trim()).isPresent()){
+                                    throw new DataAccessException("Username (Phone) '" + phone.trim() + "' already exists.");
+                                }
+                                // Validation email nếu cần
                                 if (ValidationUtils.isNotEmpty(email) && !ValidationUtils.isValidEmail(email)) {
-                                     System.err.println("Warning Row " + rowNum + ": Invalid email format.");
+                                    // throw new IllegalArgumentException("Invalid email format."); // Hoặc chỉ cảnh báo
                                 }
 
-                                // --- 3. TẠO VÀ THÊM STUDENT ---
-                                Student newStudent = new Student();
-                                newStudent.setFullName(fullName.trim());
-                                newStudent.setDateOfBirth(dob);
-                                newStudent.setGender(gender != null ? gender.trim() : null);
-                                newStudent.setAddress(address != null ? address.trim() : null);
-                                newStudent.setParentName(parentName != null ? parentName.trim() : null);
-                                newStudent.setPhone(phone.trim()); // Lưu SĐT đã trim
-                                newStudent.setEmail(email != null ? email.trim() : null);
+                                // --- 2. TẠO OBJECTS NHƯNG CHƯA LƯU ---
+                                Student tempStudent = new Student();
+                                tempStudent.setFullName(fullName.trim());
+                                tempStudent.setDateOfBirth(dob);
+                                tempStudent.setGender(gender != null ? gender.trim() : null);
+                                tempStudent.setAddress(address != null ? address.trim() : null);
+                                tempStudent.setParentName(parentName != null ? parentName.trim() : null);
+                                tempStudent.setPhone(phone.trim());
+                                tempStudent.setEmail(email != null ? email.trim() : null);
 
-                                studentDAO.add(newStudent); // Thêm Student
-                                addedStudent = newStudent;  // Lưu lại
-                                studentAddSuccess = true;
+                                User tempUser = new User();
+                                tempUser.setUsername(phone.trim()); // Dùng phone làm username
+                                tempUser.setPassword("123456"); // Mật khẩu mặc định
+                                tempUser.setRole(Role.STUDENT);
+                                tempUser.setActive(true); // Mặc định active
+                                tempUser.setTeacherId(null);
+                                // studentId sẽ được set sau khi Student được lưu và có ID
 
-                                // --- 4. TẠO USER TƯƠNG ỨNG (NẾU THÊM STUDENT THÀNH CÔNG) ---
-                                if (addedStudent != null && addedStudent.getStudentId() > 0) {
-                                    String defaultUsername = addedStudent.getPhone(); // Đã validate ở trên
-                                    String defaultPassword = "123456";
-
-                                    User newUser = new User();
-                                    newUser.setUsername(defaultUsername);
-                                    newUser.setPassword(defaultPassword);
-                                    newUser.setRole(Role.STUDENT);
-                                    newUser.setActive(true); // Mặc định active
-                                    newUser.setStudentId(addedStudent.getStudentId());
-                                    newUser.setTeacherId(null);
-
-                                    // Thêm User vào DAO (có xử lý lỗi trùng)
-                                    try {
-                                        // Kiểm tra trùng username (SĐT) VÀ trùng studentId
-                                        if (userDAO.findByUsername(newUser.getUsername()).isPresent()) {
-                                            throw new DataAccessException("Phone number '" + newUser.getUsername() + "' is already registered as username.");
-                                        }
-                                        if (userDAO.findByStudentId(newUser.getStudentId()).isPresent()) {
-                                            throw new DataAccessException("Account for student ID " + newUser.getStudentId() + " already exists.");
-                                        }
-
-                                        userDAO.add(newUser);
-                                        userAddSuccess = true;
-                                        System.out.println("Import - Row " + rowNum + ": Added User for Student ID: " + addedStudent.getStudentId());
-                                    } catch (DataAccessException e) {
-                                        // Lỗi khi thêm User, ghi nhận nhưng tiếp tục
-                                        String userErrorMsg = "Row " + rowNum + ": Student added, but FAILED User creation - " + e.getMessage();
-                                        System.err.println(userErrorMsg);
-                                        errors.add(userErrorMsg);
-                                        // Không tăng successCount, lỗi này sẽ được tính vào errorCount chung
-                                    } catch (Exception ex){
-                                        String userErrorMsg = "Row " + rowNum + ": Student added, but UNEXPECTED ERROR creating User - " + ex.getMessage();
-                                        System.err.println(userErrorMsg);
-                                        errors.add(userErrorMsg);
-                                    }
-                                } else {
-                                    throw new IllegalStateException("Could not retrieve Student ID after adding. Linked User not created.");
-                                }
-
-                                // Chỉ tăng successCount nếu cả Student và User thành công
-                                if (studentAddSuccess && userAddSuccess) {
-                                    successCount++;
-                                } else {
-                                    errorCount++; // Tăng error nếu có lỗi ở Student hoặc User
-                                }
+                                // Thêm vào danh sách tạm nếu hợp lệ
+                                validStudentsToImport.add(tempStudent);
+                                validUsersToCreate.add(tempUser);
 
                             } catch (Exception rowEx) {
-                                // Lỗi khi xử lý dòng (đọc, validation, add Student, add User)
-                                String errorMsg = "Row " + rowNum + ": Error - " + rowEx.getMessage();
+                                // Lỗi validation hoặc đọc dòng
+                                String errorMsg = "Row " + rowNum + ": Validation/Read Error - " + rowEx.getMessage();
                                 System.err.println(errorMsg);
                                 errors.add(errorMsg);
-                                errorCount++;
-                                // Không tăng successCount
+                                validationErrorCount++;
                             }
                         } // end while
+
+                        // --- 3. THỰC HIỆN LƯU VÀO DAO ---
+                        int actualStudentSuccessCount = 0;
+                        int actualUserSuccessCount = 0;
+
+                        for (int i = 0; i < validStudentsToImport.size(); i++) {
+                            Student studentToAdd = validStudentsToImport.get(i);
+                            User userToCreate = validUsersToCreate.get(i);
+                            boolean studentAdded = false;
+                            boolean userAdded = false;
+                            String currentProcessingInfo = " (Student: " + studentToAdd.getFullName() + ", User: " + userToCreate.getUsername() + ")";
+
+                            try {
+                                // Thêm Student trước để lấy ID
+                                studentDAO.add(studentToAdd);
+                                // *** QUAN TRỌNG: Kiểm tra xem ID có được gán không ***
+                                // Logic gán ID nằm trong studentDAO.add(), cần đảm bảo nó hoạt động
+                                // Giả sử sau khi add, studentToAdd.getStudentId() sẽ có giá trị
+                                if (studentToAdd.getStudentId() > 0) { // Giả sử ID vẫn là int
+                                    studentAdded = true;
+                                    // Liên kết studentId vào User
+                                    userToCreate.setStudentId(studentToAdd.getStudentId());
+
+                                    // **Kiểm tra trùng studentId trong bảng User trước khi thêm**
+                                    if (userDAO.findByStudentId(userToCreate.getStudentId()).isPresent()){
+                                        throw new DataAccessException("Account for student ID " + userToCreate.getStudentId() + " already exists.");
+                                    }
+
+                                    // Thêm User
+                                    userDAO.add(userToCreate);
+                                    userAdded = true;
+
+                                } else {
+                                    throw new DataAccessException("Failed to get generated ID for student." + currentProcessingInfo);
+                                }
+
+                                if(studentAdded && userAdded){
+                                    actualStudentSuccessCount++;
+                                    actualUserSuccessCount++;
+                                }
+
+                            } catch (Exception addEx) {
+                                // Lỗi khi thêm Student hoặc User vào DAO
+                                String errorMsg = "Import Save Error" + currentProcessingInfo + ": " + addEx.getMessage();
+                                System.err.println(errorMsg);
+                                errors.add(errorMsg);
+                                // Lỗi này tính vào saveErrors
+                            }
+                        } // end for loop saving
+
+                        // Chuẩn bị kết quả trả về
+                        Map<String, Object> resultData = new HashMap<>();
+                        resultData.put("errors", errors);
+                        resultData.put("processedCount", processedCount);
+                        resultData.put("studentSuccessCount", actualStudentSuccessCount);
+                        resultData.put("userSuccessCount", actualUserSuccessCount);
+                        resultData.put("validationErrorCount", validationErrorCount);
+
+                        return resultData;
+
                     } finally {
-                        // ... (Đóng workbook, fis) ...
+                        // Đóng tài nguyên
                         if (workbook != null) try { workbook.close(); } catch (IOException ignored) {}
                         if (fis != null) try { fis.close(); } catch (IOException ignored) {}
                     }
-                    return errors;
-                }
+                } // end doInBackground
 
                 @Override
                 protected void done() {
                     try {
-                        List<String> errors = get();
+                        // Lấy kết quả
+                        Map<String, Object> resultData = get();
+                        List<String> errors = (List<String>) resultData.get("errors");
+                        int finalProcessedCount = (int) resultData.get("processedCount");
+                        int finalStudentSuccessCount = (int) resultData.get("studentSuccessCount");
+                        int finalUserSuccessCount = (int) resultData.get("userSuccessCount");
+                        int finalValidationErrorCount = (int) resultData.get("validationErrorCount");
+                        int totalErrors = errors.size();
+
+                        // *** GỌI REFRESH TABLE CỦA PANEL ***
                         if (studentPanel != null) {
-                            studentPanel.refreshTable();
+                            System.out.println("Import done. Refreshing StudentPanel...");
+                            studentPanel.refreshTable(); // Panel sẽ tự lấy dữ liệu đúng từ DAO
                             studentPanel.setAllButtonsEnabled(true);
                         }
-                        if (anyUserAdded && mainView != null) {
+
+                        // Refresh AccountsPanel nếu có User được thêm thành công
+                        if (finalUserSuccessCount > 0 && mainView != null) {
+                            System.out.println("Import done. Refreshing AccountsPanel...");
                             mainView.refreshAccountsPanelData();
                         }
-                        // Hiển thị thông báo kết quả
-                        String message = "Import finished.\nSuccessfully imported: " + successCount + " students.\nErrors: " + errorCount;
-                        if (errorCount > 0) {
-                            message += "\n\nFirst few errors:\n" + String.join("\n", errors.stream().limit(5).toArray(String[]::new)); // Hiển thị tối đa 5 lỗi đầu
-                            UIUtils.showWarningMessage(studentPanel, "Import Partially Successful", message);
+
+                        // Xây dựng và hiển thị thông báo kết quả chi tiết
+                        StringBuilder messageBuilder = new StringBuilder();
+                        messageBuilder.append("Import finished.\n");
+                        messageBuilder.append("Total rows processed: ").append(finalProcessedCount).append("\n");
+                        messageBuilder.append("Successfully imported Students: ").append(finalStudentSuccessCount).append("\n");
+                        messageBuilder.append("Successfully created User accounts: ").append(finalUserSuccessCount).append("\n");
+                        int saveErrors = totalErrors - finalValidationErrorCount;
+                        messageBuilder.append("Validation/Read errors: ").append(finalValidationErrorCount).append("\n");
+                        messageBuilder.append("Save errors (Student or User): ").append(saveErrors);
+
+
+                        if (totalErrors > 0) {
+                            messageBuilder.append("\n\nFirst few errors:\n");
+                            errors.stream().limit(10).forEach(err -> messageBuilder.append(err).append("\n"));
+                            if (errors.size() > 10) messageBuilder.append("... (check console log for all errors)\n");
+                            UIUtils.showWarningMessage(studentPanel, "Import Partially Successful", messageBuilder.toString());
                         } else {
-                            UIUtils.showInfoMessage(studentPanel, "Import Successful", message);
+                            UIUtils.showInfoMessage(studentPanel, "Import Successful", messageBuilder.toString());
                         }
 
                     } catch (Exception e) {
+                        // Lỗi trong quá trình thực thi SwingWorker
                         e.printStackTrace();
-                        UIUtils.showErrorMessage(studentPanel, "Import Error", "An error occurred during import: " + e.getMessage());
-                        if (studentPanel != null) {
-                            // studentPanel.showLoadingState(false);
-                            studentPanel.setAllButtonsEnabled(true);
-                        }
+                        UIUtils.showErrorMessage(studentPanel, "Import Error", "An unexpected error occurred: " + e.getMessage());
+                        if (studentPanel != null) studentPanel.setAllButtonsEnabled(true);
                     }
-                }
-            };
+                } // end done
+            }; // end SwingWorker
             worker.execute();
-        }
+        } // end if JFileChooser
     }
 
     // Lấy giá trị String từ ô, xử lý ô null hoặc không phải String

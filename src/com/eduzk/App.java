@@ -5,9 +5,7 @@ import com.eduzk.model.dao.impl.*;
 import com.eduzk.model.dao.interfaces.*;
 import com.eduzk.model.entities.Role;
 import com.eduzk.model.entities.User;
-import com.eduzk.model.entities.Teacher;
 import com.eduzk.view.LoginView;
-
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
