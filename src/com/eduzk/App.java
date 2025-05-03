@@ -15,8 +15,7 @@ import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatIntelliJLaf;
 import com.formdev.flatlaf.themes.FlatMacDarkLaf;
 import com.formdev.flatlaf.themes.FlatMacLightLaf;
-import com.eduzk.model.service.LogService;
-
+import com.eduzk.model.dao.impl.LogService;
 
 public class App {
     // look and feel

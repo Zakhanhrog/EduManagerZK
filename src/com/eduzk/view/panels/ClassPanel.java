@@ -6,7 +6,7 @@ import com.eduzk.model.entities.EduClass;
 import com.eduzk.model.entities.Student;
 import com.eduzk.model.entities.Teacher;
 import com.eduzk.utils.UIUtils;
-import com.eduzk.view.dialogs.ClassDialog; // Dialog for add/edit class
+import com.eduzk.view.dialogs.ClassDialog;
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;

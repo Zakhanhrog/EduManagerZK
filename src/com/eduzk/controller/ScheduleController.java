@@ -14,7 +14,7 @@ import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-import com.eduzk.model.service.LogService;
+import com.eduzk.model.dao.impl.LogService;
 import com.eduzk.utils.DateUtils;
 import java.time.LocalDateTime;
 

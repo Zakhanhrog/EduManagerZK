@@ -5,7 +5,7 @@ import com.eduzk.model.entities.LogEntry;
 import com.eduzk.model.entities.Role;
 import com.eduzk.model.entities.User;
 import com.eduzk.model.exceptions.DataAccessException;
-import com.eduzk.model.service.LogService;
+import com.eduzk.model.dao.impl.LogService;
 import com.eduzk.utils.UIUtils;
 import com.eduzk.utils.ValidationUtils;
 import com.eduzk.view.panels.AccountsPanel;

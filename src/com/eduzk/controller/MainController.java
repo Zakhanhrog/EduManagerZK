@@ -13,7 +13,7 @@ import java.io.File;
 import java.util.List;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
-import com.eduzk.model.service.LogService;
+import com.eduzk.model.dao.impl.LogService;
 import com.eduzk.controller.LogController;
 
 public class MainController {
@@ -133,7 +133,6 @@ public class MainController {
         }
     }
 
-    /** Xử lý yêu cầu đăng xuất (logic cơ bản). */
     public void logout() {
         System.out.println("MainController: logout() called.");
         if (this.authController != null) {

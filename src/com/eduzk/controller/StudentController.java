@@ -25,7 +25,7 @@ import java.util.Optional;
 import com.eduzk.view.MainView;
 import java.util.HashMap;
 import java.util.Map;
-import com.eduzk.model.service.LogService;
+import com.eduzk.model.dao.impl.LogService;
 import com.eduzk.model.entities.LogEntry;
 
 public class StudentController {

@@ -5,7 +5,7 @@ import com.eduzk.model.entities.LogEntry; // <-- THÊM IMPORT
 import com.eduzk.model.entities.Room;
 import com.eduzk.model.entities.User;
 import com.eduzk.model.exceptions.DataAccessException;
-import com.eduzk.model.service.LogService; // <-- THÊM IMPORT
+import com.eduzk.model.dao.impl.LogService;
 import com.eduzk.utils.UIUtils;
 import com.eduzk.utils.ValidationUtils;
 import com.eduzk.view.panels.RoomPanel;

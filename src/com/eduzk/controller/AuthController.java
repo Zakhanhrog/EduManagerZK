@@ -13,7 +13,7 @@ import com.eduzk.view.MainView;
 import javax.swing.SwingUtilities;
 import javax.swing.JOptionPane;
 import java.util.Optional;
-import com.eduzk.model.service.LogService;
+import com.eduzk.model.dao.impl.LogService;
 
 
 public class AuthController {

@@ -7,73 +7,60 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
-import java.util.Collections;
 import java.util.List;
 import java.util.Vector;
-import javax.swing.Icon;
-import java.net.URL;
-import com.formdev.flatlaf.extras.FlatSVGIcon;
 
 public class LogsPanel extends JPanel {
 
     private LogController controller;
     private JTable logTable;
     private DefaultTableModel tableModel;
-    private JButton refreshButton;
     private TableRowSorter<DefaultTableModel> sorter;
 
-    public LogsPanel(LogController controller) {
-        this.controller = controller; // Có thể null ban đầu
+    public LogsPanel() {
         setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         initComponents();
         setupLayout();
-        setupActions();
     }
 
     public void setController(LogController controller) {
         this.controller = controller;
-        // Tải dữ liệu khi controller được set VÀ panel đang hiển thị
-        if (this.isShowing() && controller != null) {
-            refreshTable();
-        } else if (controller == null) {
-            tableModel.setRowCount(0); // Xóa bảng nếu controller bị null
+        if (this.controller != null) {
+            this.controller.setLogsPanel(this);
+            System.out.println("LogsPanel: Controller has been set.");
+        } else {
+            tableModel.setRowCount(0);
+            System.out.println("LogsPanel: Controller set to null, table cleared.");
         }
     }
 
     private void initComponents() {
-        // Table Model
         tableModel = new DefaultTableModel(
                 new Object[]{"Timestamp", "User", "Role", "Action", "Details"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false; // Log không cho sửa
             }
+            @Override
+            public Class<?> getColumnClass(int columnIndex) {
+                if (columnIndex == 0) {
+                    return String.class;
+                }
+                return super.getColumnClass(columnIndex);
+            }
         };
         logTable = new JTable(tableModel);
         logTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         logTable.setAutoCreateRowSorter(true); // Cho phép sort
         sorter = (TableRowSorter<DefaultTableModel>) logTable.getRowSorter();
-
-        // Buttons
-        int iconSize = 16;
-        refreshButton = new JButton("Refresh");
-        Icon refreshIcon = loadSVGIconButton("/icons/refresh.svg", iconSize);
-        if (refreshIcon != null) refreshButton.setIcon(refreshIcon);
-        refreshButton.setToolTipText("Reload log entries");
     }
 
     private void setupLayout() {
-        // Top Panel chỉ chứa nút Refresh
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        topPanel.add(refreshButton);
-        add(topPanel, BorderLayout.NORTH);
-
-        // Center Panel (Table)
         JScrollPane scrollPane = new JScrollPane(logTable);
         add(scrollPane, BorderLayout.CENTER);
 
-        // Điều chỉnh cột
+        // Điều chỉnh cột (giữ nguyên)
         logTable.getColumnModel().getColumn(0).setPreferredWidth(140); // Timestamp
         logTable.getColumnModel().getColumn(1).setPreferredWidth(120); // User
         logTable.getColumnModel().getColumn(2).setPreferredWidth(80);  // Role
@@ -81,74 +68,65 @@ public class LogsPanel extends JPanel {
         logTable.getColumnModel().getColumn(4).setPreferredWidth(350); // Details
     }
 
-    private void setupActions() {
-        refreshButton.addActionListener(e -> refreshTable());
-    }
-
-    /**
-     * Làm mới bảng log bằng cách lấy dữ liệu từ controller.
-     */
     public void refreshTable() {
         if (controller == null) {
+            // Chỉ log lỗi, không cần hiển thị message vì người dùng không trực tiếp gây ra
             System.err.println("LogsPanel: Cannot refresh, controller is null.");
-            tableModel.setRowCount(0);
+            tableModel.setRowCount(0); // Xóa bảng
             return;
         }
-        System.out.println("LogsPanel: Refreshing table...");
-        // Gọi controller để lấy log (controller sẽ kiểm tra quyền)
+        System.out.println("LogsPanel: Refreshing table data requested by controller...");
+        // Lấy dữ liệu mới nhất từ controller
         List<LogEntry> logs = controller.getAllLogsForDisplay();
+        // Cập nhật bảng với dữ liệu mới
         populateTable(logs);
     }
 
     private void populateTable(List<LogEntry> logs) {
-        tableModel.setRowCount(0); // Xóa dữ liệu cũ
-        if (logs != null) {
+        // <<< LƯU TRẠNG THÁI SORT HIỆN TẠI >>>
+        List<? extends RowSorter.SortKey> sortKeys = null;
+        if (sorter != null) {
+            sortKeys = sorter.getSortKeys();
+        }
+
+        tableModel.setRowCount(0); // Xóa dữ liệu cũ trước khi thêm mới
+
+        if (logs != null && !logs.isEmpty()) {
+            System.out.println("LogsPanel: Populating table with " + logs.size() + " entries.");
             for (LogEntry entry : logs) {
+                // <<< Đảm bảo LogEntry có các phương thức getter này >>>
+                // <<< Và getFormattedTimestamp trả về String >>>
                 Vector<Object> row = new Vector<>();
-                row.add(entry.getFormattedTimestamp()); // Dùng timestamp đã định dạng
+                row.add(entry.getFormattedTimestamp()); // Format cụ thể
                 row.add(entry.getUsername());
                 row.add(entry.getUserRole());
                 row.add(entry.getAction());
                 row.add(entry.getDetails());
                 tableModel.addRow(row);
             }
+        } else {
+            System.out.println("LogsPanel: No log entries to populate.");
         }
-        System.out.println("LogsPanel: Table populated with " + tableModel.getRowCount() + " log entries.");
+
+        // <<< KHÔI PHỤC TRẠNG THÁI SORT >>>
+        if (sorter != null && sortKeys != null && !sortKeys.isEmpty()) {
+            System.out.println("LogsPanel: Restoring previous sort keys.");
+            sorter.setSortKeys(sortKeys);
+        } else {
+            System.out.println("LogsPanel: No previous sort keys to restore or sorter is null.");
+        }
+        System.out.println("LogsPanel: Table population complete.");
     }
 
-    /**
-     * Cấu hình control (hiện tại chỉ ẩn/hiện toàn bộ panel dựa trên quyền Admin).
-     * @param userRole Vai trò người dùng.
-     */
     public void configureControlsForRole(Role userRole) {
         boolean isAdmin = (userRole == Role.ADMIN);
-        // Nếu không phải Admin, có thể xóa hết nội dung hoặc không làm gì cả
-        // vì tab này chỉ được thêm cho Admin trong MainView
-        if (!isAdmin) {
-            tableModel.setRowCount(0); // Xóa dữ liệu nếu không phải admin (cho chắc)
-            // Có thể ẩn các nút nếu có nhiều nút hơn
-            if (refreshButton != null) refreshButton.setVisible(false);
-        } else {
-            if (refreshButton != null) refreshButton.setVisible(true);
-            // Gọi refresh lần đầu khi panel được cấu hình cho Admin
-            refreshTable();
-        }
-    }
+        this.setVisible(isAdmin); // Chỉ hiển thị panel này cho Admin
 
-    // Hàm helper load SVG icon (Copy từ panel khác)
-    private Icon loadSVGIconButton(String path, int size) {
-        if (path == null || path.isEmpty()) return null;
-        try {
-            URL iconUrl = getClass().getResource(path);
-            if (iconUrl != null) {
-                return new FlatSVGIcon(iconUrl).derive(size, size);
-            } else {
-                System.err.println("Warning: Button SVG icon resource not found at: " + path + " in " + getClass().getSimpleName());
-                return null;
-            }
-        } catch (Exception e) {
-            System.err.println("Error loading/parsing SVG button icon from path: " + path + " - " + e.getMessage());
-            return null;
+        if (isAdmin && controller != null) {
+            System.out.println("LogsPanel: Configured for Admin, requesting initial data load via controller.");
+            controller.requestPanelRefresh(); // Yêu cầu controller kiểm tra và làm mới
+        } else if (!isAdmin) {
+            tableModel.setRowCount(0);
         }
     }
 }

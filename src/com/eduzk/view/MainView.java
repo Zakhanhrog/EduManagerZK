@@ -83,7 +83,7 @@ public class MainView extends JFrame {
         classPanel = new ClassPanel(null);
         schedulePanel = new SchedulePanel(null);
         accountsPanel = new AccountsPanel(null);
-        logsPanel = new LogsPanel(null);
+        logsPanel = new LogsPanel();
         statusBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 3));
         statusBar.add(statusLabel);
     }
@@ -418,8 +418,6 @@ public class MainView extends JFrame {
         tabbedPane.repaint();
     }
 
-
-    // --- THÊM PHƯƠNG THỨC HELPER NÀY VÀO MainView.java ---
     private void setPanelControlsForRole(Role userRole) {
         if (studentPanel != null) {
             studentPanel.configureControlsForRole(userRole);
@@ -491,19 +489,14 @@ public class MainView extends JFrame {
         try {
             URL iconUrl = getClass().getResource(path);
             if (iconUrl != null) {
-                // *** SỬA Ở ĐÂY: Tạo FlatSVGIcon thay vì ImageIcon ***
-                // Có thể đặt kích thước mặc định nhỏ hơn nếu SVG gốc quá lớn
-                // Ví dụ: return new FlatSVGIcon(iconUrl).derive(16, 16);
                 return new FlatSVGIcon(iconUrl); // Load với kích thước gốc của SVG (hoặc theo viewBox)
             } else {
                 System.err.println("Warning: Tab SVG icon resource not found at: " + path);
                 return null;
             }
         } catch (Exception e) {
-            // Lỗi này có thể xảy ra nếu file SVG không hợp lệ hoặc jsvg có vấn đề
             System.err.println("Error loading/parsing SVG tab icon from path: " + path + " - " + e.getMessage());
-            // e.printStackTrace(); // Bỏ comment dòng này để xem chi tiết lỗi nếu cần
-            return null; // Trả về null khi có lỗi
+            return null;
         }
     }
     private JPanel createTabComponent(final String title, final Icon icon) {
@@ -524,8 +517,6 @@ public class MainView extends JFrame {
         // Đặt font và màu giống như tab mặc định (tùy chọn, nhưng nên làm)
         Font tabFont = UIManager.getFont("TabbedPane.font");
         if (tabFont != null) {
-            // Có thể làm font nhỏ hơn một chút nếu cần
-            // textLabel.setFont(tabFont.deriveFont(tabFont.getSize2D() - 1f));
             textLabel.setFont(tabFont);
         }
         Color tabForeground = UIManager.getColor("TabbedPane.foreground");

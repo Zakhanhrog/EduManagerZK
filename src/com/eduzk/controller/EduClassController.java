@@ -9,7 +9,7 @@ import com.eduzk.model.exceptions.DataAccessException;
 import com.eduzk.utils.ValidationUtils;
 import com.eduzk.utils.UIUtils;
 import com.eduzk.view.panels.ClassPanel;
-import com.eduzk.model.service.LogService;
+import com.eduzk.model.dao.impl.LogService;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
