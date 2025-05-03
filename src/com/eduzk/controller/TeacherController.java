@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import com.eduzk.view.MainView;
 
 public class TeacherController {
 
@@ -32,11 +33,15 @@ public class TeacherController {
     private final User currentUser;
     private final IUserDAO userDAO;
     private TeacherPanel teacherPanel;
+    private MainView mainView;
 
     public TeacherController(ITeacherDAO teacherDAO, IUserDAO userDAO, User currentUser) {
         this.teacherDAO = teacherDAO;
         this.currentUser = currentUser;
         this.userDAO = userDAO;
+    }
+    public void setMainView(MainView mainView) {
+        this.mainView = mainView;
     }
 
     public void setTeacherPanel(TeacherPanel teacherPanel) {
@@ -74,6 +79,7 @@ public class TeacherController {
 
         try {
             teacherDAO.add(teacher);
+            boolean userCreatedSuccessfully = false;
             if (teacher.getTeacherId() > 0) {
                 // Tạo username/password mặc định (Cần quy tắc rõ ràng)
                 String defaultUsername = teacher.getEmail(); //Dùng email làm username
@@ -249,6 +255,7 @@ public class TeacherController {
                 private int successCount = 0;
                 private int errorCount = 0;
                 private int processedCount = 0;
+                private boolean anyUserAdded = false;
 
                 @Override
                 protected List<String> doInBackground() throws Exception {
@@ -369,6 +376,9 @@ public class TeacherController {
                         if (teacherPanel != null) {
                             teacherPanel.refreshTable(); // Làm mới bảng
                             teacherPanel.setAllButtonsEnabled(true); // Bật lại nút
+                        }
+                        if (anyUserAdded && mainView != null) {
+                            mainView.refreshAccountsPanelData();
                         }
 
                         // Xây dựng thông báo kết quả chi tiết hơn

@@ -24,6 +24,7 @@ import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.Optional;
+import com.eduzk.view.MainView;
 
 public class StudentController {
     private final IStudentDAO studentDAO;
@@ -31,13 +32,16 @@ public class StudentController {
     private final IEduClassDAO eduClassDAO;
     private StudentPanel studentPanel; // Reference to the view panel
     private final IUserDAO userDAO;
+    private MainView mainView;
 
     public StudentController(IStudentDAO studentDAO, IEduClassDAO eduClassDAO, IUserDAO userDAO, User currentUser) {
         this.studentDAO = studentDAO;
         this.currentUser = currentUser;
         this.eduClassDAO = eduClassDAO;
         this.userDAO = userDAO;
-
+    }
+    public void setMainView(MainView mainView) {
+        this.mainView = mainView;
     }
 
     public void setStudentPanel(StudentPanel studentPanel) {
@@ -134,6 +138,8 @@ public class StudentController {
 
         try {
             studentDAO.add(student);
+            boolean userCreatedSuccessfully = false;
+
             if (student.getStudentId() > 0) {
                 String defaultUsername = student.getPhone();
                 String defaultPassword = "123456";
@@ -162,10 +168,14 @@ public class StudentController {
 
                     if (studentPanel != null) {
                         studentPanel.refreshTable();
-                        UIUtils.showInfoMessage(studentPanel, "Success", "Student and linked User account added successfully.");
+                        if (userCreatedSuccessfully) {
+                            UIUtils.showInfoMessage(studentPanel, "Success", "Student and linked User account added successfully.");
+                        }
+                        if (userCreatedSuccessfully && mainView != null) {
+                            mainView.refreshAccountsPanelData();
+                        }
+                        return userCreatedSuccessfully;
                     }
-                    return true;
-
                 } catch (DataAccessException e) {
                     System.err.println("!!! FAILED to add User account for Student ID " + student.getStudentId() + " !!! DAO Error: " + e.getMessage());
                     e.printStackTrace();
@@ -191,6 +201,7 @@ public class StudentController {
             UIUtils.showErrorMessage(studentPanel, "Error", "Failed to add student: " + e.getMessage());
             return false;
         }
+        return true;
     }
 
     public boolean updateStudent(Student student) {
@@ -282,6 +293,7 @@ public class StudentController {
                 private int successCount = 0;
                 private int errorCount = 0;
                 private int processedCount = 0;
+                private boolean anyUserAdded = false;
 
                 @Override
                 protected List<String> doInBackground() throws Exception {
@@ -409,6 +421,9 @@ public class StudentController {
                         if (studentPanel != null) {
                             studentPanel.refreshTable();
                             studentPanel.setAllButtonsEnabled(true);
+                        }
+                        if (anyUserAdded && mainView != null) {
+                            mainView.refreshAccountsPanelData();
                         }
                         // Hiển thị thông báo kết quả
                         String message = "Import finished.\nSuccessfully imported: " + successCount + " students.\nErrors: " + errorCount;

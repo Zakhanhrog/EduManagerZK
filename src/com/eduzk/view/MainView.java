@@ -23,6 +23,8 @@ import javax.swing.JRadioButtonMenuItem;
 import java.net.URL;
 import javax.swing.border.EmptyBorder;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 public class MainView extends JFrame {
 
@@ -35,6 +37,7 @@ public class MainView extends JFrame {
     private RoomPanel roomPanel;
     private ClassPanel classPanel;
     private SchedulePanel schedulePanel;
+    private AccountsPanel accountsPanel;
     private JPanel statusBar;
 
     public MainView(MainController mainController) {
@@ -43,8 +46,34 @@ public class MainView extends JFrame {
         setupLayout();
         createMenuBar();
         setupWindowListener();
+        setupTabChangeListener();
         configureWindow();
         updateStatusBarAppearance();
+
+    }
+    private void setupTabChangeListener() {
+        if (tabbedPane == null) return; // Phòng trường hợp tabbedPane chưa khởi tạo
+
+        tabbedPane.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                if (e.getSource() instanceof JTabbedPane) {
+                    JTabbedPane sourceTabbedPane = (JTabbedPane) e.getSource();
+                    int selectedIndex = sourceTabbedPane.getSelectedIndex();
+
+                    if (selectedIndex != -1) {
+                        Component selectedComponent = sourceTabbedPane.getComponentAt(selectedIndex);
+
+                        System.out.println("MainView: Tab changed to index " + selectedIndex + ", component: " + selectedComponent.getClass().getSimpleName()); // Log để debug
+
+                        if (selectedComponent instanceof AccountsPanel) {
+                            System.out.println("MainView: AccountsPanel selected, calling refreshTable...");
+                            ((AccountsPanel) selectedComponent).refreshTable();
+                        }
+                    }
+                }
+            }
+        });
     }
 
     private void initComponents() {
@@ -56,6 +85,7 @@ public class MainView extends JFrame {
         roomPanel = new RoomPanel(null);
         classPanel = new ClassPanel(null);
         schedulePanel = new SchedulePanel(null);
+        accountsPanel = new AccountsPanel(null);
         statusBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 3));
         statusBar.add(statusLabel);
     }
@@ -263,7 +293,7 @@ public class MainView extends JFrame {
     }
 
     public void setControllers(StudentController sc, TeacherController tc, CourseController cc,
-                               RoomController rc, EduClassController ecc, ScheduleController schc) {
+                               RoomController rc, EduClassController ecc, ScheduleController schc,UserController uc) {
         studentPanel.setController(sc);
         teacherPanel.setController(tc);
         coursePanel.setController(cc);
@@ -271,6 +301,7 @@ public class MainView extends JFrame {
         classPanel.setController(ecc);
         schedulePanel.setController(schc);
         studentPanel.refreshTable();
+        accountsPanel.setController(uc);
 
         if (sc != null) sc.setStudentPanel(studentPanel);
         if (tc != null) tc.setTeacherPanel(teacherPanel);
@@ -278,6 +309,7 @@ public class MainView extends JFrame {
         if (rc != null) rc.setRoomPanel(roomPanel);
         if (ecc != null) ecc.setClassPanel(classPanel);
         if (schc != null) schc.setSchedulePanel(schedulePanel);
+        if (uc != null) uc.setAccountsPanel(accountsPanel);
     }
 
     // Configure visible tabs based on user role
@@ -301,6 +333,7 @@ public class MainView extends JFrame {
         Icon teachersIcon = loadTabSVGICon("/icons/teachers.svg");
         Icon coursesIcon = loadTabSVGICon("/icons/courses.svg");
         Icon roomsIcon = loadTabSVGICon("/icons/rooms.svg");
+        Icon accountsIcon = loadTabSVGICon("/icons/accounts.svg");
 
         // --- Thêm tab và đặt component tùy chỉnh ---
         boolean isAdmin = (user.getRole() == Role.ADMIN);
@@ -330,6 +363,20 @@ public class MainView extends JFrame {
             tabbedPane.addTab(null, null, roomPanel, "Manage Rooms");
             JPanel roomsTabComp = createTabComponent("Rooms", roomsIcon);
             tabbedPane.setTabComponentAt(tabIndex++, roomsTabComp);
+
+            JSeparator separator = new JSeparator(SwingConstants.VERTICAL);
+            separator.setPreferredSize(new Dimension(5, 20));
+            tabbedPane.addTab("", null); // Thêm tab trống
+            JPanel separatorPanel = new JPanel(); // Panel chứa separator
+            separatorPanel.setOpaque(false);
+            separatorPanel.add(separator);
+            tabbedPane.setTabComponentAt(tabIndex, separatorPanel);
+            tabbedPane.setEnabledAt(tabIndex++, false);
+
+            // Thêm tab Accounts
+            tabbedPane.addTab(null, null, accountsPanel, "Manage User Accounts");
+            tabbedPane.setTabComponentAt(tabIndex++, createTabComponent("Accounts", accountsIcon));
+
 
 
         } else if (user.getRole() == Role.TEACHER) {
@@ -389,6 +436,9 @@ public class MainView extends JFrame {
         if (schedulePanel != null) {
             schedulePanel.setAdminControlsEnabled(userRole == Role.ADMIN);
         }
+        if (accountsPanel != null) {
+            accountsPanel.configureControlsForRole(userRole);
+        }
 
     }
 
@@ -409,6 +459,8 @@ public class MainView extends JFrame {
                 ((ClassPanel) selectedComponent).refreshTable();
             } else if (selectedComponent instanceof SchedulePanel) {
                 ((SchedulePanel) selectedComponent).refreshScheduleView();
+            }else if (selectedComponent instanceof AccountsPanel) {
+                ((AccountsPanel) selectedComponent).refreshTable();
             }
         }
     }
@@ -488,5 +540,19 @@ public class MainView extends JFrame {
         tabComponent.setBorder(new EmptyBorder(4, 0, 2, 0)); // top, left, bottom, right
 
         return tabComponent;
+    }
+    public void refreshAccountsPanelData() {
+        // Chỉ refresh nếu panel tồn tại và đang hiển thị (hoặc luôn refresh tùy ý)
+        if (accountsPanel != null && accountsPanel.isShowing()) {
+            System.out.println("MainView: Requesting AccountsPanel refresh...");
+            accountsPanel.refreshTable();
+        } else if (accountsPanel != null) {
+            System.out.println("MainView: AccountsPanel exists but is not showing, skipping refresh request.");
+            // Hoặc bạn có thể gọi refresh ngay cả khi nó không hiển thị,
+            // để lần tới mở ra dữ liệu đã mới.
+            // accountsPanel.refreshTable();
+        } else {
+            System.err.println("MainView: accountsPanel is null, cannot refresh.");
+        }
     }
 }

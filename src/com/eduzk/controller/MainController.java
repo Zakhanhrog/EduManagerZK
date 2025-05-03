@@ -30,6 +30,7 @@ public class MainController {
     private RoomController roomController;
     private EduClassController eduClassController;
     private ScheduleController scheduleController;
+    private UserController userController;
 
     public MainController(User loggedInUser,
                           AuthController authController,
@@ -64,6 +65,7 @@ public class MainController {
             roomController = new RoomController(roomDAO, loggedInUser);
             eduClassController = new EduClassController(eduClassDAO, courseDAO, teacherDAO, studentDAO, loggedInUser);
             scheduleController = new ScheduleController(scheduleDAO, eduClassDAO, teacherDAO, roomDAO, loggedInUser);
+            userController = new UserController(userDAO, loggedInUser);
 
             System.out.println("Child Controllers initialized successfully using injected DAOs.");
         } catch (Exception e) {
@@ -84,11 +86,13 @@ public class MainController {
                 courseController,
                 roomController,
                 eduClassController,
-                scheduleController
+                scheduleController,
+                userController
         );
-        if (scheduleController != null) {
-            scheduleController.setMainView(mainView);
-        }
+        if (studentController != null) studentController.setMainView(mainView);
+        if (teacherController != null) teacherController.setMainView(mainView);
+        if (scheduleController != null) scheduleController.setMainView(mainView);
+
         mainView.configureViewForUser(loggedInUser);
         mainView.refreshSelectedTab();
     }

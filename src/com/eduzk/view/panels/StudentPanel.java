@@ -49,7 +49,7 @@ public class StudentPanel extends JPanel {
     private void initComponents() {
         // Table Model
         tableModel = new DefaultTableModel(
-                new Object[]{"ID", "Full Name", "DOB", "Gender", "Phone", "Email", "Parent", "Password"}, 0) {
+                new Object[]{"ID", "Full Name", "DOB", "Gender", "Phone", "Email", "Parent"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false; // Make table cells non-editable by default
@@ -268,8 +268,6 @@ public class StudentPanel extends JPanel {
                 row.add(student.getPhone());
                 row.add(student.getEmail());
                 row.add(student.getParentName());
-                String password = controller.getPasswordForStudent(student.getStudentId()); // Cần tạo hàm này trong Controller
-                row.add(password != null ? password : "N/A"); // Hiển thị N/A nếu chưa có tài khoản
                 tableModel.addRow(row);
             }
         }
