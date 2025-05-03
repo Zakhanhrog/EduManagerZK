@@ -291,16 +291,11 @@ public class StudentController {
             studentPanel.setAllButtonsEnabled(false);
 
             SwingWorker<Map<String, Object>, Void> worker = new SwingWorker<Map<String, Object>, Void>(){
-                /*private int successCount = 0;
-                private int errorCount = 0;
-                private int processedCount = 0;
-                private boolean anyUserAdded = false;*/
-
                 @Override
                 protected Map<String, Object> doInBackground() throws Exception {
                     List<String> errors = new ArrayList<>();
-                    List<Student> validStudentsToImport = new ArrayList<>(); // Danh sách Student hợp lệ
-                    List<User> validUsersToCreate = new ArrayList<>();       // Danh sách User tương ứng
+                    List<Student> validStudentsToImport = new ArrayList<>();
+                    List<User> validUsersToCreate = new ArrayList<>();
 
                     int processedCount = 0;
                     int validationErrorCount = 0;

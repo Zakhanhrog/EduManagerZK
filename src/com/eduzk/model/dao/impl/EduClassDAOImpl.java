@@ -4,6 +4,7 @@ import com.eduzk.model.dao.interfaces.IEduClassDAO;
 import com.eduzk.model.entities.EduClass;
 import com.eduzk.model.exceptions.DataAccessException;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import com.eduzk.utils.ValidationUtils;
@@ -217,6 +218,83 @@ public class EduClassDAOImpl extends BaseDAO<EduClass> implements IEduClassDAO {
                 .orElse(null);
     }
 
+    @Override
+    public int addStudentsToClass(int classId, List<Integer> studentIds) throws DataAccessException {
+        if (studentIds == null || studentIds.isEmpty()) return 0;
+        lock.writeLock().lock();
+        int addedCount = 0;
+        try {
+            EduClass eduClass = getByIdInternal(classId);
+            if (eduClass == null) throw new DataAccessException("EduClass with ID " + classId + " not found.");
+            int currentEnrollment = eduClass.getCurrentEnrollment();
+            int maxCapacity = eduClass.getMaxCapacity();
+            int availableSpots = maxCapacity - currentEnrollment;
 
-    // getAll() is inherited from BaseDAO
+            List<Integer> studentsToAddActually = new ArrayList<>();
+            for (Integer studentId : studentIds) {
+                if (studentId != null && studentId > 0 && !eduClass.getStudentIds().contains(studentId)) {
+                    if(studentsToAddActually.size() < availableSpots) {
+                        studentsToAddActually.add(studentId);
+                    } else {
+                        System.err.println("Warning: Cannot add student ID " + studentId + " to class ID " + classId + ". Class is full.");
+                        // Có thể ném lỗi hoặc chỉ bỏ qua
+                    }
+                } else {
+                    System.err.println("Warning: Skipping student ID " + studentId + " (already enrolled or invalid) for class ID " + classId);
+                }
+            }
+
+            if (!studentsToAddActually.isEmpty()) {
+                for(Integer idToAdd : studentsToAddActually) {
+                    eduClass.addStudentId(idToAdd);
+                }
+                addedCount = studentsToAddActually.size();
+                this.update(eduClass);
+                System.out.println("DAO: Updated class " + classId + " after adding " + addedCount + " students.");
+            }
+            return addedCount;
+        } catch (DataAccessException | IllegalArgumentException e) {
+            throw e; // Ném lại lỗi để Controller xử lý
+        } catch (Exception e) {
+            throw new DataAccessException("Unexpected error adding students to class.", e);
+        }finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    @Override
+    public int removeStudentsFromClass(int classId, List<Integer> studentIds) throws DataAccessException {
+        if (studentIds == null || studentIds.isEmpty()) return 0;
+        lock.writeLock().lock();
+        int actualRemovedCount = 0; // Khởi tạo bằng 0
+        boolean changed = false;
+        try {
+            EduClass eduClass = getByIdInternal(classId);
+            if (eduClass == null) {
+            }
+            List<Integer> idsToRemove = new ArrayList<>(studentIds); // Tạo bản sao để không sửa list gốc
+            int initialSize = eduClass.getStudentIds().size(); // Lấy size trước khi xóa
+
+            for(Integer idToRemove : idsToRemove) {
+                if(eduClass.removeStudentId(idToRemove)) { // Dùng hàm của EduClass để cập nhật enrollment
+                    changed = true;
+                    actualRemovedCount++;
+                }
+            }
+            if (changed) {
+                // *** GỌI update() ĐỂ LƯU THAY ĐỔI THAY VÌ saveData() ***
+                this.update(eduClass); // Gọi update để thay thế object cũ trong list và lưu
+                System.out.println("DAO: Updated class " + classId + " after removing " + actualRemovedCount + " students.");
+            }
+            return actualRemovedCount;
+
+        } catch (DataAccessException | IllegalArgumentException e) {
+            throw e; // Ném lại lỗi để Controller xử lý
+        } catch (Exception e){
+            throw new DataAccessException("Unexpected error removing students from class.", e);
+        }finally {
+            lock.writeLock().unlock();
+        }
+    }
+
 }

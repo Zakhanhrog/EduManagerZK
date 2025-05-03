@@ -18,6 +18,9 @@ import java.util.Vector;
 import javax.swing.Icon;
 import java.net.URL;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
+import java.util.ArrayList; // Thêm import
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 public class ClassPanel extends JPanel {
 
@@ -76,7 +79,7 @@ public class ClassPanel extends JPanel {
             }
         };
         enrolledStudentTable = new JTable(studentTableModel);
-        enrolledStudentTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        enrolledStudentTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 
         // --- Buttons ---
         int iconSize = 20;
@@ -97,9 +100,9 @@ public class ClassPanel extends JPanel {
         if (refreshIcon != null) refreshButton.setIcon(refreshIcon);
         refreshButton.setToolTipText("Reload class data from storage");
 
-        enrollStudentButton = new JButton("Enroll Student");
+        enrollStudentButton = new JButton("Enroll Students");
         unenrollStudentButton = new JButton("Unenroll Student");
-        enrollStudentButton.setEnabled(false); // Disabled until a class is selected
+        enrollStudentButton.setEnabled(false);
         unenrollStudentButton.setEnabled(false);
         selectedClassLabel = new JLabel("Select a class to see enrolled students.");
         selectedClassLabel.setFont(selectedClassLabel.getFont().deriveFont(Font.ITALIC));
@@ -180,24 +183,23 @@ public class ClassPanel extends JPanel {
         });
 
         // --- Student Enrollment Actions ---
-        enrollStudentButton.addActionListener(e -> enrollStudentAction());
-        unenrollStudentButton.addActionListener(e -> unenrollStudentAction());
+        enrollStudentButton.addActionListener(e -> enrollMultipleStudentsAction());
+        unenrollStudentButton.addActionListener(e -> unenrollMultipleStudentsAction());
         refreshButton.addActionListener(e -> {
             System.out.println("ClassPanel: Refresh button clicked.");
             refreshTable(); // Gọi lại chính phương thức refresh của panel này
             UIUtils.showInfoMessage(this,"Refreshed", "Class list updated."); // Thông báo (tùy chọn)
         });
 
-
         // --- Table Selection Listener ---
         classTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
             @Override
             public void valueChanged(ListSelectionEvent e) {
-                if (!e.getValueIsAdjusting()) { // Prevent double events
+                if (!e.getValueIsAdjusting()) {
                     int selectedRow = classTable.getSelectedRow();
                     boolean classSelected = (selectedRow >= 0);
                     enrollStudentButton.setEnabled(classSelected);
-                    unenrollStudentButton.setEnabled(classSelected);
+                    updateUnenrollButtonState();
 
                     if (classSelected) {
                         int modelRow = classTable.convertRowIndexToModel(selectedRow);
@@ -214,6 +216,126 @@ public class ClassPanel extends JPanel {
                 }
             }
         });
+        enrolledStudentTable.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                updateUnenrollButtonState(); // Cập nhật trạng thái nút Unenroll
+            }
+        });
+    }
+
+    private void updateUnenrollButtonState() {
+        boolean classSelected = (classTable.getSelectedRow() >= 0);
+        boolean studentSelected = (enrolledStudentTable.getSelectedRowCount() > 0);
+        unenrollStudentButton.setEnabled(classSelected && studentSelected);
+    }
+
+
+    // --- HÀM MỚI CHO VIỆC ENROLL NHIỀU HỌC SINH ---
+    private void enrollMultipleStudentsAction() {
+        int selectedClassRow = classTable.getSelectedRow();
+        if (selectedClassRow < 0) { /* ... báo lỗi chọn lớp ... */ return; }
+        int modelRow = classTable.convertRowIndexToModel(selectedClassRow);
+        int classId = (int) classTableModel.getValueAt(modelRow, 0);
+        EduClass selectedClass = controller.getEduClassById(classId);
+        if (selectedClass == null) return;
+
+        // Lấy danh sách học sinh có thể enroll
+        List<Student> availableStudents = controller.getAvailableStudentsForEnrollment(classId);
+        if (availableStudents.isEmpty()) { /* ... báo lỗi không có student ... */ return; }
+
+        // --- Tạo JList cho phép chọn nhiều ---
+        DefaultListModel<Student> listModel = new DefaultListModel<>();
+        availableStudents.forEach(listModel::addElement);
+        JList<Student> studentList = new JList<>(listModel);
+        // *** CHO PHÉP CHỌN NHIỀU ***
+        studentList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        studentList.setCellRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                Component label = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+
+                if (value instanceof Student) {
+                    Student student = (Student) value;
+                    String displayText = String.valueOf(student.getStudentId()) + " - " + student.getFullName();
+                    ((JLabel) label).setText(displayText);
+                }
+                return label;
+            }
+        });
+        JScrollPane listScrollPane = new JScrollPane(studentList);
+        listScrollPane.setPreferredSize(new Dimension(350, 250)); // Có thể tăng kích thước
+
+        // Hiển thị dialog
+        int result = JOptionPane.showConfirmDialog(this, listScrollPane, "Select Student(s) to Enroll",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (result == JOptionPane.OK_OPTION) {
+            // *** LẤY DANH SÁCH NHIỀU HỌC SINH ĐƯỢC CHỌN ***
+            List<Student> selectedStudents = studentList.getSelectedValuesList(); // <-- Lấy List
+
+            if (selectedStudents != null && !selectedStudents.isEmpty()) {
+                // Kiểm tra xem số lượng chọn có vượt quá số chỗ còn lại không
+                int remainingCapacity = selectedClass.getMaxCapacity() - selectedClass.getCurrentEnrollment();
+                if (selectedStudents.size() > remainingCapacity) {
+                    UIUtils.showWarningMessage(this, "Capacity Exceeded",
+                            "Cannot enroll " + selectedStudents.size() + " students. Only " +
+                                    remainingCapacity + " spot(s) remaining in class '" + selectedClass.getClassName() + "'.");
+                    return; // Không thực hiện enroll
+                }
+
+
+                // Lấy danh sách ID của học sinh được chọn
+                List<Integer> studentIdsToEnroll = selectedStudents.stream()
+                        .map(Student::getStudentId)
+                        .collect(Collectors.toList());
+
+                // Gọi controller để enroll nhiều học sinh
+                controller.enrollStudents(classId, studentIdsToEnroll); // Gọi hàm controller mới
+            } else {
+                UIUtils.showWarningMessage(this, "Selection Required", "Please select at least one student from the list.");
+            }
+        }
+    }
+
+
+    // --- HÀM MỚI CHO VIỆC UNENROLL NHIỀU HỌC SINH ---
+    private void unenrollMultipleStudentsAction() {
+        int selectedClassRow = classTable.getSelectedRow();
+        // *** LẤY DANH SÁCH CÁC HÀNG ĐƯỢC CHỌN TRONG BẢNG STUDENT ***
+        int[] selectedStudentViewRows = enrolledStudentTable.getSelectedRows();
+
+        if (selectedClassRow < 0) {
+            return;
+        }
+        if (selectedStudentViewRows.length == 0) {
+            return;
+        }
+        int classModelRow = classTable.convertRowIndexToModel(selectedClassRow);
+        int classId = (int) classTableModel.getValueAt(classModelRow, 0);
+
+        // Lấy danh sách ID và tên của các học sinh được chọn
+        List<Integer> studentIdsToUnenroll = new ArrayList<>();
+        List<String> studentNamesToUnenroll = new ArrayList<>();
+        for (int viewRow : selectedStudentViewRows) {
+            // Bảng student không có sorter nên model row = view row
+            int modelRow = viewRow;
+            studentIdsToUnenroll.add((Integer) studentTableModel.getValueAt(modelRow, 0));
+            studentNamesToUnenroll.add((String) studentTableModel.getValueAt(modelRow, 1));
+        }
+
+        // Tạo thông báo xác nhận
+        String confirmationMessage;
+        if (studentIdsToUnenroll.size() == 1) {
+            confirmationMessage = "Are you sure you want to unenroll student '" + studentNamesToUnenroll.get(0) + "' (ID: " + studentIdsToUnenroll.get(0) + ")?";
+        } else {
+            confirmationMessage = "Are you sure you want to unenroll these " + studentIdsToUnenroll.size() + " selected students?";
+            // Có thể thêm danh sách tên/ID vào đây nếu muốn
+        }
+
+        if (UIUtils.showConfirmDialog(this, "Confirm Unenrollment", confirmationMessage)) {
+            // Gọi controller để unenroll nhiều học sinh
+            controller.unenrollStudents(classId, studentIdsToUnenroll); // Gọi hàm controller mới
+        }
     }
 
     private void openClassDialog(EduClass eduClass) {
@@ -230,99 +352,6 @@ public class ClassPanel extends JPanel {
         dialog.setVisible(true);
         // Refresh handled by controller
     }
-
-    private void enrollStudentAction() {
-        int selectedClassRow = classTable.getSelectedRow();
-        if (selectedClassRow < 0) {
-            UIUtils.showWarningMessage(this, "Selection Required", "Please select a class first.");
-            return;
-        }
-        int modelRow = classTable.convertRowIndexToModel(selectedClassRow);
-        int classId = (int) classTableModel.getValueAt(modelRow, 0);
-        EduClass selectedClass = controller.getEduClassById(classId); // Get current class details
-
-        if (selectedClass == null) return;
-
-        // Check if class is full
-        if(selectedClass.getCurrentEnrollment() >= selectedClass.getMaxCapacity()) {
-            UIUtils.showWarningMessage(this, "Class Full", "The selected class '" + selectedClass.getClassName() + "' is already full.");
-            return;
-        }
-
-
-        // Get list of available students (not already enrolled in this class)
-        List<Student> availableStudents = controller.getAvailableStudentsForEnrollment(classId);
-        if (availableStudents.isEmpty()) {
-            UIUtils.showInfoMessage(this, "No Students", "There are no available students to enroll in this class.");
-            return;
-        }
-
-        // Create a list model for the JList
-        DefaultListModel<Student> listModel = new DefaultListModel<>();
-        availableStudents.forEach(listModel::addElement); // Assumes Student has a reasonable toString()
-
-        // Create JList and ScrollPane
-        JList<Student> studentList = new JList<>(listModel);
-        studentList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        // Customize rendering if needed to show more info than toString()
-        studentList.setCellRenderer(new DefaultListCellRenderer() {
-            @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-                Component c = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                if (value instanceof Student) {
-                    Student s = (Student) value;
-                    setText(s.getFullName() + " (ID: " + s.getStudentId() + ")");
-                }
-                return c;
-            }
-        });
-
-        JScrollPane listScrollPane = new JScrollPane(studentList);
-        listScrollPane.setPreferredSize(new Dimension(300, 200));
-
-        // Show dialog with the list
-        int result = JOptionPane.showConfirmDialog(this, listScrollPane, "Select Student to Enroll",
-                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-
-        if (result == JOptionPane.OK_OPTION) {
-            Student selectedStudent = studentList.getSelectedValue();
-            if (selectedStudent != null) {
-                // Call controller to enroll
-                controller.enrollStudent(classId, selectedStudent.getStudentId());
-                // Student table refresh is handled by controller/refreshStudentList method
-            } else {
-                UIUtils.showWarningMessage(this, "Selection Required", "Please select a student from the list.");
-            }
-        }
-    }
-
-    private void unenrollStudentAction() {
-        int selectedClassRow = classTable.getSelectedRow();
-        int selectedStudentRow = enrolledStudentTable.getSelectedRow();
-
-        if (selectedClassRow < 0) {
-            UIUtils.showWarningMessage(this, "Class Selection Required", "Please select a class first.");
-            return;
-        }
-        if (selectedStudentRow < 0) {
-            UIUtils.showWarningMessage(this, "Student Selection Required", "Please select a student from the enrolled list to unenroll.");
-            return;
-        }
-
-        int classModelRow = classTable.convertRowIndexToModel(selectedClassRow);
-        int classId = (int) classTableModel.getValueAt(classModelRow, 0);
-
-        // Student table doesn't have sorter here, model row = view row
-        int studentId = (int) studentTableModel.getValueAt(selectedStudentRow, 0); // Student ID is column 0
-        String studentName = (String) studentTableModel.getValueAt(selectedStudentRow, 1);
-
-        if (UIUtils.showConfirmDialog(this, "Confirm Unenrollment", "Are you sure you want to unenroll student '" + studentName + "' (ID: " + studentId + ")?")) {
-            controller.unenrollStudent(classId, studentId);
-            // Student table refresh handled by controller/refreshStudentList method
-        }
-
-    }
-
 
     public void refreshTable() {
         if (controller == null) return;

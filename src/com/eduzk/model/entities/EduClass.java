@@ -9,13 +9,14 @@ public class EduClass implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private int classId;
-    private String className; // E.g., "Java Beginners - Fall 2024", "TOEIC Prep Evening"
-    private Course course; // Reference to the Course entity
-    private Teacher primaryTeacher; // Reference to the main Teacher entity
+    private String className;
+    private Course course;
+    private Teacher primaryTeacher;
     private int maxCapacity;
-    private String academicYear; // E.g., "2024-2025"
-    private String semester; // E.g., "Fall", "Spring", "1", "2"
-    private List<Integer> studentIds; // List of enrolled Student IDs
+    private String academicYear;
+    private String semester;
+    private List<Integer> studentIds;
+    private int currentEnrollment;
 
     public EduClass() {
         this.studentIds = new ArrayList<>();
@@ -30,6 +31,11 @@ public class EduClass implements Serializable {
         this.academicYear = academicYear;
         this.semester = semester;
         this.studentIds = new ArrayList<>();
+        this.currentEnrollment = 0;
+    }
+
+    public int getCurrentEnrollment() {
+        return currentEnrollment;
     }
 
     public int getClassId() {
@@ -95,21 +101,27 @@ public class EduClass implements Serializable {
 
     public void setStudentIds(List<Integer> studentIds) {
         this.studentIds = (studentIds != null) ? new ArrayList<>(studentIds) : new ArrayList<>();
+        this.currentEnrollment = this.studentIds.size(); // CẬP NHẬT Ở ĐÂY
     }
 
     public void addStudentId(int studentId) {
         if (!this.studentIds.contains(studentId)) {
             this.studentIds.add(studentId);
+            this.currentEnrollment = this.studentIds.size();
         }
     }
 
-    public void removeStudentId(int studentId) {
-        this.studentIds.remove(Integer.valueOf(studentId));
+    public boolean removeStudentId(int studentId) {
+        boolean removed = false;
+        if (this.studentIds != null) {
+            removed = this.studentIds.remove(Integer.valueOf(studentId));
+            if (removed) {
+                this.currentEnrollment = this.studentIds.size();
+            }
+        }
+        return removed;
     }
 
-    public int getCurrentEnrollment() {
-        return this.studentIds.size();
-    }
 
     @Override
     public boolean equals(Object o) {
@@ -128,14 +140,20 @@ public class EduClass implements Serializable {
     public String toString() {
         // Concise representation for display
         return className + " (" + (course != null ? course.getCourseCode() : "N/A") + ")";
-        // Or a more detailed version:
-        // return "EduClass{" +
-        //        "classId=" + classId +
-        //        ", className='" + className + '\'' +
-        //        ", course=" + (course != null ? course.getCourseName() : "null") +
-        //        ", primaryTeacher=" + (primaryTeacher != null ? primaryTeacher.getFullName() : "null") +
-        //        ", maxCapacity=" + maxCapacity +
-        //        ", currentEnrollment=" + getCurrentEnrollment() +
-        //        '}';
+    }
+
+    public void setCurrentEnrollment(int currentEnrollment) {
+        // Có thể thêm kiểm tra hợp lệ nếu muốn (ví dụ: không âm, không lớn hơn maxCapacity)
+        if (currentEnrollment < 0) {
+            System.err.println("Warning: Attempted to set negative current enrollment for class ID " + classId);
+            this.currentEnrollment = 0;
+        } else if (currentEnrollment > this.maxCapacity) {
+            System.err.println("Warning: Attempted to set current enrollment (" + currentEnrollment +
+                    ") exceeding max capacity (" + this.maxCapacity + ") for class ID " + classId);
+            // Có thể ném lỗi hoặc chỉ đặt bằng maxCapacity?
+            this.currentEnrollment = this.maxCapacity; // Hoặc giữ nguyên giá trị cũ?
+        } else {
+            this.currentEnrollment = currentEnrollment;
+        }
     }
 }

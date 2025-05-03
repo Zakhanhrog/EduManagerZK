@@ -14,6 +14,8 @@ import com.eduzk.model.exceptions.DataAccessException;
 import com.eduzk.utils.ValidationUtils;
 import com.eduzk.utils.UIUtils;
 import com.eduzk.view.panels.ClassPanel;
+
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -264,5 +266,96 @@ public class EduClassController {
             System.err.println("Error getting class by ID: " + e.getMessage());
             return null;
         }
+    }
+    public boolean enrollStudents(int classId, List<Integer> studentIds) {
+        if (classId <= 0 || studentIds == null || studentIds.isEmpty()) {
+            UIUtils.showWarningMessage(classPanel, "Error", "Invalid class or student IDs for enrollment.");
+            return false;
+        }
+
+        int successCount = 0;
+        List<String> errors = new ArrayList<>();
+
+        try {
+            EduClass eduClass = eduClassDAO.getById(classId);
+            if (eduClass == null) {
+                throw new DataAccessException("EduClass with ID " + classId + " not found.");
+            }
+
+            // Kiểm tra sức chứa trước khi lặp
+            int currentEnrollment = eduClass.getCurrentEnrollment();
+            int maxCapacity = eduClass.getMaxCapacity();
+            int availableSpots = maxCapacity - currentEnrollment;
+
+            if (studentIds.size() > availableSpots) {
+                UIUtils.showWarningMessage(classPanel, "Capacity Exceeded",
+                        "Cannot enroll " + studentIds.size() + " students. Only " +
+                                availableSpots + " spot(s) remaining in class '" + eduClass.getClassName() + "'.");
+                return false; // Không thực hiện nếu vượt quá
+            }
+
+            try {
+                int addedCount = eduClassDAO.addStudentsToClass(classId, studentIds); // Gọi hàm DAO thêm nhiều
+                successCount = addedCount;
+                 if (addedCount != studentIds.size()) {
+                     // Xử lý trường hợp không phải tất cả đều thêm được (nếu DAO có báo lỗi)
+                     errors.add("Some students might not have been enrolled (e.g., already exist or class full).");
+                 }
+            } catch (DataAccessException e) {
+                 errors.add("Failed to enroll students: " + e.getMessage());
+                 System.err.println("Error enrolling multiple students: " + e.getMessage());
+            }
+
+            // Refresh và thông báo kết quả
+            if(classPanel != null) {
+                classPanel.refreshStudentListForSelectedClass(); // Cập nhật danh sách SV đã ghi danh
+                classPanel.refreshTable(); // Cập nhật cả số lượng trong bảng Class
+            }
+            if (errors.isEmpty()) {
+                UIUtils.showInfoMessage(classPanel, "Success", successCount + " student(s) enrolled successfully.");
+            } else {
+                String errorMsg = successCount + " student(s) enrolled. \nErrors encountered:\n" + String.join("\n", errors);
+                UIUtils.showWarningMessage(classPanel, "Partial Success/Errors", errorMsg);
+            }
+            return successCount > 0;
+
+        } catch (DataAccessException e) {
+            System.err.println("Error preparing enrollment: " + e.getMessage());
+            UIUtils.showErrorMessage(classPanel, "Enrollment Failed", "Failed to prepare enrollment: " + e.getMessage());
+            return false;
+        }
+    }
+    public boolean unenrollStudents(int classId, List<Integer> studentIds) {
+        if (classId <= 0 || studentIds == null || studentIds.isEmpty()) {
+            UIUtils.showWarningMessage(classPanel, "Error", "Invalid class or student IDs for unenrolling.");
+            return false;
+        }
+
+        int successCount = 0;
+        List<String> errors = new ArrayList<>();
+
+        try {
+            int removedCount = eduClassDAO.removeStudentsFromClass(classId, studentIds);
+            successCount = removedCount;
+             if (removedCount != studentIds.size()) {
+                 errors.add("Some students might not have been unenrolled (e.g., not found in class).");
+             }
+        } catch (DataAccessException e) {
+             errors.add("Failed to unenroll students: " + e.getMessage());
+             System.err.println("Error unenrolling multiple students: " + e.getMessage());
+        }
+
+        // Refresh và thông báo
+        if(classPanel != null) {
+            classPanel.refreshStudentListForSelectedClass();
+            classPanel.refreshTable(); // Cập nhật số lượng
+        }
+        if (errors.isEmpty()) {
+            UIUtils.showInfoMessage(classPanel, "Success", successCount + " student(s) unenrolled successfully.");
+        } else {
+            String errorMsg = successCount + " student(s) unenrolled. \nErrors encountered:\n" + String.join("\n", errors);
+            UIUtils.showWarningMessage(classPanel, "Partial Success/Errors", errorMsg);
+        }
+        return successCount > 0;
     }
 }

@@ -82,4 +82,7 @@ public interface IEduClassDAO {
      * @throws DataAccessException if the class is not found or if a data storage error occurs. (May not throw if student wasn't enrolled).
      */
     void removeStudentFromClass(int classId, int studentId) throws DataAccessException;
+
+    int addStudentsToClass(int classId, List<Integer> studentIds) throws DataAccessException; // Trả về số lượng thêm thành công
+    int removeStudentsFromClass(int classId, List<Integer> studentIds) throws DataAccessException;
 }
