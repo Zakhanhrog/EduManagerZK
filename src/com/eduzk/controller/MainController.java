@@ -13,6 +13,8 @@ import java.io.File;
 import java.util.List;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import com.eduzk.model.service.LogService;
+import com.eduzk.controller.LogController;
 
 public class MainController {
     public static final String EXPORT_STUDENTS = "Student List";
@@ -31,6 +33,7 @@ public class MainController {
     private EduClassController eduClassController;
     private ScheduleController scheduleController;
     private UserController userController;
+    private LogController logController;
 
     public MainController(User loggedInUser,
                           AuthController authController,
@@ -40,7 +43,8 @@ public class MainController {
                           ICourseDAO courseDAO,
                           IRoomDAO roomDAO,
                           IEduClassDAO eduClassDAO,
-                          IScheduleDAO scheduleDAO )
+                          IScheduleDAO scheduleDAO,
+                          LogService logService)
     {
         if (loggedInUser == null) {
             System.exit(1);
@@ -51,23 +55,25 @@ public class MainController {
         }
         this.loggedInUser = loggedInUser;
         this.authController = authController;
-        initializeControllers(userDAO, studentDAO, teacherDAO, courseDAO, roomDAO, eduClassDAO, scheduleDAO);
+        initializeControllers(userDAO, studentDAO, teacherDAO, courseDAO, roomDAO, eduClassDAO, scheduleDAO, logService);
     }
 
     private void initializeControllers(
             IUserDAO userDAO, IStudentDAO studentDAO, ITeacherDAO teacherDAO,
             ICourseDAO courseDAO, IRoomDAO roomDAO, IEduClassDAO eduClassDAO,
-            IScheduleDAO scheduleDAO) {
+            IScheduleDAO scheduleDAO, LogService logService) {
         try {
-            studentController = new StudentController(studentDAO, eduClassDAO, userDAO, loggedInUser);
-            teacherController = new TeacherController(teacherDAO, userDAO, loggedInUser);
-            courseController = new CourseController(courseDAO, loggedInUser);
-            roomController = new RoomController(roomDAO, loggedInUser);
-            eduClassController = new EduClassController(eduClassDAO, courseDAO, teacherDAO, studentDAO, loggedInUser);
-            scheduleController = new ScheduleController(scheduleDAO, eduClassDAO, teacherDAO, roomDAO, loggedInUser);
-            userController = new UserController(userDAO, loggedInUser);
-
+            studentController = new StudentController(studentDAO, eduClassDAO, userDAO, loggedInUser, logService);
+            teacherController = new TeacherController(teacherDAO, userDAO, loggedInUser, logService);
+            courseController = new CourseController(courseDAO, loggedInUser, logService);
+            roomController = new RoomController(roomDAO, loggedInUser, logService);
+            eduClassController = new EduClassController(eduClassDAO, courseDAO, teacherDAO, studentDAO, loggedInUser, logService);
+            scheduleController = new ScheduleController(scheduleDAO, eduClassDAO, teacherDAO, roomDAO, loggedInUser, logService);
+            userController = new UserController(userDAO, loggedInUser, logService);
+            logController = new LogController(logService, loggedInUser);
             System.out.println("Child Controllers initialized successfully using injected DAOs.");
+
+            System.out.println("Child Controllers initialized.");
         } catch (Exception e) {
             System.exit(1);
         }
@@ -87,7 +93,8 @@ public class MainController {
                 roomController,
                 eduClassController,
                 scheduleController,
-                userController
+                userController,
+                logController
         );
         if (studentController != null) studentController.setMainView(mainView);
         if (teacherController != null) teacherController.setMainView(mainView);

@@ -25,6 +25,7 @@ import javax.swing.border.EmptyBorder;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import com.eduzk.view.panels.LogsPanel;
 
 public class MainView extends JFrame {
 
@@ -39,6 +40,7 @@ public class MainView extends JFrame {
     private SchedulePanel schedulePanel;
     private AccountsPanel accountsPanel;
     private JPanel statusBar;
+    private LogsPanel logsPanel;
 
     public MainView(MainController mainController) {
         this.mainController = mainController;
@@ -81,6 +83,7 @@ public class MainView extends JFrame {
         classPanel = new ClassPanel(null);
         schedulePanel = new SchedulePanel(null);
         accountsPanel = new AccountsPanel(null);
+        logsPanel = new LogsPanel(null);
         statusBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 3));
         statusBar.add(statusLabel);
     }
@@ -288,7 +291,7 @@ public class MainView extends JFrame {
     }
 
     public void setControllers(StudentController sc, TeacherController tc, CourseController cc,
-                               RoomController rc, EduClassController ecc, ScheduleController schc,UserController uc) {
+                               RoomController rc, EduClassController ecc, ScheduleController schc,UserController uc, LogController lc) {
         studentPanel.setController(sc);
         teacherPanel.setController(tc);
         coursePanel.setController(cc);
@@ -297,6 +300,7 @@ public class MainView extends JFrame {
         schedulePanel.setController(schc);
         studentPanel.refreshTable();
         accountsPanel.setController(uc);
+        logsPanel.setController(lc);
 
         if (sc != null) sc.setStudentPanel(studentPanel);
         if (tc != null) tc.setTeacherPanel(teacherPanel);
@@ -305,6 +309,7 @@ public class MainView extends JFrame {
         if (ecc != null) ecc.setClassPanel(classPanel);
         if (schc != null) schc.setSchedulePanel(schedulePanel);
         if (uc != null) uc.setAccountsPanel(accountsPanel);
+        if (lc != null) lc.setLogsPanel(logsPanel);
     }
 
     // Configure visible tabs based on user role
@@ -329,6 +334,7 @@ public class MainView extends JFrame {
         Icon coursesIcon = loadTabSVGICon("/icons/courses.svg");
         Icon roomsIcon = loadTabSVGICon("/icons/rooms.svg");
         Icon accountsIcon = loadTabSVGICon("/icons/accounts.svg");
+        Icon logsIcon = loadTabSVGICon("/icons/logs.svg");
 
         // --- Thêm tab và đặt component tùy chỉnh ---
         boolean isAdmin = (user.getRole() == Role.ADMIN);
@@ -372,7 +378,9 @@ public class MainView extends JFrame {
             tabbedPane.addTab(null, null, accountsPanel, "Manage User Accounts");
             tabbedPane.setTabComponentAt(tabIndex++, createTabComponent("Accounts", accountsIcon));
 
-
+            // *** THÊM TAB LOGS ***
+            tabbedPane.addTab(null, null, logsPanel, "View Action Logs");
+            tabbedPane.setTabComponentAt(tabIndex++, createTabComponent("Logs", logsIcon));
 
         } else if (user.getRole() == Role.TEACHER) {
             tabbedPane.addTab(null, null, schedulePanel, "View My Schedule");
@@ -434,7 +442,9 @@ public class MainView extends JFrame {
         if (accountsPanel != null) {
             accountsPanel.configureControlsForRole(userRole);
         }
-
+        if (logsPanel != null) {
+            logsPanel.configureControlsForRole(userRole); // Gọi hàm tương ứng
+        }
     }
 
     public void refreshSelectedTab() {
@@ -456,6 +466,8 @@ public class MainView extends JFrame {
                 ((SchedulePanel) selectedComponent).refreshScheduleView();
             }else if (selectedComponent instanceof AccountsPanel) {
                 ((AccountsPanel) selectedComponent).refreshTable();
+            }else if (selectedComponent instanceof LogsPanel) {
+                ((LogsPanel) selectedComponent).refreshTable();
             }
         }
     }

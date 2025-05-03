@@ -357,11 +357,10 @@ public class ClassPanel extends JPanel {
         if (controller == null) return;
         List<EduClass> classes = controller.getAllEduClasses();
         populateClassTable(classes);
-        if (classTableModel != null) { // Sử dụng classTableModel
-            classTableModel.fireTableDataChanged(); // Thông báo cho bảng lớp cập nhật
+        if (classTableModel != null) {
+            classTableModel.fireTableDataChanged();
             System.out.println(this.getClass().getSimpleName() + ": fireTableDataChanged() called for classTableModel.");
         }
-        // Clear student list when class table is refreshed
         studentTableModel.setRowCount(0);
         selectedClassLabel.setText("Select a class to see enrolled students.");
         selectedClassLabel.setFont(selectedClassLabel.getFont().deriveFont(Font.ITALIC));
@@ -394,7 +393,6 @@ public class ClassPanel extends JPanel {
                 Vector<Object> row = new Vector<>();
                 row.add(eduClass.getClassId());
                 row.add(eduClass.getClassName());
-                // Display Course Code/Name and Teacher Name instead of objects
                 row.add(eduClass.getCourse() != null ? eduClass.getCourse().getCourseCode() : "N/A");
                 row.add(eduClass.getPrimaryTeacher() != null ? eduClass.getPrimaryTeacher().getFullName() : "N/A");
                 row.add(eduClass.getAcademicYear());
@@ -407,7 +405,7 @@ public class ClassPanel extends JPanel {
     }
 
     private void populateStudentTable(List<Student> students) {
-        studentTableModel.setRowCount(0); // Clear existing data
+        studentTableModel.setRowCount(0);
         if (students != null) {
             for (Student student : students) {
                 Vector<Object> row = new Vector<>();
@@ -422,8 +420,7 @@ public class ClassPanel extends JPanel {
         addClassButton.setVisible(isAdmin);
         editClassButton.setVisible(isAdmin);
         deleteClassButton.setVisible(isAdmin);
-        // Nút Enroll/Unenroll có thể cần logic khác (ví dụ: cả Admin và Teacher)
-        enrollStudentButton.setVisible(isAdmin); // Hoặc logic phức tạp hơn
+        enrollStudentButton.setVisible(isAdmin);
         unenrollStudentButton.setVisible(isAdmin);
     }
     private Icon loadSVGIconButton(String path, int size) {

@@ -13,6 +13,8 @@ import com.eduzk.view.MainView;
 import javax.swing.SwingUtilities;
 import javax.swing.JOptionPane;
 import java.util.Optional;
+import com.eduzk.model.service.LogService;
+
 
 public class AuthController {
     private final IUserDAO userDAO;
@@ -22,13 +24,21 @@ public class AuthController {
     private IRoomDAO roomDAO;
     private IEduClassDAO eduClassDAO;
     private IScheduleDAO scheduleDAO;
+    private LogService logService;
     private LoginView loginView;
     private User loggedInUser;
+
 
     public AuthController(IUserDAO userDAO) {
         this.userDAO = userDAO;
     }
 
+    public void setLogService(LogService logService) {
+        this.logService = logService;
+    }
+    public LogService getLogService() {
+        return logService;
+    }
     public void setTeacherDAO(ITeacherDAO teacherDAO) { this.teacherDAO = teacherDAO; }
     public void setStudentDAO(IStudentDAO studentDAO) { this.studentDAO = studentDAO; }
     public void setCourseDAO(ICourseDAO courseDAO) { this.courseDAO = courseDAO; }
@@ -141,7 +151,8 @@ public class AuthController {
                         this.getCourseDAO(),
                         this.getRoomDAO(),
                         this.getEduClassDAO(),
-                        this.getScheduleDAO()
+                        this.getScheduleDAO(),
+                        this.getLogService()
                 );
 
                 MainView mainView = new MainView(mainController);

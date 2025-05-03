@@ -1,14 +1,16 @@
 package com.eduzk.controller;
 
-import com.eduzk.model.entities.User;
-import com.eduzk.model.entities.Role;
 import com.eduzk.model.dao.interfaces.IRoomDAO;
+import com.eduzk.model.entities.LogEntry; // <-- THÊM IMPORT
 import com.eduzk.model.entities.Room;
+import com.eduzk.model.entities.User;
 import com.eduzk.model.exceptions.DataAccessException;
-import com.eduzk.utils.ValidationUtils;
+import com.eduzk.model.service.LogService; // <-- THÊM IMPORT
 import com.eduzk.utils.UIUtils;
-import com.eduzk.view.panels.RoomPanel; // To update the panel's table
+import com.eduzk.utils.ValidationUtils;
+import com.eduzk.view.panels.RoomPanel;
 
+import java.time.LocalDateTime; // <-- THÊM IMPORT
 import java.util.Collections;
 import java.util.List;
 
@@ -16,11 +18,14 @@ public class RoomController {
 
     private final IRoomDAO roomDAO;
     private final User currentUser;
+    private final LogService logService; // <-- THÊM BIẾN LOGSERVICE
     private RoomPanel roomPanel;
 
-    public RoomController(IRoomDAO roomDAO, User currentUser) {
+    // --- SỬA CONSTRUCTOR ĐỂ NHẬN LogService ---
+    public RoomController(IRoomDAO roomDAO, User currentUser, LogService logService) { // Thêm LogService
         this.roomDAO = roomDAO;
         this.currentUser = currentUser;
+        this.logService = logService; // <-- LƯU LogService
     }
 
     public void setRoomPanel(RoomPanel roomPanel) {
@@ -29,8 +34,6 @@ public class RoomController {
 
     public List<Room> getAllRooms() {
         try {
-            // Filter out unavailable rooms if needed by default, or provide filter option
-            // return roomDAO.getAll().stream().filter(Room::isAvailable).collect(Collectors.toList());
             return roomDAO.getAll();
         } catch (DataAccessException e) {
             System.err.println("Error loading rooms: " + e.getMessage());
@@ -41,9 +44,10 @@ public class RoomController {
 
     public List<Room> searchRoomsByCapacity(int minCapacity) {
         if (minCapacity <= 0) {
-            return getAllRooms(); // Return all if capacity is invalid/zero
+            return getAllRooms();
         }
         try {
+            // Giả sử có hàm findByCapacity trong DAO
             return roomDAO.findByCapacity(minCapacity);
         } catch (DataAccessException e) {
             System.err.println("Error searching rooms: " + e.getMessage());
@@ -52,18 +56,22 @@ public class RoomController {
         }
     }
 
-
+    // --- SỬA addRoom ĐỂ GHI LOG ---
     public boolean addRoom(Room room) {
+        // ... (Validation giữ nguyên) ...
         if (room == null || !ValidationUtils.isNotEmpty(room.getRoomNumber()) || room.getCapacity() <= 0) {
             UIUtils.showWarningMessage(roomPanel, "Validation Error", "Room number cannot be empty and capacity must be positive.");
             return false;
         }
-        // Add more validation (type)
 
         try {
-            roomDAO.add(room);
+            roomDAO.add(room); // Thêm room
+
+            // *** GHI LOG SAU KHI THÀNH CÔNG ***
+            writeAddLog("Added Room", room);
+
             if (roomPanel != null) {
-                roomPanel.refreshTable(); // Assumes RoomPanel has this method
+                roomPanel.refreshTable();
                 UIUtils.showInfoMessage(roomPanel, "Success", "Room added successfully.");
             }
             return true;
@@ -74,15 +82,20 @@ public class RoomController {
         }
     }
 
+    // --- SỬA updateRoom ĐỂ GHI LOG ---
     public boolean updateRoom(Room room) {
+        // ... (Validation giữ nguyên) ...
         if (room == null || room.getRoomId() <= 0 || !ValidationUtils.isNotEmpty(room.getRoomNumber()) || room.getCapacity() <= 0) {
             UIUtils.showWarningMessage(roomPanel, "Validation Error", "Invalid room data for update.");
             return false;
         }
-        // Add more validation...
 
         try {
-            roomDAO.update(room);
+            roomDAO.update(room); // Cập nhật room
+
+            // *** GHI LOG SAU KHI THÀNH CÔNG ***
+            writeUpdateLog("Updated Room", room);
+
             if (roomPanel != null) {
                 roomPanel.refreshTable();
                 UIUtils.showInfoMessage(roomPanel, "Success", "Room updated successfully.");
@@ -95,34 +108,92 @@ public class RoomController {
         }
     }
 
+    // --- SỬA deleteRoom ĐỂ GHI LOG ---
     public boolean deleteRoom(int roomId) {
         if (roomId <= 0) {
             UIUtils.showWarningMessage(roomPanel, "Error", "Invalid room ID for deletion.");
             return false;
         }
-        // Confirmation dialog in View layer
+        // Lấy thông tin room trước khi xóa để ghi log
+        Room roomToDelete = null;
+        String roomInfoForLog = "ID: " + roomId; // Log mặc định nếu không tìm thấy
         try {
-            roomDAO.delete(roomId);
+            roomToDelete = roomDAO.getById(roomId); // Cần hàm getById trong DAO
+            if(roomToDelete != null){
+                roomInfoForLog = "ID: " + roomId + ", Number: " + roomToDelete.getRoomNumber() + ", Building: " + roomToDelete.getBuilding();
+            }
+        } catch (DataAccessException e) {
+            System.err.println("Error finding room to delete (for logging): " + e.getMessage());
+        }
+
+        try {
+            roomDAO.delete(roomId); // Xóa room
+
+            // *** GHI LOG SAU KHI THÀNH CÔNG ***
+            writeDeleteLog("Deleted Room", roomInfoForLog);
+
             if (roomPanel != null) {
                 roomPanel.refreshTable();
                 UIUtils.showInfoMessage(roomPanel, "Success", "Room deleted successfully.");
             }
             return true;
         } catch (DataAccessException e) {
-            // Handle specific errors, e.g., room used in schedules
             System.err.println("Error deleting room: " + e.getMessage());
             UIUtils.showErrorMessage(roomPanel, "Error", "Failed to delete room: " + e.getMessage());
             return false;
         }
     }
 
+    // --- getRoomById (Giữ nguyên) ---
     public Room getRoomById(int roomId) {
         if (roomId <= 0) return null;
         try {
-            return roomDAO.getById(roomId);
+            return roomDAO.getById(roomId); // Giả sử DAO có hàm này
         } catch (DataAccessException e) {
             System.err.println("Error getting room by ID: " + e.getMessage());
             return null;
         }
     }
-}
+
+    // --- CÁC HÀM HELPER GHI LOG (Copy và chỉnh sửa) ---
+    private void writeAddLog(String action, Room room) {
+        // Tạo chuỗi chi tiết hơn
+        String details = String.format("ID: %d, Number: %s, Building: %s, Capacity: %d, Type: %s, Available: %b",
+                room.getRoomId(), room.getRoomNumber(), room.getBuilding(),
+                room.getCapacity(), room.getType(), room.isAvailable());
+        writeLog(action, details);
+    }
+
+    private void writeUpdateLog(String action, Room room) {
+        // Tương tự add, hoặc chỉ ghi ID và tên nếu muốn ngắn gọn
+        String details = String.format("ID: %d, Number: %s, Building: %s, Capacity: %d, Type: %s, Available: %b",
+                room.getRoomId(), room.getRoomNumber(), room.getBuilding(),
+                room.getCapacity(), room.getType(), room.isAvailable());
+        writeLog(action, details);
+    }
+
+    private void writeDeleteLog(String action, String details) {
+        writeLog(action, details);
+    }
+
+    // Hàm ghi log chung
+    private void writeLog(String action, String details) {
+        if (logService != null && currentUser != null) {
+            try {
+                LogEntry log = new LogEntry(
+                        LocalDateTime.now(),
+                        currentUser.getDisplayName(),
+                        currentUser.getRole().name(),
+                        action,
+                        details
+                );
+                logService.addLogEntry(log);
+            } catch (Exception e) {
+                System.err.println("!!! Failed to write log entry: " + action + " - " + e.getMessage());
+            }
+        } else {
+            System.err.println("LogService or CurrentUser is null. Cannot write log for action: " + action);
+        }
+    }
+
+} // Kết thúc lớp RoomController

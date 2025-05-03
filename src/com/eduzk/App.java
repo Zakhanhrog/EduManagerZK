@@ -15,6 +15,7 @@ import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatIntelliJLaf;
 import com.formdev.flatlaf.themes.FlatMacDarkLaf;
 import com.formdev.flatlaf.themes.FlatMacLightLaf;
+import com.eduzk.model.service.LogService;
 
 
 public class App {
@@ -40,6 +41,7 @@ public class App {
                 System.out.println("Initializing ALL DAOs...");
                 final String dataDir = "data/";
                 final String idFile = dataDir + "next_ids.dat";
+                final String logFile = dataDir + "logs.dat";
 
                 // Khai báo dùng Interface cho linh hoạt
                 IUserDAO userDAO = new UserDAOImpl(dataDir + "users.dat", idFile);
@@ -50,6 +52,8 @@ public class App {
                 IEduClassDAO eduClassDAO = new EduClassDAOImpl(dataDir + "educlasses.dat", idFile);
                 IScheduleDAO scheduleDAO = new ScheduleDAOImpl(dataDir + "schedules.dat", idFile);
                 System.out.println("ALL DAOs initialized.");
+                LogService logService = new LogService(logFile);
+                System.out.println("LogService initialized.");
 
                 // Tạo tài khoản admin mặc định nếu cần
                 initializeDefaultAdminAccount((UserDAOImpl) userDAO); // Ép kiểu nếu hàm yêu cầu impl
@@ -63,6 +67,7 @@ public class App {
                 authController.setRoomDAO(roomDAO);
                 authController.setEduClassDAO(eduClassDAO);
                 authController.setScheduleDAO(scheduleDAO);
+                authController.setLogService(logService);
                 System.out.println("AuthController initialized.");
 
                 // Khởi tạo và hiển thị LoginView (giữ nguyên)

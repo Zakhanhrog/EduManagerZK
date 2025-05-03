@@ -14,6 +14,10 @@ import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import com.eduzk.model.service.LogService;
+import com.eduzk.utils.DateUtils;
+import java.time.LocalDateTime;
+
 
 public class ScheduleController {
 
@@ -21,16 +25,18 @@ public class ScheduleController {
     private final IEduClassDAO eduClassDAO;
     private final ITeacherDAO teacherDAO;
     private final IRoomDAO roomDAO;
+    private final LogService logService;
     private SchedulePanel schedulePanel;
     private final User currentUser;
     private MainView mainView;
 
-    public ScheduleController(IScheduleDAO scheduleDAO, IEduClassDAO eduClassDAO, ITeacherDAO teacherDAO, IRoomDAO roomDAO, User currentUser) {
+    public ScheduleController(IScheduleDAO scheduleDAO, IEduClassDAO eduClassDAO, ITeacherDAO teacherDAO, IRoomDAO roomDAO, User currentUser, LogService logService) {
         this.scheduleDAO = scheduleDAO;
         this.eduClassDAO = eduClassDAO;
         this.teacherDAO = teacherDAO;
         this.roomDAO = roomDAO;
         this.currentUser = currentUser;
+        this.logService = logService;
     }
     public void setSchedulePanel(SchedulePanel schedulePanel) {
         this.schedulePanel = schedulePanel;
@@ -69,6 +75,12 @@ public class ScheduleController {
     private int getTeacherIdForUser(User user) {
         if (user != null && user.getRole() == Role.TEACHER && user.getTeacherId() != null) {
             return user.getTeacherId();
+        }
+        return -1;
+    }
+    private int getStudentIdForUser(User user) {
+        if (user != null && user.getRole() == Role.STUDENT && user.getStudentId() != null) {
+            return user.getStudentId();
         }
         return -1;
     }
@@ -166,6 +178,7 @@ public class ScheduleController {
 
         try {
             scheduleDAO.add(schedule);
+            writeAddLog("Added Schedule", schedule);
             if (schedulePanel != null) {
                 schedulePanel.refreshScheduleView();
                 UIUtils.showInfoMessage(schedulePanel, "Success", "Schedule added successfully.");
@@ -199,6 +212,7 @@ public class ScheduleController {
 
         try {
             scheduleDAO.update(schedule);
+            writeUpdateLog("Updated Schedule", schedule);
             if (schedulePanel != null) {
                 schedulePanel.refreshScheduleView();
                 UIUtils.showInfoMessage(schedulePanel, "Success", "Schedule updated successfully.");
@@ -220,8 +234,27 @@ public class ScheduleController {
             UIUtils.showWarningMessage(schedulePanel, "Error", "Invalid schedule ID for deletion.");
             return false;
         }
+        Schedule scheduleToDelete = null;
+        String scheduleInfoForLog = "ID: " + scheduleId;
+        try {
+            scheduleToDelete = scheduleDAO.getById(scheduleId); // Cần hàm này trong DAO
+            if(scheduleToDelete != null) {
+                // Tạo chuỗi chi tiết hơn
+                scheduleInfoForLog = String.format("ID: %d, Date: %s, Time: %s-%s, ClassID: %d, TeacherID: %d, RoomID: %d",
+                        scheduleId,
+                        DateUtils.formatDate(scheduleToDelete.getDate()),
+                        DateUtils.formatTime(scheduleToDelete.getStartTime()),
+                        DateUtils.formatTime(scheduleToDelete.getEndTime()),
+                        scheduleToDelete.getClassId(),
+                        scheduleToDelete.getTeacherId(),
+                        scheduleToDelete.getRoomId());
+            }
+        } catch (DataAccessException e) {
+            System.err.println("Error finding schedule to delete (for logging): " + e.getMessage());
+        }
         try {
             scheduleDAO.delete(scheduleId);
+            writeDeleteLog("Deleted Schedule", scheduleInfoForLog);
             if (schedulePanel != null) {
                 schedulePanel.refreshScheduleView();
                 UIUtils.showInfoMessage(schedulePanel, "Success", "Schedule deleted successfully.");
@@ -284,6 +317,54 @@ public class ScheduleController {
                 UIUtils.showErrorMessage(mainView, "Unexpected Error", "An unexpected error occurred while loading all schedules.");
             }
             return Collections.emptyList();
+        }
+    }
+    private void writeAddLog(String action, Schedule schedule) {
+        String details = String.format("ID: %d, Date: %s, Time: %s-%s, ClassID: %d, TeacherID: %d, RoomID: %d",
+                schedule.getScheduleId(),
+                DateUtils.formatDate(schedule.getDate()),
+                DateUtils.formatTime(schedule.getStartTime()),
+                DateUtils.formatTime(schedule.getEndTime()),
+                schedule.getClassId(),
+                schedule.getTeacherId(),
+                schedule.getRoomId());
+        writeLog(action, details);
+    }
+
+    private void writeUpdateLog(String action, Schedule schedule) {
+        String details = String.format("ID: %d, Date: %s, Time: %s-%s, ClassID: %d, TeacherID: %d, RoomID: %d",
+                schedule.getScheduleId(),
+                DateUtils.formatDate(schedule.getDate()),
+                DateUtils.formatTime(schedule.getStartTime()),
+                DateUtils.formatTime(schedule.getEndTime()),
+                schedule.getClassId(),
+                schedule.getTeacherId(),
+                schedule.getRoomId());
+        writeLog(action, details);
+    }
+
+    private void writeDeleteLog(String action, String details) {
+        writeLog(action, details);
+    }
+
+    // Hàm ghi log chung
+    private void writeLog(String action, String details) {
+        if (logService != null && currentUser != null) {
+            try {
+                LogEntry log = new LogEntry(
+                        LocalDateTime.now(),
+                        currentUser.getDisplayName(),
+                        currentUser.getRole().name(),
+                        action,
+                        details
+                );
+                logService.addLogEntry(log);
+                System.out.println("Log written: " + log); // Log ra console
+            } catch (Exception e) {
+                System.err.println("!!! Failed to write log entry: " + action + " - " + e.getMessage());
+            }
+        } else {
+            System.err.println("LogService or CurrentUser is null. Cannot write log for action: " + action);
         }
     }
 }

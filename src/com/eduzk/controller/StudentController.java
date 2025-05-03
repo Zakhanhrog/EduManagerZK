@@ -1,11 +1,8 @@
 package com.eduzk.controller;
 
-import com.eduzk.model.entities.EduClass;
-import com.eduzk.model.entities.User;
-import com.eduzk.model.entities.Role;
+import com.eduzk.model.entities.*;
 import com.eduzk.model.dao.interfaces.IStudentDAO;
 import com.eduzk.model.dao.interfaces.IEduClassDAO;
-import com.eduzk.model.entities.Student;
 import com.eduzk.model.exceptions.DataAccessException;
 import com.eduzk.utils.DateUtils;
 import com.eduzk.utils.ValidationUtils;
@@ -20,6 +17,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -27,6 +25,8 @@ import java.util.Optional;
 import com.eduzk.view.MainView;
 import java.util.HashMap;
 import java.util.Map;
+import com.eduzk.model.service.LogService;
+import com.eduzk.model.entities.LogEntry;
 
 public class StudentController {
     private final IStudentDAO studentDAO;
@@ -35,12 +35,14 @@ public class StudentController {
     private StudentPanel studentPanel; // Reference to the view panel
     private final IUserDAO userDAO;
     private MainView mainView;
+    private final LogService logService;
 
-    public StudentController(IStudentDAO studentDAO, IEduClassDAO eduClassDAO, IUserDAO userDAO, User currentUser) {
+    public StudentController(IStudentDAO studentDAO, IEduClassDAO eduClassDAO, IUserDAO userDAO, User currentUser, LogService logService) {
         this.studentDAO = studentDAO;
         this.currentUser = currentUser;
         this.eduClassDAO = eduClassDAO;
         this.userDAO = userDAO;
+        this.logService = logService;
     }
     public void setMainView(MainView mainView) {
         this.mainView = mainView;
@@ -128,6 +130,7 @@ public class StudentController {
 
 
     public boolean addStudent(Student student) {
+
         if (student == null || !ValidationUtils.isNotEmpty(student.getFullName())) {
             UIUtils.showWarningMessage(studentPanel, "Validation Error", "Student name cannot be empty.");
             return false;
@@ -137,10 +140,11 @@ public class StudentController {
             UIUtils.showWarningMessage(studentPanel, "Validation Error", "A valid Phone Number is required (used as username).");
             return false;
         }
-
+        boolean studentAddSuccess = false;
+        boolean userCreatedSuccessfully = false;
         try {
             studentDAO.add(student);
-            boolean userCreatedSuccessfully = false;
+            studentAddSuccess = true;
 
             if (student.getStudentId() > 0) {
                 String defaultUsername = student.getPhone();
@@ -163,9 +167,10 @@ public class StudentController {
                     if (userDAO.findByStudentId(newUser.getStudentId()).isPresent()) {
                         throw new DataAccessException("An account for student ID " + newUser.getStudentId() + " already exists.");
                     }
-
                     userDAO.add(newUser);
+                    userCreatedSuccessfully = true;
                     System.out.println("Automatically created User account for Student ID: " + student.getStudentId() + " with username (phone): " + defaultUsername);
+                    writeAddLog("Added Student", student);
 
                     if (studentPanel != null) {
                         studentPanel.refreshTable();
@@ -177,22 +182,26 @@ public class StudentController {
                         }
                         return userCreatedSuccessfully;
                     }
+
                 } catch (DataAccessException e) {
                     System.err.println("!!! FAILED to add User account for Student ID " + student.getStudentId() + " !!! DAO Error: " + e.getMessage());
                     e.printStackTrace();
                     UIUtils.showWarningMessage(studentPanel, "User Creation Failed", "Student added, but failed to create linked user account:\n" + e.getMessage());
+                    writeAddLog("Added Student (User Failed)", student);
                     if (studentPanel != null) studentPanel.refreshTable();
                     return false;
                 } catch (Exception ex) {
                     System.err.println("!!! UNEXPECTED ERROR adding User account for Student ID " + student.getStudentId() + " !!! Error: " + ex.getMessage());
                     ex.printStackTrace();
                     UIUtils.showErrorMessage(studentPanel, "Unexpected Error", "An unexpected error occurred while creating the user account.");
+                    writeAddLog("Added Student (User Error)", student);
                     if (studentPanel != null) studentPanel.refreshTable();
                     return false;
                 }
             } else {
                 System.err.println("Could not get Student ID after adding student. User account not created.");
                 UIUtils.showWarningMessage(studentPanel, "User Creation Failed", "Student added, but could not get ID to create linked user account.");
+                writeAddLog("Added Student (ID Error)", student);
                 if (studentPanel != null) studentPanel.refreshTable();
                 return false;
             }
@@ -212,6 +221,7 @@ public class StudentController {
         }
         try {
             studentDAO.update(student);
+            writeUpdateLog("Updated Student", student);
             if (studentPanel != null) {
                 studentPanel.refreshTable();
                 UIUtils.showInfoMessage(studentPanel, "Success", "Student updated successfully.");
@@ -252,6 +262,7 @@ public class StudentController {
             userToUpdate.setPassword(newPassword);
             try {
                 userDAO.update(userToUpdate);
+                writeUpdateLog("Updated Student Password", userToUpdate, "For Student ID: " + studentId);
                 UIUtils.showInfoMessage(studentPanel, "Success", "Password updated for student ID " + studentId);
                 return true;
             } catch (DataAccessException e) {
@@ -447,7 +458,7 @@ public class StudentController {
                         int finalStudentSuccessCount = (int) resultData.get("studentSuccessCount");
                         int finalUserSuccessCount = (int) resultData.get("userSuccessCount");
                         int finalValidationErrorCount = (int) resultData.get("validationErrorCount");
-                        int totalErrors = errors.size();
+                        int totalErrors = errors != null ? errors.size() : 0;
 
                         // *** GỌI REFRESH TABLE CỦA PANEL ***
                         if (studentPanel != null) {
@@ -462,13 +473,22 @@ public class StudentController {
                             mainView.refreshAccountsPanelData();
                         }
 
+                        totalErrors = ((List<String>) resultData.get("errors")).size();
+                        int saveErrors = totalErrors - finalValidationErrorCount;
+                        if (finalStudentSuccessCount > 0 || totalErrors > 0) {
+                            String logDetails = String.format("Processed: %d, Students Added: %d, Users Created: %d, Validation Errors: %d, Save Errors: %d",
+                                    finalProcessedCount,
+                                    finalStudentSuccessCount, finalUserSuccessCount,
+                                    finalValidationErrorCount, saveErrors);
+                            writeGeneralLog("Imported Students", logDetails);
+                        }
+
                         // Xây dựng và hiển thị thông báo kết quả chi tiết
                         StringBuilder messageBuilder = new StringBuilder();
                         messageBuilder.append("Import finished.\n");
                         messageBuilder.append("Total rows processed: ").append(finalProcessedCount).append("\n");
                         messageBuilder.append("Successfully imported Students: ").append(finalStudentSuccessCount).append("\n");
                         messageBuilder.append("Successfully created User accounts: ").append(finalUserSuccessCount).append("\n");
-                        int saveErrors = totalErrors - finalValidationErrorCount;
                         messageBuilder.append("Validation/Read errors: ").append(finalValidationErrorCount).append("\n");
                         messageBuilder.append("Save errors (Student or User): ").append(saveErrors);
 
@@ -545,19 +565,19 @@ public class StudentController {
             System.out.println("StudentController: Calling DAO to delete students with IDs: " + idsToDelete);
             int deletedStudentCount = studentDAO.deleteByIds(idsToDelete);
             System.out.println("StudentController: DAO reported " + deletedStudentCount + " students deleted.");
-
             int deletedUserCount = 0;
+            List<User> deletedUsersInfo = new ArrayList<>();
 
             if (deletedStudentCount > 0) {
-                // --- 2. XÓA CÁC USER LIÊN KẾT ---
                 System.out.println("StudentController: Attempting to delete linked user accounts...");
-                for (Integer studentId : idsToDelete) { // Lặp qua các ID đã yêu cầu xóa
+                for (Integer studentId : idsToDelete) {
                     try {
                         Optional<User> userOpt = userDAO.findByStudentId(studentId);
                         if (userOpt.isPresent()) {
                             User userToDelete = userOpt.get();
+                            deletedUsersInfo.add(userToDelete);
                             System.out.println("Found linked user for student ID " + studentId + ": User ID " + userToDelete.getUserId() + ", Username: " + userToDelete.getUsername());
-                            userDAO.delete(userToDelete.getUserId()); // Xóa User bằng userId
+                            userDAO.delete(userToDelete.getUserId());
                             System.out.println("Deleted linked user ID: " + userToDelete.getUserId());
                             deletedUserCount++;
                         } else {
@@ -570,8 +590,9 @@ public class StudentController {
                         ex.printStackTrace();
                     }
                 }
-                System.out.println("StudentController: Finished linked user deletion attempts. Deleted " + deletedUserCount + " user account(s).");
-                // --- KẾT THÚC XÓA USER ---
+                String studentDetail = "IDs: " + idsToDelete.toString();
+                String userDetail = "Linked User IDs: [" + deletedUsersInfo.stream().map(u -> String.valueOf(u.getUserId())).collect(Collectors.joining(", ")) + "]";
+                writeDeleteLog("Deleted Student(s)", studentDetail + " | " + userDetail);
             }
            // --- 3. REFRESH VÀ THÔNG BÁO ---
             if (deletedStudentCount > 0 || deletedUserCount > 0) {
@@ -595,6 +616,39 @@ public class StudentController {
         }
         catch (Exception e) {
             return false;
+        }
+    }
+    private void writeAddLog(String action, Student student) {
+        writeLog(action, "ID: " + student.getStudentId() + ", Name: " + student.getFullName() + ", Phone: " + student.getPhone());
+    }
+    private void writeUpdateLog(String action, Student student) {
+        writeLog(action, "ID: " + student.getStudentId() + ", Name: " + student.getFullName());
+    }
+    private void writeUpdateLog(String action, User user, String additionalDetails) {
+        writeLog(action, "UserID: " + user.getUserId() + ", Username: " + user.getUsername() + ". " + (additionalDetails != null ? additionalDetails : ""));
+    }
+    private void writeDeleteLog(String action, String details) {
+        writeLog(action, details);
+    }
+    private void writeGeneralLog(String action, String details) {
+        writeLog(action, details);
+    }
+    private void writeLog(String action, String details) {
+        if (logService != null && currentUser != null) {
+            try {
+                LogEntry log = new LogEntry(
+                        LocalDateTime.now(),
+                        currentUser.getDisplayName(), // Dùng DisplayName thay vì Username
+                        currentUser.getRole().name(),
+                        action,
+                        details
+                );
+                logService.addLogEntry(log);
+            } catch (Exception e) {
+                System.err.println("!!! Failed to write log entry: " + action + " - " + e.getMessage());
+            }
+        } else {
+            System.err.println("LogService or CurrentUser is null. Cannot write log for action: " + action);
         }
     }
 

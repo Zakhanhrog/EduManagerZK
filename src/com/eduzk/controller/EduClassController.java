@@ -1,20 +1,17 @@
 package com.eduzk.controller;
 
-import com.eduzk.model.entities.User;
-import com.eduzk.model.entities.Role;
+import com.eduzk.model.entities.*;
 import com.eduzk.model.dao.interfaces.ICourseDAO;
 import com.eduzk.model.dao.interfaces.IEduClassDAO;
 import com.eduzk.model.dao.interfaces.IStudentDAO;
 import com.eduzk.model.dao.interfaces.ITeacherDAO;
-import com.eduzk.model.entities.Course;
-import com.eduzk.model.entities.EduClass;
-import com.eduzk.model.entities.Student;
-import com.eduzk.model.entities.Teacher;
 import com.eduzk.model.exceptions.DataAccessException;
 import com.eduzk.utils.ValidationUtils;
 import com.eduzk.utils.UIUtils;
 import com.eduzk.view.panels.ClassPanel;
+import com.eduzk.model.service.LogService;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -27,14 +24,16 @@ public class EduClassController {
     private final ITeacherDAO teacherDAO;
     private final IStudentDAO studentDAO;
     private ClassPanel classPanel;
+    private final LogService logService;
     private User currentUser;
 
-    public EduClassController(IEduClassDAO eduClassDAO, ICourseDAO courseDAO, ITeacherDAO teacherDAO, IStudentDAO studentDAO, User currentUser) {
+    public EduClassController(IEduClassDAO eduClassDAO, ICourseDAO courseDAO, ITeacherDAO teacherDAO, IStudentDAO studentDAO, User currentUser, LogService logService) {
         this.eduClassDAO = eduClassDAO;
         this.courseDAO = courseDAO;
         this.teacherDAO = teacherDAO;
         this.studentDAO = studentDAO;
         this.currentUser = currentUser;
+        this.logService = logService;
     }
 
     public void setClassPanel(ClassPanel classPanel) {
@@ -152,6 +151,7 @@ public class EduClassController {
         }
         try {
             eduClassDAO.add(eduClass);
+            writeAddLog("Added Class", eduClass);
             if (classPanel != null) {
                 classPanel.refreshTable();
                 UIUtils.showInfoMessage(classPanel, "Success", "Class added successfully.");
@@ -184,6 +184,7 @@ public class EduClassController {
                 return false;
             }
             eduClassDAO.update(eduClass);
+            writeUpdateLog("Updated Class", eduClass);
             if (classPanel != null) {
                 classPanel.refreshTable();
                 UIUtils.showInfoMessage(classPanel, "Success", "Class updated successfully.");
@@ -201,13 +202,16 @@ public class EduClassController {
             UIUtils.showWarningMessage(classPanel, "Error", "Invalid class ID for deletion.");
             return false;
         }
+        EduClass classToDelete = null;
+        String classInfoForLog = "ID: " + classId;
         try {
-            EduClass classToDelete = eduClassDAO.getById(classId);
+            classToDelete = eduClassDAO.getById(classId);
             if (classToDelete != null && classToDelete.getCurrentEnrollment() > 0) {
                 UIUtils.showErrorMessage(classPanel, "Deletion Failed", "Cannot delete class. There are still students enrolled.");
                 return false;
             }
             eduClassDAO.delete(classId);
+            writeDeleteLog("Deleted Class", classInfoForLog);
             if (classPanel != null) {
                 classPanel.refreshTable();
                 UIUtils.showInfoMessage(classPanel, "Success", "Class deleted successfully.");
@@ -305,7 +309,9 @@ public class EduClassController {
                  errors.add("Failed to enroll students: " + e.getMessage());
                  System.err.println("Error enrolling multiple students: " + e.getMessage());
             }
-
+            if (successCount > 0) { // Chỉ log nếu có người được thêm
+                writeEnrollmentLog("Enrolled Multiple Students", classId, studentIds);
+            }
             // Refresh và thông báo kết quả
             if(classPanel != null) {
                 classPanel.refreshStudentListForSelectedClass(); // Cập nhật danh sách SV đã ghi danh
@@ -333,10 +339,11 @@ public class EduClassController {
 
         int successCount = 0;
         List<String> errors = new ArrayList<>();
-
+        boolean performedUnenroll = false;
         try {
             int removedCount = eduClassDAO.removeStudentsFromClass(classId, studentIds);
             successCount = removedCount;
+            performedUnenroll = true;
              if (removedCount != studentIds.size()) {
                  errors.add("Some students might not have been unenrolled (e.g., not found in class).");
              }
@@ -344,7 +351,9 @@ public class EduClassController {
              errors.add("Failed to unenroll students: " + e.getMessage());
              System.err.println("Error unenrolling multiple students: " + e.getMessage());
         }
-
+        if(performedUnenroll) {
+            writeEnrollmentLog("Unenrolled Multiple Students", classId, studentIds);
+        }
         // Refresh và thông báo
         if(classPanel != null) {
             classPanel.refreshStudentListForSelectedClass();
@@ -357,5 +366,56 @@ public class EduClassController {
             UIUtils.showWarningMessage(classPanel, "Partial Success/Errors", errorMsg);
         }
         return successCount > 0;
+    }
+    private void writeAddLog(String action, EduClass eduClass) {
+        String details = String.format("ID: %d, Name: %s, CourseID: %d, TeacherID: %d, Cap: %d",
+                eduClass.getClassId(), eduClass.getClassName(),
+                eduClass.getCourse() != null ? eduClass.getCourse().getCourseId() : -1,
+                eduClass.getPrimaryTeacher() != null ? eduClass.getPrimaryTeacher().getTeacherId() : -1,
+                eduClass.getMaxCapacity());
+        writeLog(action, details);
+    }
+
+    private void writeUpdateLog(String action, EduClass eduClass) {
+        // Tương tự add, có thể thêm các trường bị thay đổi nếu cần
+        String details = String.format("ID: %d, Name: %s, CourseID: %d, TeacherID: %d, Cap: %d",
+                eduClass.getClassId(), eduClass.getClassName(),
+                eduClass.getCourse() != null ? eduClass.getCourse().getCourseId() : -1,
+                eduClass.getPrimaryTeacher() != null ? eduClass.getPrimaryTeacher().getTeacherId() : -1,
+                eduClass.getMaxCapacity());
+        writeLog(action, details);
+    }
+
+    private void writeDeleteLog(String action, String details) {
+        writeLog(action, details);
+    }
+
+    // Hàm log riêng cho enroll/unenroll
+    private void writeEnrollmentLog(String action, int classId, List<Integer> studentIds) {
+        String details = String.format("ClassID: %d, StudentIDs: %s",
+                classId,
+                studentIds.stream().map(String::valueOf).collect(Collectors.joining(", ")));
+        writeLog(action, details);
+    }
+
+
+    // Hàm ghi log chung
+    private void writeLog(String action, String details) {
+        if (logService != null && currentUser != null) {
+            try {
+                LogEntry log = new LogEntry(
+                        LocalDateTime.now(),
+                        currentUser.getDisplayName(),
+                        currentUser.getRole().name(),
+                        action,
+                        details
+                );
+                logService.addLogEntry(log);
+            } catch (Exception e) {
+                System.err.println("!!! Failed to write log entry: " + action + " - " + e.getMessage());
+            }
+        } else {
+            System.err.println("LogService or CurrentUser is null. Cannot write log for action: " + action);
+        }
     }
 }
