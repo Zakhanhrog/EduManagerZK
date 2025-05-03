@@ -92,6 +92,39 @@ public class AuthController {
     }
 
     private void loginSuccess() {
+        if (loggedInUser != null) {
+            String nameToShow = loggedInUser.getUsername(); // Mặc định là username
+
+            if (loggedInUser.getRole() == Role.TEACHER && loggedInUser.getTeacherId() != null && teacherDAO != null) {
+                try {
+                    Teacher teacher = teacherDAO.getById(loggedInUser.getTeacherId());
+                    if (teacher != null && teacher.getFullName() != null && !teacher.getFullName().isEmpty()) {
+                        nameToShow = teacher.getFullName(); // Lấy tên đầy đủ của Teacher
+                        System.out.println("Found Teacher Full Name: " + nameToShow);
+                    } else {
+                        System.err.println("Could not find full name for Teacher ID: " + loggedInUser.getTeacherId());
+                    }
+                } catch (DataAccessException e) {
+                    System.err.println("Error getting teacher details for display name: " + e.getMessage());
+                }
+            } else if (loggedInUser.getRole() == Role.STUDENT && loggedInUser.getStudentId() != null && studentDAO != null) {
+                try {
+                    Student student = studentDAO.getById(loggedInUser.getStudentId());
+                    if (student != null && student.getFullName() != null && !student.getFullName().isEmpty()) {
+                        nameToShow = student.getFullName(); // Lấy tên đầy đủ của Student
+                        System.out.println("Found Student Full Name: " + nameToShow);
+                    } else {
+                        System.err.println("Could not find full name for Student ID: " + loggedInUser.getStudentId());
+                    }
+                } catch (DataAccessException e) {
+                    System.err.println("Error getting student details for display name: " + e.getMessage());
+                }
+            }
+            // Gán tên tìm được (hoặc username mặc định) vào đối tượng User
+            loggedInUser.setDisplayName(nameToShow);
+            System.out.println("Set displayName for loggedInUser: " + loggedInUser.getDisplayName());
+        }
+
         System.out.println("AuthController: Login successful. Closing LoginView and opening MainView...");
         if (loginView != null) {
             loginView.dispose();
@@ -101,8 +134,7 @@ public class AuthController {
             try {
                 MainController mainController = new MainController(
                         loggedInUser,
-                        this,            // Truyền chính AuthController
-                        // Truyền các DAO đã được inject vào AuthController
+                        this,
                         this.getUserDAO(),
                         this.getStudentDAO(),
                         this.getTeacherDAO(),

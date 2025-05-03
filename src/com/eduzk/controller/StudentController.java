@@ -23,6 +23,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.Optional;
 
 public class StudentController {
     private final IStudentDAO studentDAO;
@@ -125,14 +126,66 @@ public class StudentController {
             UIUtils.showWarningMessage(studentPanel, "Validation Error", "Student name cannot be empty.");
             return false;
         }
+
+        if (!ValidationUtils.isNotEmpty(student.getPhone()) || !ValidationUtils.isValidPhoneNumber(student.getPhone())) {
+            UIUtils.showWarningMessage(studentPanel, "Validation Error", "A valid Phone Number is required (used as username).");
+            return false;
+        }
+
         try {
             studentDAO.add(student);
-            if (studentPanel != null) {
-                System.out.println("StudentController: Add successful, refreshing panel...");
-                studentPanel.refreshTable(); // Assumes StudentPanel has this method
-                UIUtils.showInfoMessage(studentPanel, "Success", "Student added successfully.");
+            if (student.getStudentId() > 0) {
+                String defaultUsername = student.getPhone();
+                String defaultPassword = "123456";
+
+                // Tạo đối tượng User mới
+                User newUser = new User();
+                newUser.setUsername(defaultUsername);
+                newUser.setPassword(defaultPassword);
+                newUser.setRole(Role.STUDENT);
+                newUser.setActive(true);
+                newUser.setStudentId(student.getStudentId());
+                newUser.setTeacherId(null);
+
+                // Thêm User vào userDAO (có xử lý lỗi)
+                try {
+                    // Kiểm tra trùng username (SĐT) VÀ trùng studentId trước khi thêm
+                    if (userDAO.findByUsername(newUser.getUsername()).isPresent()) {
+                        throw new DataAccessException("Phone number '" + newUser.getUsername() + "' is already registered as a username.");
+                    }
+                    if (userDAO.findByStudentId(newUser.getStudentId()).isPresent()) {
+                        throw new DataAccessException("An account for student ID " + newUser.getStudentId() + " already exists.");
+                    }
+
+                    userDAO.add(newUser);
+                    System.out.println("Automatically created User account for Student ID: " + student.getStudentId() + " with username (phone): " + defaultUsername);
+
+                    if (studentPanel != null) {
+                        studentPanel.refreshTable();
+                        UIUtils.showInfoMessage(studentPanel, "Success", "Student and linked User account added successfully.");
+                    }
+                    return true;
+
+                } catch (DataAccessException e) {
+                    System.err.println("!!! FAILED to add User account for Student ID " + student.getStudentId() + " !!! DAO Error: " + e.getMessage());
+                    e.printStackTrace();
+                    UIUtils.showWarningMessage(studentPanel, "User Creation Failed", "Student added, but failed to create linked user account:\n" + e.getMessage());
+                    if (studentPanel != null) studentPanel.refreshTable();
+                    return false;
+                } catch (Exception ex) {
+                    System.err.println("!!! UNEXPECTED ERROR adding User account for Student ID " + student.getStudentId() + " !!! Error: " + ex.getMessage());
+                    ex.printStackTrace();
+                    UIUtils.showErrorMessage(studentPanel, "Unexpected Error", "An unexpected error occurred while creating the user account.");
+                    if (studentPanel != null) studentPanel.refreshTable();
+                    return false;
+                }
+            } else {
+                System.err.println("Could not get Student ID after adding student. User account not created.");
+                UIUtils.showWarningMessage(studentPanel, "User Creation Failed", "Student added, but could not get ID to create linked user account.");
+                if (studentPanel != null) studentPanel.refreshTable();
+                return false;
             }
-            return true;
+
         } catch (DataAccessException | IllegalArgumentException e) {
             System.err.println("Error adding student: " + e.getMessage());
             UIUtils.showErrorMessage(studentPanel, "Error", "Failed to add student: " + e.getMessage());
@@ -224,9 +277,11 @@ public class StudentController {
             File selectedFile = fileChooser.getSelectedFile();
             System.out.println("Importing students from: " + selectedFile.getAbsolutePath());
             studentPanel.setAllButtonsEnabled(false);
+
             SwingWorker<List<String>, Void> worker = new SwingWorker<List<String>, Void>() {
                 private int successCount = 0;
                 private int errorCount = 0;
+                private int processedCount = 0;
 
                 @Override
                 protected List<String> doInBackground() throws Exception {
@@ -238,51 +293,109 @@ public class StudentController {
                         workbook = new XSSFWorkbook(fis);
                         Sheet sheet = workbook.getSheetAt(0);
                         Iterator<Row> rowIterator = sheet.iterator();
-                        if (rowIterator.hasNext()) {
-                            rowIterator.next();
-                        }
+                        if (rowIterator.hasNext()) rowIterator.next(); // Skip header
+
                         int rowNum = 1;
                         while (rowIterator.hasNext()) {
                             Row row = rowIterator.next();
                             rowNum++;
+                            processedCount++;
+                            Student addedStudent = null;
+                            boolean studentAddSuccess = false;
+                            boolean userAddSuccess = false;
                             try {
-                                String fullName = getStringCellValue(row.getCell(0)); // Cột 0: Full Name
-                                LocalDate dob = getDateCellValue(row.getCell(1));    // Cột 1: Date of Birth
-                                String gender = getStringCellValue(row.getCell(2));   // Cột 2: Gender
-                                String address = getStringCellValue(row.getCell(3));  // Cột 3: Address
-                                String parentName = getStringCellValue(row.getCell(4));// Cột 4: Parent Name
-                                String phone = getStringCellValue(row.getCell(5));    // Cột 5: Phone
-                                String email = getStringCellValue(row.getCell(6));    // Cột 6: Email
+                                // --- 1. ĐỌC DỮ LIỆU STUDENT TỪ EXCEL ---
+                                String fullName = getStringCellValue(row.getCell(0));
+                                LocalDate dob = getDateCellValue(row.getCell(1));
+                                String gender = getStringCellValue(row.getCell(2));
+                                String address = getStringCellValue(row.getCell(3));
+                                String parentName = getStringCellValue(row.getCell(4));
+                                String phone = getStringCellValue(row.getCell(5)); // Dùng làm username
+                                String email = getStringCellValue(row.getCell(6));
 
-                                // --- Validation cơ bản ---
-                                if (fullName == null || fullName.trim().isEmpty() || phone == null || phone.trim().isEmpty()) {
-                                    throw new IllegalArgumentException("Full Name and Phone are required.");
+                                // --- 2. VALIDATION DỮ LIỆU STUDENT ---
+                                if (!ValidationUtils.isNotEmpty(fullName)) { throw new IllegalArgumentException("Full Name required."); }
+                                if (!ValidationUtils.isNotEmpty(phone) || !ValidationUtils.isValidPhoneNumber(phone)) {
+                                    throw new IllegalArgumentException("A valid Phone Number required (used as username).");
                                 }
-                                // Thêm validation khác
+                                // Thêm validation email nếu muốn
+                                if (ValidationUtils.isNotEmpty(email) && !ValidationUtils.isValidEmail(email)) {
+                                     System.err.println("Warning Row " + rowNum + ": Invalid email format.");
+                                }
 
-                                // --- Tạo đối tượng Student ---
+                                // --- 3. TẠO VÀ THÊM STUDENT ---
                                 Student newStudent = new Student();
                                 newStudent.setFullName(fullName.trim());
                                 newStudent.setDateOfBirth(dob);
                                 newStudent.setGender(gender != null ? gender.trim() : null);
                                 newStudent.setAddress(address != null ? address.trim() : null);
                                 newStudent.setParentName(parentName != null ? parentName.trim() : null);
-                                newStudent.setPhone(phone.trim()); // SĐT là username
+                                newStudent.setPhone(phone.trim()); // Lưu SĐT đã trim
                                 newStudent.setEmail(email != null ? email.trim() : null);
 
-                                // --- Gọi DAO để thêm ---
-                                studentDAO.add(newStudent);
-                                successCount++;
+                                studentDAO.add(newStudent); // Thêm Student
+                                addedStudent = newStudent;  // Lưu lại
+                                studentAddSuccess = true;
+
+                                // --- 4. TẠO USER TƯƠNG ỨNG (NẾU THÊM STUDENT THÀNH CÔNG) ---
+                                if (addedStudent != null && addedStudent.getStudentId() > 0) {
+                                    String defaultUsername = addedStudent.getPhone(); // Đã validate ở trên
+                                    String defaultPassword = "123456";
+
+                                    User newUser = new User();
+                                    newUser.setUsername(defaultUsername);
+                                    newUser.setPassword(defaultPassword);
+                                    newUser.setRole(Role.STUDENT);
+                                    newUser.setActive(true); // Mặc định active
+                                    newUser.setStudentId(addedStudent.getStudentId());
+                                    newUser.setTeacherId(null);
+
+                                    // Thêm User vào DAO (có xử lý lỗi trùng)
+                                    try {
+                                        // Kiểm tra trùng username (SĐT) VÀ trùng studentId
+                                        if (userDAO.findByUsername(newUser.getUsername()).isPresent()) {
+                                            throw new DataAccessException("Phone number '" + newUser.getUsername() + "' is already registered as username.");
+                                        }
+                                        if (userDAO.findByStudentId(newUser.getStudentId()).isPresent()) {
+                                            throw new DataAccessException("Account for student ID " + newUser.getStudentId() + " already exists.");
+                                        }
+
+                                        userDAO.add(newUser);
+                                        userAddSuccess = true;
+                                        System.out.println("Import - Row " + rowNum + ": Added User for Student ID: " + addedStudent.getStudentId());
+                                    } catch (DataAccessException e) {
+                                        // Lỗi khi thêm User, ghi nhận nhưng tiếp tục
+                                        String userErrorMsg = "Row " + rowNum + ": Student added, but FAILED User creation - " + e.getMessage();
+                                        System.err.println(userErrorMsg);
+                                        errors.add(userErrorMsg);
+                                        // Không tăng successCount, lỗi này sẽ được tính vào errorCount chung
+                                    } catch (Exception ex){
+                                        String userErrorMsg = "Row " + rowNum + ": Student added, but UNEXPECTED ERROR creating User - " + ex.getMessage();
+                                        System.err.println(userErrorMsg);
+                                        errors.add(userErrorMsg);
+                                    }
+                                } else {
+                                    throw new IllegalStateException("Could not retrieve Student ID after adding. Linked User not created.");
+                                }
+
+                                // Chỉ tăng successCount nếu cả Student và User thành công
+                                if (studentAddSuccess && userAddSuccess) {
+                                    successCount++;
+                                } else {
+                                    errorCount++; // Tăng error nếu có lỗi ở Student hoặc User
+                                }
 
                             } catch (Exception rowEx) {
+                                // Lỗi khi xử lý dòng (đọc, validation, add Student, add User)
                                 String errorMsg = "Row " + rowNum + ": Error - " + rowEx.getMessage();
                                 System.err.println(errorMsg);
                                 errors.add(errorMsg);
                                 errorCount++;
+                                // Không tăng successCount
                             }
-                        }
-
+                        } // end while
                     } finally {
+                        // ... (Đóng workbook, fis) ...
                         if (workbook != null) try { workbook.close(); } catch (IOException ignored) {}
                         if (fis != null) try { fis.close(); } catch (IOException ignored) {}
                     }

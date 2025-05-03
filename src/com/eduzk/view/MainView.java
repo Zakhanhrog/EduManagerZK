@@ -288,7 +288,7 @@ public class MainView extends JFrame {
             System.exit(1);
         }
 
-        String windowTitle = "EduZakhanh - Welcome, " + user.getUsername() + " (" + user.getRole().getDisplayName() + ")";
+        String windowTitle = "EduZakhanh - Welcome, " + user.getDisplayName() + " (" + user.getRole().getDisplayName() + ")";
         setTitle(windowTitle);
         setStatusText("Logged in as: " + user.getRole().getDisplayName());
 

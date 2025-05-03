@@ -13,6 +13,16 @@ public class User implements Serializable {
     private boolean active; // To enable/disable user accounts
     private Integer teacherId;
     private Integer studentId;
+    private transient String displayName;
+
+    public String getDisplayName() {
+        // Nếu displayName chưa được set, trả về username làm mặc định
+        return (displayName != null && !displayName.isEmpty()) ? displayName : username;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
 
     public User() {
         this.active = true; // Default to active
@@ -95,6 +105,7 @@ public class User implements Serializable {
         return "User{" +
                 "userId=" + userId +
                 ", username='" + username + '\'' +
+                ", displayName='" + getDisplayName() + '\'' +
                 ", role=" + role +
                 ", active=" + active +
                 ", teacherId=" + teacherId +
