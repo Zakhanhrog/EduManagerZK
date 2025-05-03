@@ -52,8 +52,7 @@ public class MainView extends JFrame {
 
     }
     private void setupTabChangeListener() {
-        if (tabbedPane == null) return; // Phòng trường hợp tabbedPane chưa khởi tạo
-
+        if (tabbedPane == null) return;
         tabbedPane.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent e) {
@@ -63,9 +62,6 @@ public class MainView extends JFrame {
 
                     if (selectedIndex != -1) {
                         Component selectedComponent = sourceTabbedPane.getComponentAt(selectedIndex);
-
-                        System.out.println("MainView: Tab changed to index " + selectedIndex + ", component: " + selectedComponent.getClass().getSimpleName()); // Log để debug
-
                         if (selectedComponent instanceof AccountsPanel) {
                             System.out.println("MainView: AccountsPanel selected, calling refreshTable...");
                             ((AccountsPanel) selectedComponent).refreshTable();
@@ -75,7 +71,6 @@ public class MainView extends JFrame {
             }
         });
     }
-
     private void initComponents() {
         tabbedPane = new JTabbedPane();
         statusLabel = new JLabel("Ready.");

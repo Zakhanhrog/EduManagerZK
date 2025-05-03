@@ -3,7 +3,6 @@ package com.eduzk.model.dao.impl;
 import com.eduzk.model.dao.interfaces.IUserDAO;
 import com.eduzk.model.entities.User;
 import com.eduzk.model.exceptions.DataAccessException;
-
 import java.util.Optional;
 import com.eduzk.model.entities.Role;
 
@@ -144,6 +143,22 @@ public class UserDAOImpl extends BaseDAO<User> implements IUserDAO {
             lock.readLock().unlock();
         }
     }
+    @Override
+    public Optional<User> findByTeacherId(int teacherId) {
+        if (teacherId <= 0) {
+            return Optional.empty();
+        }
+        lock.readLock().lock();
+        try {
+            return dataList.stream()
+                    // Chỉ tìm user là TEACHER và có teacherId khớp
+                    .filter(user -> user.getRole() == Role.TEACHER &&
+                            user.getTeacherId() != null && // Quan trọng: Kiểm tra null trước khi so sánh
+                            user.getTeacherId().equals(teacherId)) // Dùng equals cho Integer
+                    .findFirst();
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
 
-    // getAll() is inherited from BaseDAO
 }

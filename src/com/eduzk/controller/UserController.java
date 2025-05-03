@@ -15,8 +15,8 @@ import java.util.stream.Collectors;
 public class UserController {
 
     private final IUserDAO userDAO;
-    private final User currentUser; // Người dùng đang đăng nhập (để kiểm tra quyền)
-    private AccountsPanel accountsPanel; // Tham chiếu đến view
+    private final User currentUser;
+    private AccountsPanel accountsPanel;
 
     public UserController(IUserDAO userDAO, User currentUser) {
         if (userDAO == null || currentUser == null) {

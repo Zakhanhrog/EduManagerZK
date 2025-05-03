@@ -155,7 +155,6 @@ public class StudentController {
 
                 // Thêm User vào userDAO (có xử lý lỗi)
                 try {
-                    // Kiểm tra trùng username (SĐT) VÀ trùng studentId trước khi thêm
                     if (userDAO.findByUsername(newUser.getUsername()).isPresent()) {
                         throw new DataAccessException("Phone number '" + newUser.getUsername() + "' is already registered as a username.");
                     }
@@ -491,31 +490,65 @@ public class StudentController {
             UIUtils.showWarningMessage(studentPanel, "Error", "No student IDs provided for deletion.");
             return false;
         }
+        if (studentDAO == null || userDAO == null) {
+            UIUtils.showWarningMessage(studentPanel, "Error", "No student IDs provided for deletion.");
+            return false;
+        }
         try {
             System.out.println("StudentController: Calling DAO to delete students with IDs: " + idsToDelete);
-            int deletedCount = studentDAO.deleteByIds(idsToDelete); // Gọi hàm DAO mới
-            System.out.println("StudentController: DAO reported " + deletedCount + " students deleted.");
+            int deletedStudentCount = studentDAO.deleteByIds(idsToDelete);
+            System.out.println("StudentController: DAO reported " + deletedStudentCount + " students deleted.");
 
-            if (deletedCount > 0) {
+            int deletedUserCount = 0;
+
+            if (deletedStudentCount > 0) {
+                // --- 2. XÓA CÁC USER LIÊN KẾT ---
+                System.out.println("StudentController: Attempting to delete linked user accounts...");
+                for (Integer studentId : idsToDelete) { // Lặp qua các ID đã yêu cầu xóa
+                    try {
+                        Optional<User> userOpt = userDAO.findByStudentId(studentId);
+                        if (userOpt.isPresent()) {
+                            User userToDelete = userOpt.get();
+                            System.out.println("Found linked user for student ID " + studentId + ": User ID " + userToDelete.getUserId() + ", Username: " + userToDelete.getUsername());
+                            userDAO.delete(userToDelete.getUserId()); // Xóa User bằng userId
+                            System.out.println("Deleted linked user ID: " + userToDelete.getUserId());
+                            deletedUserCount++;
+                        } else {
+                            System.out.println("No linked user found for student ID " + studentId);
+                        }
+                    } catch (DataAccessException e) {
+                        System.err.println("Error finding/deleting user for student ID " + studentId + ": " + e.getMessage());
+                    } catch (Exception ex) {
+                        System.err.println("Unexpected error processing user deletion for student ID " + studentId + ": " + ex.getMessage());
+                        ex.printStackTrace();
+                    }
+                }
+                System.out.println("StudentController: Finished linked user deletion attempts. Deleted " + deletedUserCount + " user account(s).");
+                // --- KẾT THÚC XÓA USER ---
+            }
+           // --- 3. REFRESH VÀ THÔNG BÁO ---
+            if (deletedStudentCount > 0 || deletedUserCount > 0) {
                 if (studentPanel != null) {
                     studentPanel.refreshTable();
                 }
-                UIUtils.showInfoMessage(studentPanel, "Deletion Successful", deletedCount + " student(s) deleted successfully.");
+                // Gọi refresh AccountsPanel nếu có User bị xóa
+                if (deletedUserCount > 0 && mainView != null) {
+                    mainView.refreshAccountsPanelData();
+                }
+                // Thông báo kết quả
+                UIUtils.showInfoMessage(studentPanel, "Deletion Successful",
+                        deletedStudentCount + " student(s) and " + deletedUserCount + " linked user account(s) deleted successfully.");
                 return true;
             } else {
-                UIUtils.showWarningMessage(studentPanel, "Deletion Info", "No matching students found for deletion.");
+                UIUtils.showWarningMessage(studentPanel, "Deletion Info", "No matching students found or no linked users to delete.");
                 return false;
             }
         } catch (DataAccessException e) {
-            System.err.println("Error deleting multiple students: " + e.getMessage());
-            e.printStackTrace();
-            UIUtils.showErrorMessage(studentPanel, "Deletion Error", "Failed to delete students: " + e.getMessage());
             return false;
-        } catch (Exception e) {
-            System.err.println("Unexpected error during multiple deletion: " + e.getMessage());
-            e.printStackTrace();
-            UIUtils.showErrorMessage(studentPanel, "Unexpected Error", "An unexpected error occurred during deletion.");
+        }
+        catch (Exception e) {
             return false;
         }
     }
+
 }

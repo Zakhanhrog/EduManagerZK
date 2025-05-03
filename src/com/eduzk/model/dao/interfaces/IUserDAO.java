@@ -57,4 +57,5 @@ public interface IUserDAO {
      * @return Optional chứa User nếu tìm thấy, ngược lại là Optional rỗng.
      */
     Optional<User> findByStudentId(int studentId);
+    Optional<User> findByTeacherId(int teacherId);
 }

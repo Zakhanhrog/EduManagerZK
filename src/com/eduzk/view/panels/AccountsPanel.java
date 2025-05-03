@@ -13,15 +13,12 @@ import java.util.List;
 import java.util.Vector;
 import javax.swing.Icon;
 import java.net.URL;
-import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import com.eduzk.utils.ValidationUtils;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 
-
 public class AccountsPanel extends JPanel {
-
     private UserController controller;
     private JTable accountsTable;
     private DefaultTableModel tableModel;
@@ -35,7 +32,7 @@ public class AccountsPanel extends JPanel {
 
     // Constructor (sẽ nhận UserController sau khi được tạo)
     public AccountsPanel(UserController controller) {
-        this.controller = controller; // Khởi tạo controller ban đầu có thể là null
+        this.controller = controller;
         setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         initComponents();
@@ -54,31 +51,32 @@ public class AccountsPanel extends JPanel {
     private void initComponents() {
         // Table Model
         tableModel = new DefaultTableModel(
-                new Object[]{"User ID", "Username", "Password", "Role", "Active"}, 0) {
+                new Object[]{"STT", "Username", "Password", "Role", "Active", "UserID"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
             @Override
             public Class<?> getColumnClass(int columnIndex) {
-                if (columnIndex == 4) { // Cột Active
-                    return Boolean.class;
-                }
-                if (columnIndex == 0 || columnIndex == 3) { // Cột ID
-                    return Integer.class;
-                }
+                if (columnIndex == 4) return Boolean.class;
                 return super.getColumnClass(columnIndex);
             }
         };
         accountsTable = new JTable(tableModel);
-        accountsTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); // Chỉ cho chọn 1 dòng để sửa pass
+        accountsTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         accountsTable.setAutoCreateRowSorter(true);
         sorter = (TableRowSorter<DefaultTableModel>) accountsTable.getRowSorter();
 
+        TableColumn userIdColumn = accountsTable.getColumnModel().getColumn(5);
+        userIdColumn.setMinWidth(0);
+        userIdColumn.setMaxWidth(0);
+        userIdColumn.setPreferredWidth(0);
+        userIdColumn.setResizable(false);
+
         // Buttons
         int iconSize = 20;
-        editPasswordButton = new JButton("Edit Password"); // Không cần icon hoặc thêm icon khóa/chìa khóa
-        Icon editPassIcon = loadSVGIconButton("/icons/edit.svg", iconSize); // Tạm dùng icon edit
+        editPasswordButton = new JButton("Edit Password");
+        Icon editPassIcon = loadSVGIconButton("/icons/edit.svg", iconSize);
         if(editPassIcon!=null) editPasswordButton.setIcon(editPassIcon);
         editPasswordButton.setToolTipText("Change password for the selected user");
 
@@ -97,20 +95,20 @@ public class AccountsPanel extends JPanel {
 
     private void setupLayout() {
         // --- Top Panel ---
-        JPanel topPanel = new JPanel(new BorderLayout(20, 0)); // BorderLayout để căn trái/phải
+        JPanel topPanel = new JPanel(new BorderLayout(20, 0));
 
         // --- Left Panel (Filter Radios) ---
-        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT)); // Căn trái
+        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         filterPanel.add(showTeachersRadio);
         filterPanel.add(showStudentsRadio);
 
         // --- Right Panel (Action Buttons) ---
-        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT)); // Căn phải
+        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         actionPanel.add(refreshButton);
-        actionPanel.add(editPasswordButton); // Sẽ ẩn/hiện dựa trên quyền Admin
+        actionPanel.add(editPasswordButton);
 
-        topPanel.add(filterPanel, BorderLayout.WEST); // Filter bên trái
-        topPanel.add(actionPanel, BorderLayout.EAST); // Actions bên phải
+        topPanel.add(filterPanel, BorderLayout.WEST);
+        topPanel.add(actionPanel, BorderLayout.EAST);
 
         add(topPanel, BorderLayout.NORTH);
 
@@ -119,22 +117,22 @@ public class AccountsPanel extends JPanel {
         add(scrollPane, BorderLayout.CENTER);
 
         // Điều chỉnh độ rộng cột (tùy chọn)
-        TableColumn idCol = accountsTable.getColumnModel().getColumn(0); // User ID
-        idCol.setPreferredWidth(60); idCol.setMaxWidth(80);
-        TableColumn userCol = accountsTable.getColumnModel().getColumn(1); // Username
+        TableColumn sttCol = accountsTable.getColumnModel().getColumn(0);
+        sttCol.setPreferredWidth(40); sttCol.setMaxWidth(60);
+        TableColumn userCol = accountsTable.getColumnModel().getColumn(1);
         userCol.setPreferredWidth(200);
-        TableColumn passCol = accountsTable.getColumnModel().getColumn(2); // Password
-        passCol.setPreferredWidth(120); // Điều chỉnh độ rộng password
-        TableColumn roleCol = accountsTable.getColumnModel().getColumn(3); // Role (Index mới là 3)
+        TableColumn passCol = accountsTable.getColumnModel().getColumn(2);
+        passCol.setPreferredWidth(120);
+        TableColumn roleCol = accountsTable.getColumnModel().getColumn(3);
         roleCol.setPreferredWidth(100);
-        TableColumn activeCol = accountsTable.getColumnModel().getColumn(4); // Active (Index mới là 4)
+        TableColumn activeCol = accountsTable.getColumnModel().getColumn(4);
         activeCol.setPreferredWidth(60); activeCol.setMaxWidth(80);
     }
 
     private void setupActions() {
         refreshButton.addActionListener(e -> refreshTable());
         editPasswordButton.addActionListener(e -> openEditPasswordDialog());
-        ActionListener roleFilterListener = e -> filterTable(); // Gọi hàm lọc mới
+        ActionListener roleFilterListener = e -> filterTable();
         showTeachersRadio.addActionListener(roleFilterListener);
         showStudentsRadio.addActionListener(roleFilterListener);
 
@@ -143,12 +141,12 @@ public class AccountsPanel extends JPanel {
     private void filterTable() {
         Role selectedRole = showTeachersRadio.isSelected() ? Role.TEACHER : Role.STUDENT;
         System.out.println("AccountsPanel: Filtering table for role: " + selectedRole);
-        populateTable(this.allUsersCache, selectedRole); // Lọc từ cache
+        populateTable(this.allUsersCache, selectedRole);
     }
 
     private void openEditPasswordDialog() {
-        int selectedRow = accountsTable.getSelectedRow();
-        if (selectedRow < 0) {
+        int selectedViewRow = accountsTable.getSelectedRow();
+        if (selectedViewRow < 0) {
             UIUtils.showWarningMessage(this, "Selection Required", "Please select a user account to edit the password.");
             return;
         }
@@ -158,9 +156,9 @@ public class AccountsPanel extends JPanel {
         }
 
         try {
-            int modelRow = accountsTable.convertRowIndexToModel(selectedRow);
-            int userId = (int) tableModel.getValueAt(modelRow, 0); // Lấy User ID
-            String username = (String) tableModel.getValueAt(modelRow, 1); // Lấy Username để hiển thị
+            int modelRow = accountsTable.convertRowIndexToModel(selectedViewRow);
+            int userId = (int) tableModel.getValueAt(modelRow, 5);
+            String username = (String) tableModel.getValueAt(modelRow, 1);
 
             // Hiển thị dialog đơn giản để nhập mật khẩu mới
             JPasswordField passwordField = new JPasswordField(20);
@@ -173,13 +171,10 @@ public class AccountsPanel extends JPanel {
 
             if (option == JOptionPane.OK_OPTION) {
                 String newPassword = new String(passwordField.getPassword());
-                if (ValidationUtils.isValidPassword(newPassword)) { // Kiểm tra độ dài tối thiểu
-                    // Gọi controller để cập nhật
+                if (ValidationUtils.isValidPassword(newPassword)) {
                     controller.updateUserPassword(userId, newPassword);
-                    // Refresh đã được gọi bên trong controller nếu thành công
                 } else {
                     UIUtils.showWarningMessage(this, "Validation Error", "Password must be at least 6 characters long.");
-                    // Có thể gọi lại dialog openEditPasswordDialog(); để người dùng nhập lại
                 }
             }
         } catch (Exception e) {
@@ -188,10 +183,6 @@ public class AccountsPanel extends JPanel {
         }
     }
 
-    /**
-     * Làm mới dữ liệu bảng tài khoản.
-     * Được gọi bởi nút Refresh hoặc sau các thao tác thành công.
-     */
     public void refreshTable() {
         if (controller == null) {
             System.err.println("AccountsPanel: Cannot refresh, UserController is null.");
@@ -199,26 +190,25 @@ public class AccountsPanel extends JPanel {
             this.allUsersCache.clear();
             return;
         }
-        System.out.println("AccountsPanel: Refreshing table data using UserController..."); // Log rõ ràng hơn
-
+        System.out.println("AccountsPanel: Refreshing table data using UserController...");
         this.allUsersCache = controller.getAllUserAccounts();
-
         System.out.println("AccountsPanel: Fetched " + (this.allUsersCache == null ? "null" : this.allUsersCache.size()) + " user accounts from UserController."); // Log kích thước cache
         filterTable();
     }
 
     private void populateTable(List<User> users, Role roleToDisplay) {
-        tableModel.setRowCount(0); // Xóa dữ liệu cũ
+        tableModel.setRowCount(0);
+        int stt = 1;
         if (users != null) {
             for (User user : users) {
-                // Chỉ thêm user có vai trò khớp với lựa chọn filter
                 if (user.getRole() == roleToDisplay) {
                     Vector<Object> row = new Vector<>();
-                    row.add(user.getUserId());
+                    row.add(stt++);
                     row.add(user.getUsername());
-                    row.add(user.getPassword()); // *** THÊM PASSWORD VÀO ĐÂY ***
+                    row.add(user.getPassword());
                     row.add(user.getRole().getDisplayName());
                     row.add(user.isActive());
+                    row.add(user.getUserId());
                     tableModel.addRow(row);
                 }
             }
@@ -226,10 +216,6 @@ public class AccountsPanel extends JPanel {
         System.out.println("AccountsPanel: Table populated with " + tableModel.getRowCount() + " rows for role " + roleToDisplay);
     }
 
-    /**
-     * Cấu hình control dựa trên vai trò (chỉ Admin thấy nút Edit Password).
-     * @param userRole Vai trò của người dùng hiện tại.
-     */
     public void configureControlsForRole(Role userRole) {
         boolean canManageAccounts = (userRole == Role.ADMIN);
         if (editPasswordButton != null) editPasswordButton.setVisible(canManageAccounts);
@@ -237,7 +223,6 @@ public class AccountsPanel extends JPanel {
         if (refreshButton != null) refreshButton.setVisible(true);
     }
 
-    // Hàm helper load SVG icon (Copy từ panel khác)
     private Icon loadSVGIconButton(String path, int size) {
         if (path == null || path.isEmpty()) return null;
         try {

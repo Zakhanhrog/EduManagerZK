@@ -21,10 +21,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
+
 import com.eduzk.view.MainView;
 
 public class TeacherController {
@@ -175,56 +173,64 @@ public class TeacherController {
         }
     }
     public boolean deleteMultipleTeachers(List<Integer> teacherIdsToDelete) {
-        if (teacherIdsToDelete == null || teacherIdsToDelete.isEmpty()) {
-            UIUtils.showWarningMessage(teacherPanel, "No Selection", "No teacher IDs provided for deletion.");
-            return false;
-        }
-        if (teacherDAO == null) { System.err.println("TeacherDAO is null!"); return false; }
+        if (teacherIdsToDelete == null || teacherIdsToDelete.isEmpty()) { /*...*/ return false; }
+        if (teacherDAO == null || userDAO == null) { /* Báo lỗi DAO null */ return false; } // Cần cả userDAO
 
         System.out.println("Attempting to delete multiple teachers using DAO: " + teacherIdsToDelete);
 
         try {
-            // Gọi phương thức DAO mới để xóa nhiều bản ghi cùng lúc
-            int deletedCount = teacherDAO.deleteMultiple(teacherIdsToDelete); // <-- THAY ĐỔI CHÍNH Ở ĐÂY
+            // 1. Xóa các bản ghi Teacher
+            int deletedTeacherCount = teacherDAO.deleteMultiple(teacherIdsToDelete);
+            System.out.println("Deletion process finished via DAO. Actual deleted teacher count: " + deletedTeacherCount);
 
-            System.out.println("Deletion process finished via DAO. Actual deleted count: " + deletedCount);
+            int deletedUserCount = 0;
+            if (deletedTeacherCount > 0) {
+                // --- 2. XÓA CÁC USER LIÊN KẾT ---
+                System.out.println("TeacherController: Attempting to delete linked user accounts...");
+                for (Integer teacherId : teacherIdsToDelete) { // Lặp qua các ID đã yêu cầu xóa
+                    try {
+                        // *** TÌM USER BẰNG TEACHER ID ***
+                        Optional<User> userOpt = userDAO.findByTeacherId(teacherId); // Gọi hàm DAO mới
+                        if (userOpt.isPresent()) {
+                            User userToDelete = userOpt.get();
+                            System.out.println("Found linked user for teacher ID " + teacherId + ": User ID " + userToDelete.getUserId() + ", Username: " + userToDelete.getUsername());
+                            userDAO.delete(userToDelete.getUserId()); // Xóa User bằng userId
+                            System.out.println("Deleted linked user ID: " + userToDelete.getUserId());
+                            deletedUserCount++;
+                        } else {
+                            System.out.println("No linked user found for teacher ID " + teacherId);
+                        }
+                    } catch (DataAccessException e) {
 
-            // Hiển thị thông báo dựa trên số lượng thực tế đã xóa
-            if (deletedCount == teacherIdsToDelete.size()) {
-                UIUtils.showInfoMessage(teacherPanel, "Deletion Successful", "Successfully deleted " + deletedCount + " teacher(s).");
-            } else if (deletedCount > 0) {
-                UIUtils.showWarningMessage(teacherPanel, "Deletion Partially Successful", "Deleted " + deletedCount + " out of " + teacherIdsToDelete.size() + " selected teachers. Some might not exist or could not be deleted.");
-            } else {
-                UIUtils.showWarningMessage(teacherPanel, "Deletion Failed", "No teachers were deleted. They might have already been removed or an error occurred.");
+                    }
+                    catch (Exception ex) {
+
+                    }
+                }
+                System.out.println("TeacherController: Finished linked user deletion attempts. Deleted " + deletedUserCount + " user account(s).");
+                // --- KẾT THÚC XÓA USER ---
             }
 
-            // Refresh bảng NGAY SAU KHI thao tác DAO hoàn tất
-            if (teacherPanel != null) {
-                System.out.println("Refreshing teacher table after multiple delete.");
-                teacherPanel.refreshTable();
+            // --- 3. REFRESH VÀ THÔNG BÁO ---
+            if (deletedTeacherCount > 0 || deletedUserCount > 0) {
+                if (teacherPanel != null) {
+                    teacherPanel.refreshTable();
+                }
+                if (deletedUserCount > 0 && mainView != null) {
+                    mainView.refreshAccountsPanelData(); // Gọi refresh AccountsPanel
+                }
+                UIUtils.showInfoMessage(teacherPanel, "Deletion Successful",
+                        deletedTeacherCount + " teacher(s) and " + deletedUserCount + " linked user account(s) deleted successfully.");
+                return true;
             } else {
-                System.err.println("TeacherController Error: teacherPanel is null after deleteMultiple!");
+                UIUtils.showWarningMessage(teacherPanel, "Deletion Info", "No matching teachers found or no linked users to delete.");
+                return false;
             }
-            return true; // Coi như thành công nếu không có Exception từ DAO
 
         } catch (DataAccessException e) {
-            // Lỗi từ DAO khi xóa nhiều
-            System.err.println("Error deleting multiple teachers: " + e.getMessage());
-            e.printStackTrace();
-            UIUtils.showErrorMessage(teacherPanel, "Deletion Error", "An error occurred while deleting teachers: " + e.getMessage());
-            // Vẫn nên refresh bảng để cập nhật những gì có thể đã bị xóa trước khi lỗi
-            if (teacherPanel != null) {
-                teacherPanel.refreshTable();
-            }
-            return false; // Báo lỗi
-        } catch (Exception e) {
-            // Lỗi không mong muốn khác
-            System.err.println("Unexpected error during multiple teacher deletion: " + e.getMessage());
-            e.printStackTrace();
-            if (teacherPanel != null) {
-                UIUtils.showErrorMessage(teacherPanel, "Unexpected Error", "An unexpected error occurred during deletion.");
-                teacherPanel.refreshTable(); // Cố gắng refresh
-            }
+            return false;
+        }
+        catch (Exception e) {
             return false;
         }
     }
