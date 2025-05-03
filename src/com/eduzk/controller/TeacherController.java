@@ -8,11 +8,12 @@ import com.eduzk.model.exceptions.DataAccessException;
 import com.eduzk.utils.DateUtils;
 import com.eduzk.utils.ValidationUtils;
 import com.eduzk.utils.UIUtils;
-import com.eduzk.view.panels.TeacherPanel; // To update the panel's table
+import com.eduzk.view.panels.TeacherPanel;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
-
+import com.eduzk.model.dao.interfaces.IUserDAO;
+import com.eduzk.model.entities.User;
+import com.eduzk.model.entities.Role;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.File;
@@ -29,11 +30,13 @@ public class TeacherController {
 
     private final ITeacherDAO teacherDAO;
     private final User currentUser;
+    private final IUserDAO userDAO;
     private TeacherPanel teacherPanel;
 
-    public TeacherController(ITeacherDAO teacherDAO, User currentUser) {
+    public TeacherController(ITeacherDAO teacherDAO, IUserDAO userDAO, User currentUser) {
         this.teacherDAO = teacherDAO;
         this.currentUser = currentUser;
+        this.userDAO = userDAO;
     }
 
     public void setTeacherPanel(TeacherPanel teacherPanel) {
@@ -68,12 +71,42 @@ public class TeacherController {
             UIUtils.showWarningMessage(teacherPanel, "Validation Error", "Teacher name cannot be empty.");
             return false;
         }
-        // Add more validation (email, phone, specialization)
 
         try {
             teacherDAO.add(teacher);
+            if (teacher.getTeacherId() > 0) {
+                // Tạo username/password mặc định (Cần quy tắc rõ ràng)
+                String defaultUsername = teacher.getEmail(); //Dùng email làm username
+                String defaultPassword = "123456";
+                User newUser = new User();
+                newUser.setUsername(defaultUsername);
+                newUser.setPassword(defaultPassword);
+                newUser.setRole(Role.TEACHER);
+                newUser.setActive(teacher.isActive());
+                newUser.setTeacherId(teacher.getTeacherId());
+                newUser.setStudentId(null);
+
+                try {
+                    System.out.println("Attempting to add User: " + newUser.getUsername() + " for Teacher ID: " + teacher.getTeacherId());
+                    userDAO.add(newUser);
+                    System.out.println("Successfully added User account for Teacher ID: " + teacher.getTeacherId());
+                } catch (DataAccessException e) {
+                    System.err.println("!!! FAILED to add User account for Teacher ID " + teacher.getTeacherId() + " !!! DAO Error: " + e.getMessage());
+                    e.printStackTrace();
+                    UIUtils.showWarningMessage(teacherPanel, "User Creation Failed", "Teacher added, but failed to create linked user account:\n" + e.getMessage());
+                } catch (Exception ex) {
+                    System.err.println("!!! UNEXPECTED ERROR adding User account for Teacher ID " + teacher.getTeacherId() + " !!! Error: " + ex.getMessage());
+                    ex.printStackTrace();
+                    UIUtils.showErrorMessage(teacherPanel, "Unexpected Error", "An unexpected error occurred while creating the user account.");
+                }
+
+            } else {
+                System.err.println("Could not get Teacher ID after adding teacher. User account not created.");
+                UIUtils.showWarningMessage(teacherPanel, "User Creation Failed", "Teacher added, but could not get ID to create linked user account.");
+            }
+
             if (teacherPanel != null) {
-                teacherPanel.refreshTable(); // Assumes TeacherPanel has this method
+                teacherPanel.refreshTable();
                 UIUtils.showInfoMessage(teacherPanel, "Success", "Teacher added successfully.");
             }
             return true;
@@ -190,7 +223,10 @@ public class TeacherController {
         }
     }
     public void importTeachersFromExcel() {
-        if (teacherPanel == null) { System.err.println("TeacherPanel is null."); return; }
+        if (teacherPanel == null) {
+            System.err.println("TeacherPanel is null.");
+            return;
+        }
         if (!isCurrentUserAdmin()) {
             UIUtils.showErrorMessage(teacherPanel, "Permission Denied", "Only administrators can import teacher data.");
             return;
@@ -207,11 +243,12 @@ public class TeacherController {
             File selectedFile = fileChooser.getSelectedFile();
             System.out.println("Importing teachers from: " + selectedFile.getAbsolutePath());
 
-            // Vô hiệu hóa nút khi import
             teacherPanel.setAllButtonsEnabled(false);
+
             SwingWorker<List<String>, Void> worker = new SwingWorker<List<String>, Void>() {
                 private int successCount = 0;
                 private int errorCount = 0;
+                private int processedCount = 0;
 
                 @Override
                 protected List<String> doInBackground() throws Exception {
@@ -226,89 +263,147 @@ public class TeacherController {
                         Iterator<Row> rowIterator = sheet.iterator();
                         if (rowIterator.hasNext()) rowIterator.next(); // Bỏ qua header
 
-                        int rowNum = 1;
+                        int rowNum = 1; // Bắt đầu từ dòng 2 (sau header)
                         while (rowIterator.hasNext()) {
                             Row row = rowIterator.next();
                             rowNum++;
-                            try {
-                                // --- ĐỌC DỮ LIỆU THEO CỘT CỦA TEACHER ---
-                                // **QUAN TRỌNG:** Điều chỉnh chỉ số cột (0, 1, 2,...) cho đúng file Excel mẫu của bạn
-                                String fullName = getStringCellValue(row.getCell(0));       // Cột 0: Full Name
-                                LocalDate dob = getDateCellValue(row.getCell(1));         // Cột 1: Date of Birth
-                                String gender = getStringCellValue(row.getCell(2));       // Cột 2: Gender
-                                String specialization = getStringCellValue(row.getCell(3)); // Cột 3: Specialization
-                                String phone = getStringCellValue(row.getCell(4));        // Cột 4: Phone
-                                String email = getStringCellValue(row.getCell(5));        // Cột 5: Email
-                                // Cột 6: Active (Có thể là TRUE/FALSE hoặc 1/0)
-                                Boolean active = getBooleanCellValue(row.getCell(6));
-                                if (active == null) active = true; // Mặc định là active nếu ô trống/lỗi
+                            processedCount++; // Tăng số dòng đã xử lý
 
-                                // --- Validation ---
+                            Teacher addedTeacher = null; // Lưu lại teacher vừa thêm để lấy ID
+                            boolean teacherAddSuccess = false;
+                            boolean userAddSuccess = false;
+
+                            try {
+                                // --- 1. ĐỌC DỮ LIỆU TEACHER TỪ EXCEL ---
+                                String fullName = getStringCellValue(row.getCell(0));
+                                LocalDate dob = getDateCellValue(row.getCell(1));
+                                String gender = getStringCellValue(row.getCell(2));
+                                String specialization = getStringCellValue(row.getCell(3));
+                                String phone = getStringCellValue(row.getCell(4));
+                                String email = getStringCellValue(row.getCell(5)); // Dùng làm username
+                                Boolean active = getBooleanCellValue(row.getCell(6));
+                                if (active == null) active = true;
+
+                                // --- 2. VALIDATION DỮ LIỆU TEACHER ---
                                 if (!ValidationUtils.isNotEmpty(fullName)) {
                                     throw new IllegalArgumentException("Full Name is required.");
+                                }
+                                // **QUAN TRỌNG:** Email là bắt buộc để tạo username
+                                if (!ValidationUtils.isNotEmpty(email) || !ValidationUtils.isValidEmail(email)) {
+                                    throw new IllegalArgumentException("A valid Email is required (used as username).");
                                 }
                                 if (ValidationUtils.isNotEmpty(phone) && !ValidationUtils.isValidPhoneNumber(phone)) {
                                     throw new IllegalArgumentException("Invalid phone number format.");
                                 }
-                                if (ValidationUtils.isNotEmpty(email) && !ValidationUtils.isValidEmail(email)) {
-                                    throw new IllegalArgumentException("Invalid email format.");
-                                }
+                                // Thêm validation khác nếu cần
 
-                                // --- Tạo đối tượng Teacher ---
+                                // --- 3. TẠO VÀ THÊM TEACHER ---
                                 Teacher newTeacher = new Teacher();
                                 newTeacher.setFullName(fullName.trim());
                                 newTeacher.setDateOfBirth(dob);
                                 newTeacher.setGender(gender != null ? gender.trim() : null);
                                 newTeacher.setSpecialization(specialization != null ? specialization.trim() : null);
                                 newTeacher.setPhone(phone != null ? phone.trim() : null);
-                                newTeacher.setEmail(email != null ? email.trim() : null);
+                                newTeacher.setEmail(email.trim()); // Lưu email đã trim
                                 newTeacher.setActive(active);
 
-                                // --- Gọi DAO thêm ---
-                                teacherDAO.add(newTeacher); // Tự xử lý ID
-                                successCount++;
+                                teacherDAO.add(newTeacher); // Thêm Teacher vào DAO
+                                addedTeacher = newTeacher; // Lưu lại để lấy ID
+                                teacherAddSuccess = true; // Đánh dấu Teacher đã thêm thành công
+
+                                // --- 4. TẠO USER TƯƠNG ỨNG (NẾU THÊM TEACHER THÀNH CÔNG) ---
+                                if (addedTeacher != null && addedTeacher.getTeacherId() > 0) {
+                                    String defaultUsername = addedTeacher.getEmail(); // Đã validate ở trên
+                                    String defaultPassword = "123456"; // Mật khẩu mặc định
+
+                                    // Tạo đối tượng User
+                                    User newUser = new User();
+                                    newUser.setUsername(defaultUsername);
+                                    newUser.setPassword(defaultPassword);
+                                    newUser.setRole(Role.TEACHER);
+                                    newUser.setActive(addedTeacher.isActive()); // Đồng bộ trạng thái
+                                    newUser.setTeacherId(addedTeacher.getTeacherId()); // Liên kết ID
+                                    newUser.setStudentId(null);
+
+                                    // **Kiểm tra Username trùng trước khi thêm User**
+                                    if (userDAO.findByUsername(newUser.getUsername()).isPresent()) {
+                                        throw new DataAccessException("Username '" + newUser.getUsername() + "' (from email) already exists for another user account.");
+                                    }
+
+                                    // Thêm User vào DAO
+                                    userDAO.add(newUser);
+                                    userAddSuccess = true; // Đánh dấu User đã thêm thành công
+                                    System.out.println("Import - Row " + rowNum + ": Added User for Teacher ID: " + addedTeacher.getTeacherId());
+
+                                } else {
+                                    // Lỗi không mong muốn: Không lấy được ID sau khi thêm Teacher
+                                    throw new IllegalStateException("Could not retrieve Teacher ID after adding. Linked User cannot be created.");
+                                }
+
+                                // Chỉ tăng successCount nếu cả hai đều thành công
+                                if (teacherAddSuccess && userAddSuccess) {
+                                    successCount++;
+                                }
 
                             } catch (Exception rowEx) {
+                                // Lỗi xảy ra khi xử lý dòng này (lỗi đọc, validation, thêm Teacher, hoặc thêm User)
                                 String errorMsg = "Row " + rowNum + ": Error - " + rowEx.getMessage();
                                 System.err.println(errorMsg);
                                 errors.add(errorMsg);
                                 errorCount++;
+                                // Không tăng successCount nếu có lỗi
                             }
                         } // end while
                     } finally {
+                        // Đóng tài nguyên (Giữ nguyên)
                         if (workbook != null) try { workbook.close(); } catch (IOException ignored) {}
                         if (fis != null) try { fis.close(); } catch (IOException ignored) {}
                     }
-                    return errors;
-                }
+                    return errors; // Trả về danh sách lỗi
+                } // end doInBackground
 
                 @Override
                 protected void done() {
                     try {
-                        List<String> errors = get();
+                        List<String> errors = get(); // Lấy danh sách lỗi từ background task
                         if (teacherPanel != null) {
                             teacherPanel.refreshTable(); // Làm mới bảng
                             teacherPanel.setAllButtonsEnabled(true); // Bật lại nút
                         }
 
-                        String message = "Import finished.\nSuccessfully imported: " + successCount + " teachers.\nErrors: " + errorCount;
+                        // Xây dựng thông báo kết quả chi tiết hơn
+                        StringBuilder messageBuilder = new StringBuilder();
+                        messageBuilder.append("Import finished.\n");
+                        messageBuilder.append("Total rows processed (excluding header): ").append(processedCount).append("\n");
+                        messageBuilder.append("Successfully imported (Teacher + User): ").append(successCount).append("\n");
+                        messageBuilder.append("Errors encountered: ").append(errorCount);
+
                         if (errorCount > 0) {
-                            message += "\n\nFirst few errors:\n" + String.join("\n", errors.stream().limit(5).toArray(String[]::new));
-                            UIUtils.showWarningMessage(teacherPanel, "Import Partially Successful", message);
+                            messageBuilder.append("\n\nFirst few errors:\n");
+                            // Giới hạn số lỗi hiển thị để tránh dialog quá dài
+                            errors.stream().limit(10).forEach(err -> messageBuilder.append(err).append("\n"));
+                            if (errors.size() > 10) {
+                                messageBuilder.append("... (and more errors, check console log for details)\n");
+                            }
+                            // Hiển thị cảnh báo nếu có lỗi
+                            UIUtils.showWarningMessage(teacherPanel, "Import Partially Successful", messageBuilder.toString());
                         } else {
-                            UIUtils.showInfoMessage(teacherPanel, "Import Successful", message);
+                            // Hiển thị thông báo thành công nếu không có lỗi
+                            UIUtils.showInfoMessage(teacherPanel, "Import Successful", messageBuilder.toString());
                         }
 
                     } catch (Exception e) {
+                        // Lỗi xảy ra trong quá trình thực thi SwingWorker hoặc lấy kết quả
                         e.printStackTrace();
-                        UIUtils.showErrorMessage(teacherPanel, "Import Error", "An error occurred: " + e.getMessage());
+                        UIUtils.showErrorMessage(teacherPanel, "Import Error", "An unexpected error occurred during the import process: " + e.getMessage());
                         if (teacherPanel != null) {
-                            teacherPanel.setAllButtonsEnabled(true);
+                            teacherPanel.setAllButtonsEnabled(true); // Đảm bảo bật lại nút nếu có lỗi
                         }
                     }
                 }
             };
-            worker.execute(); // Chạy import
+
+            worker.execute();
         }
     }
 
@@ -356,8 +451,10 @@ public class TeacherController {
                 if (val.equals("true") || val.equals("1") || val.equals("yes") || val.equals("active")) return true;
                 if (val.equals("false") || val.equals("0") || val.equals("no") || val.equals("inactive")) return false;
             }
-        } catch (Exception e) { /* ignore */ }
-        return null; // Không xác định được
+        } catch (Exception e) {
+
+        }
+        return null;
     }
 
 }

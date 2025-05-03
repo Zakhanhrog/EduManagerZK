@@ -1,6 +1,7 @@
 package com.eduzk.view.panels;
 
 import com.eduzk.controller.StudentController;
+import com.eduzk.model.entities.Role;
 import com.eduzk.model.entities.Student;
 import com.eduzk.utils.DateUtils;
 import com.eduzk.utils.UIUtils;
@@ -303,5 +304,23 @@ public class StudentPanel extends JPanel {
             System.err.println("Error loading/parsing SVG button icon from path: " + path + " - " + e.getMessage());
             return null;
         }
+    }
+
+    public void configureControlsForRole(Role userRole) {
+        // Admin HOẶC Teacher được phép thao tác
+        boolean canModify = (userRole == Role.ADMIN || userRole == Role.TEACHER);
+        boolean canImport = (userRole == Role.ADMIN || userRole == Role.TEACHER);
+
+        // Ẩn/hiện các nút thao tác
+        if (addButton != null) addButton.setVisible(canModify);
+        if (editButton != null) editButton.setVisible(canModify);
+        if (deleteButton != null) deleteButton.setVisible(canModify);
+        if (importButton != null) importButton.setVisible(canModify); // Teacher cũng có thể import? (Nếu đúng yêu cầu)
+
+        // Các nút khác như Search, Refresh có thể luôn hiển thị
+        if (importButton != null) importButton.setVisible(canImport);
+        if (searchButton != null) searchButton.setVisible(true); // Hoặc setEnabled
+        if (searchField != null) searchField.setVisible(true);
+        if (refreshButton != null) refreshButton.setVisible(true);
     }
 }

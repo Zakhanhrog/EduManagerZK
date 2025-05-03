@@ -2,10 +2,10 @@ package com.eduzk.controller;
 
 import java.io.IOException;
 import javax.swing.JOptionPane;
+import com.eduzk.model.dao.interfaces.*;
 import com.eduzk.model.entities.*;
 import com.eduzk.utils.UIUtils;
 import com.eduzk.view.MainView;
-import com.eduzk.model.dao.impl.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.FileOutputStream;
@@ -30,24 +30,45 @@ public class MainController {
     private RoomController roomController;
     private EduClassController eduClassController;
     private ScheduleController scheduleController;
-    private static final String DATA_DIR = "data/";
-    private static final String ID_FILE = DATA_DIR + "next_ids.dat";
-    private static final String USERS_FILE = DATA_DIR + "users.dat";
-    private static final String STUDENTS_FILE = DATA_DIR + "students.dat";
-    private static final String TEACHERS_FILE = DATA_DIR + "teachers.dat";
-    private static final String COURSES_FILE = DATA_DIR + "courses.dat";
-    private static final String ROOMS_FILE = DATA_DIR + "rooms.dat";
-    private static final String EDUCLASSES_FILE = DATA_DIR + "educlasses.dat";
-    private static final String SCHEDULES_FILE = DATA_DIR + "schedules.dat";
 
-    public MainController(User loggedInUser, AuthController authController) {
+    public MainController(User loggedInUser,
+                          AuthController authController,
+                          IUserDAO userDAO,
+                          IStudentDAO studentDAO,
+                          ITeacherDAO teacherDAO,
+                          ICourseDAO courseDAO,
+                          IRoomDAO roomDAO,
+                          IEduClassDAO eduClassDAO,
+                          IScheduleDAO scheduleDAO )
+    {
         if (loggedInUser == null) {
             System.exit(1);
         }
         if (authController == null) { throw new IllegalArgumentException("AuthController cannot be null in MainController"); }
+        if (userDAO == null || studentDAO == null) {
+            throw new IllegalArgumentException("DAO cannot be null in MainController constructor");
+        }
         this.loggedInUser = loggedInUser;
         this.authController = authController;
-        initializeDAOsAndControllers();
+        initializeControllers(userDAO, studentDAO, teacherDAO, courseDAO, roomDAO, eduClassDAO, scheduleDAO);
+    }
+
+    private void initializeControllers(
+            IUserDAO userDAO, IStudentDAO studentDAO, ITeacherDAO teacherDAO,
+            ICourseDAO courseDAO, IRoomDAO roomDAO, IEduClassDAO eduClassDAO,
+            IScheduleDAO scheduleDAO) {
+        try {
+            studentController = new StudentController(studentDAO, eduClassDAO, userDAO, loggedInUser);
+            teacherController = new TeacherController(teacherDAO, userDAO, loggedInUser);
+            courseController = new CourseController(courseDAO, loggedInUser);
+            roomController = new RoomController(roomDAO, loggedInUser);
+            eduClassController = new EduClassController(eduClassDAO, courseDAO, teacherDAO, studentDAO, loggedInUser);
+            scheduleController = new ScheduleController(scheduleDAO, eduClassDAO, teacherDAO, roomDAO, loggedInUser);
+
+            System.out.println("Child Controllers initialized successfully using injected DAOs.");
+        } catch (Exception e) {
+            System.exit(1);
+        }
     }
 
     public void setMainView(MainView mainView) {
@@ -68,36 +89,8 @@ public class MainController {
         if (scheduleController != null) {
             scheduleController.setMainView(mainView);
         }
-        // 2. Yêu cầu MainView tự cấu hình giao diện (tab, nút) dựa trên vai trò user
         mainView.configureViewForUser(loggedInUser);
-        // 3. Yêu cầu MainView làm mới dữ liệu cho tab đang được chọn (tab mặc định)
         mainView.refreshSelectedTab();
-    }
-
-    private void initializeDAOsAndControllers() {
-        try {
-            UserDAOImpl userDAO = new UserDAOImpl(USERS_FILE, ID_FILE); // Cần cho việc lấy thông tin user khác nếu là Admin
-            StudentDAOImpl studentDAO = new StudentDAOImpl(STUDENTS_FILE, ID_FILE);
-            TeacherDAOImpl teacherDAO = new TeacherDAOImpl(TEACHERS_FILE, ID_FILE);
-            CourseDAOImpl courseDAO = new CourseDAOImpl(COURSES_FILE, ID_FILE);
-            RoomDAOImpl roomDAO = new RoomDAOImpl(ROOMS_FILE, ID_FILE);
-            EduClassDAOImpl eduClassDAO = new EduClassDAOImpl(EDUCLASSES_FILE, ID_FILE);
-            ScheduleDAOImpl scheduleDAO = new ScheduleDAOImpl(SCHEDULES_FILE, ID_FILE);
-            studentController = new StudentController(studentDAO, eduClassDAO, userDAO, loggedInUser);// <-- Thêm userDAO
-            teacherController = new TeacherController(teacherDAO, loggedInUser);
-            courseController = new CourseController(courseDAO, loggedInUser);
-            roomController = new RoomController(roomDAO, loggedInUser);
-            eduClassController = new EduClassController(eduClassDAO, courseDAO, teacherDAO, studentDAO, loggedInUser);
-            scheduleController = new ScheduleController(scheduleDAO, eduClassDAO, teacherDAO, roomDAO, loggedInUser);
-            System.out.println("DAOs and Controllers initialized successfully.");
-        } catch (Exception e) {
-            System.err.println("!!! CRITICAL ERROR DURING DAO/CONTROLLER INITIALIZATION !!!");
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(null,
-                    "A critical error occurred while initializing application components.\nError: " + e.getMessage(),
-                    "Initialization Failed", JOptionPane.ERROR_MESSAGE);
-            System.exit(1);
-        }
     }
 
     public User getLoggedInUser() {
@@ -105,7 +98,7 @@ public class MainController {
     }
 
     public Role getUserRole() {
-        return loggedInUser != null ? loggedInUser.getRole() : null; // Trả về null nếu không có user
+        return loggedInUser != null ? loggedInUser.getRole() : null;
     }
 
     public void exitApplication() {

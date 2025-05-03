@@ -2,6 +2,7 @@ package com.eduzk.view.panels;
 
 import com.eduzk.controller.CourseController;
 import com.eduzk.model.entities.Course;
+import com.eduzk.model.entities.Role;
 import com.eduzk.utils.UIUtils;
 import com.eduzk.view.dialogs.CourseDialog; // Import the dialog
 import javax.swing.*;
@@ -213,10 +214,16 @@ public class CoursePanel extends JPanel {
         }
     }
 
-    public void setAdminControlsEnabled(boolean isAdmin) {
-        addButton.setVisible(isAdmin);
-        editButton.setVisible(isAdmin);
-        deleteButton.setVisible(isAdmin);
+    public void configureControlsForRole(Role userRole) {
+        boolean canModify = (userRole == Role.ADMIN);
+        if (addButton != null) addButton.setVisible(canModify);
+        if (editButton != null) editButton.setVisible(canModify);
+        if (deleteButton != null) deleteButton.setVisible(canModify);
+
+        if (searchButton != null) searchButton.setVisible(true); // Hoặc setEnabled
+        if (searchField != null) searchField.setVisible(true);
+        if (refreshButton != null) refreshButton.setVisible(true);
+
     }
 
     private Icon loadSVGIconButton(String path, int size) {

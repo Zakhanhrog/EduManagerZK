@@ -1,13 +1,13 @@
 package com.eduzk;
 
 import com.eduzk.controller.AuthController;
-import com.eduzk.model.dao.impl.UserDAOImpl;
-import com.eduzk.model.dao.impl.TeacherDAOImpl;
+import com.eduzk.model.dao.impl.*;
+import com.eduzk.model.dao.interfaces.*;
 import com.eduzk.model.entities.Role;
 import com.eduzk.model.entities.User;
 import com.eduzk.model.entities.Teacher;
 import com.eduzk.view.LoginView;
-import com.eduzk.model.dao.impl.StudentDAOImpl;
+
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
@@ -39,33 +39,39 @@ public class App {
         // Chạy logic chính trên Event Dispatch Thread (EDT)
         SwingUtilities.invokeLater(() -> {
             try {
-                // 3. Khởi tạo DAO với đường dẫn TƯƠNG ĐỐI
-                System.out.println("Initializing DAOs using relative paths...");
-                final String dataDir = "data/"; // Thư mục dữ liệu tương đối
+                System.out.println("Initializing ALL DAOs...");
+                final String dataDir = "data/";
                 final String idFile = dataDir + "next_ids.dat";
-                UserDAOImpl userDAO = new UserDAOImpl(dataDir + "users.dat", idFile);
-                TeacherDAOImpl teacherDAO = new TeacherDAOImpl(dataDir + "teachers.dat", idFile);
-                StudentDAOImpl studentDAO = new StudentDAOImpl("data/students.dat", "data/next_ids.dat"); // <-- KHỞI TẠO StudentDAO
-                System.out.println("DAOs initialized.");
 
-                // 4. Tạo tài khoản mặc định nếu cần
-                System.out.println("Checking/Initializing default accounts if necessary...");
-                initializeDefaultAdminAccount(userDAO);
+                // Khai báo dùng Interface cho linh hoạt
+                IUserDAO userDAO = new UserDAOImpl(dataDir + "users.dat", idFile);
+                ITeacherDAO teacherDAO = new TeacherDAOImpl(dataDir + "teachers.dat", idFile);
+                IStudentDAO studentDAO = new StudentDAOImpl(dataDir + "students.dat", idFile);
+                ICourseDAO courseDAO = new CourseDAOImpl(dataDir + "courses.dat", idFile);
+                IRoomDAO roomDAO = new RoomDAOImpl(dataDir + "rooms.dat", idFile);
+                IEduClassDAO eduClassDAO = new EduClassDAOImpl(dataDir + "educlasses.dat", idFile);
+                IScheduleDAO scheduleDAO = new ScheduleDAOImpl(dataDir + "schedules.dat", idFile);
+                System.out.println("ALL DAOs initialized.");
 
-                // 5. Khởi tạo AuthController và inject TeacherDAO
-                System.out.println("Initializing AuthController...");
-                AuthController authController = new AuthController(userDAO);
-                authController.setTeacherDAO(teacherDAO);
+                // Tạo tài khoản admin mặc định nếu cần
+                initializeDefaultAdminAccount((UserDAOImpl) userDAO); // Ép kiểu nếu hàm yêu cầu impl
+
+                // Khởi tạo AuthController và INJECT TẤT CẢ DAO vào nó
+                System.out.println("Initializing AuthController and injecting DAOs...");
+                AuthController authController = new AuthController(userDAO); // userDAO qua constructor
+                authController.setTeacherDAO(teacherDAO);   // Các DAO khác qua setter
                 authController.setStudentDAO(studentDAO);
+                authController.setCourseDAO(courseDAO);
+                authController.setRoomDAO(roomDAO);
+                authController.setEduClassDAO(eduClassDAO);
+                authController.setScheduleDAO(scheduleDAO);
                 System.out.println("AuthController initialized.");
 
-                // 6. Khởi tạo và hiển thị LoginView
+                // Khởi tạo và hiển thị LoginView (giữ nguyên)
                 System.out.println("Initializing LoginView...");
                 LoginView loginView = new LoginView(authController);
                 authController.setLoginView(loginView);
                 System.out.println("LoginView initialized.");
-
-                System.out.println("Setting LoginView visible...");
                 loginView.setVisible(true);
                 System.out.println("Application startup complete.");
 

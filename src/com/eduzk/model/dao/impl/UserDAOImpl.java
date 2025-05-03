@@ -121,9 +121,7 @@ public class UserDAOImpl extends BaseDAO<User> implements IUserDAO {
             if (removed) {
                 saveData();
             } else {
-                // Optionally throw exception if user to delete is not found
                 System.err.println("Warning: User with ID " + id + " not found for deletion.");
-                // throw new DataAccessException("User with ID " + id + " not found for deletion.");
             }
         } finally {
             lock.writeLock().unlock();

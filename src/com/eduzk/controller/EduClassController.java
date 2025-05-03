@@ -43,6 +43,7 @@ public class EduClassController {
         try {
             if (currentUser != null && currentUser.getRole() == Role.TEACHER) {
                 int teacherId = getTeacherIdForUser(currentUser); // Gọi hàm helper
+                System.out.println("EduClassController.getAllEduClasses: Filtering for Teacher ID: " + teacherId);
                 if (teacherId > 0) {
                     System.out.println("EduClassController: Filtering classes for Teacher ID: " + teacherId);
                     return eduClassDAO.findByTeacherId(teacherId);
@@ -63,8 +64,10 @@ public class EduClassController {
 
     private int getTeacherIdForUser(User user) {
         if (user != null && user.getRole() == Role.TEACHER && user.getTeacherId() != null) {
+            System.out.println("EduClassController.getTeacherIdForUser: Found Teacher ID = " + user.getTeacherId());
             return user.getTeacherId();
         }
+        System.err.println("EduClassController.getTeacherIdForUser: Could not get valid Teacher ID for user: " + (user != null ? user.getUsername() : "null"));
         return -1;
     }
 

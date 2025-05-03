@@ -12,7 +12,7 @@ import com.eduzk.view.dialogs.RegisterDialog;
 import java.net.URL;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 
-public class LoginView extends JFrame {
+public class    LoginView extends JFrame {
 
     private final AuthController authController;
     private JTextField usernameField;

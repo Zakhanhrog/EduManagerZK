@@ -50,9 +50,7 @@ public class StudentController {
                 if (teacherId > 0) {
                     System.out.println("StudentController: Filtering students for Teacher ID: " + teacherId);
 
-                    // --- PHẦN LOGIC PHỨC TẠP ---
-                    // Kiểm tra xem eduClassDAO đã được inject chưa
-                    if (this.eduClassDAO == null) { // Giả sử tên biến là eduClassDAO
+                    if (this.eduClassDAO == null) {
                         System.err.println("StudentController: EduClassDAO is required for filtering students but is null!");
                         return Collections.emptyList();
                     }
@@ -61,7 +59,7 @@ public class StudentController {
                         // 1. Lấy các lớp của giáo viên
                         List<EduClass> teacherClasses = eduClassDAO.findByTeacherId(teacherId);
                         if (teacherClasses.isEmpty()) {
-                            return Collections.emptyList(); // Giáo viên không có lớp nào
+                            return Collections.emptyList();
                         }
 
                         // 2. Lấy ID của tất cả học viên từ các lớp đó, loại bỏ trùng lặp
@@ -210,8 +208,8 @@ public class StudentController {
             System.err.println("StudentPanel is null in controller.");
             return;
         }
-        if (!isCurrentUserAdmin()) {
-            UIUtils.showErrorMessage(studentPanel, "Permission Denied", "Only administrators can import students data.");
+        if (!(currentUser.getRole() == Role.ADMIN || currentUser.getRole() == Role.TEACHER)) {
+            UIUtils.showErrorMessage(studentPanel, "Permission Denied", "You do not have permission to import student data.");
             return;
         }
 

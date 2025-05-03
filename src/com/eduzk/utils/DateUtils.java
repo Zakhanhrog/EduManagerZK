@@ -20,7 +20,6 @@ public class DateUtils {
         try {
             return date.format(DATE_FORMATTER);
         } catch (Exception e) {
-            // Log or handle formatting error if needed
             return date.toString(); // Fallback to default format
         }
     }

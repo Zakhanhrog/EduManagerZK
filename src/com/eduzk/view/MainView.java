@@ -129,7 +129,6 @@ public class MainView extends JFrame {
         aboutItem.addActionListener(e -> mainController.showAboutDialog());
         helpMenu.add(aboutItem);
         menuBar.add(helpMenu);
-
         setJMenuBar(menuBar);
     }
 
@@ -163,7 +162,7 @@ public class MainView extends JFrame {
         // --- LẤY VAI TRÒ USER HIỆN TẠI ---
         Role currentUserRole = (mainController != null && mainController.getLoggedInUser() != null)
                 ? mainController.getLoggedInUser().getRole()
-                : null; // Hoặc Role mặc định nếu không có user? (Không nên xảy ra)
+                : null;
 
         if (currentUserRole == null) {
             UIUtils.showErrorMessage(this, "Error", "Cannot determine user role for export.");
@@ -172,28 +171,23 @@ public class MainView extends JFrame {
         // --- TẠO DANH SÁCH TÙY CHỌN DỰA TRÊN ROLE ---
         List<String> optionsList = new ArrayList<>();
         if (currentUserRole == Role.ADMIN) {
-            // Admin có tất cả các quyền export
-            optionsList.add(MainController.EXPORT_STUDENTS); // Dùng hằng số đã tạo
+            optionsList.add(MainController.EXPORT_STUDENTS);
             optionsList.add(MainController.EXPORT_TEACHERS);
             optionsList.add(MainController.EXPORT_COURSES);
             optionsList.add(MainController.EXPORT_ROOMS);
             optionsList.add(MainController.EXPORT_CLASSES);
             optionsList.add(MainController.EXPORT_SCHEDULE);
         } else if (currentUserRole == Role.TEACHER) {
-            // Teacher chỉ có quyền export dữ liệu liên quan đến họ
-            optionsList.add(MainController.EXPORT_SCHEDULE); // Lịch của tôi
-            optionsList.add(MainController.EXPORT_CLASSES); // Lớp của tôi
-            optionsList.add(MainController.EXPORT_STUDENTS); // Học viên trong lớp của tôi
-            // Không thêm Teacher List, Course List, Room List
+            optionsList.add(MainController.EXPORT_SCHEDULE);
+            optionsList.add(MainController.EXPORT_CLASSES);
+            optionsList.add(MainController.EXPORT_STUDENTS);
         }
         if (optionsList.isEmpty()) {
             UIUtils.showInfoMessage(this, "Export Not Available", "No export options available for your role.");
             return;
         }
 
-        // Chuyển List thành Array để dùng cho JOptionPane
         String[] exportOptions = optionsList.toArray(new String[0]);
-
         String selectedOption = (String) JOptionPane.showInputDialog(
                 this,                                     // Parent component
                 "Select data to export:",                 // Message
@@ -263,12 +257,11 @@ public class MainView extends JFrame {
     }
 
     private void configureWindow() {
-        setMinimumSize(new Dimension(800, 600)); // Set a reasonable minimum size
-        setSize(1024, 768); // Set default size
-        setLocationRelativeTo(null); // Center on screen
+        setMinimumSize(new Dimension(800, 600));
+        setSize(1024, 768);
+        setLocationRelativeTo(null);
     }
 
-    // Called by MainController after DAOs and sub-controllers are initialized
     public void setControllers(StudentController sc, TeacherController tc, CourseController cc,
                                RoomController rc, EduClassController ecc, ScheduleController schc) {
         studentPanel.setController(sc);
@@ -289,6 +282,7 @@ public class MainView extends JFrame {
 
     // Configure visible tabs based on user role
     public void configureViewForUser(User user) {
+        Role currentUserRole = user.getRole();
         if (user == null) {
             UIUtils.showErrorMessage(this, "Error", "No logged in user found. Exiting.");
             System.exit(1);
@@ -308,7 +302,7 @@ public class MainView extends JFrame {
         Icon coursesIcon = loadTabSVGICon("/icons/courses.svg");
         Icon roomsIcon = loadTabSVGICon("/icons/rooms.svg");
 
-        // --- Thêm tab và đặt component tùy chỉnh (Logic giữ nguyên) ---
+        // --- Thêm tab và đặt component tùy chỉnh ---
         boolean isAdmin = (user.getRole() == Role.ADMIN);
         int tabIndex = 0;
 
@@ -321,7 +315,6 @@ public class MainView extends JFrame {
             JPanel classesTabComp = createTabComponent("Classes", classesIcon);     // Truyền SVG Icon
             tabbedPane.setTabComponentAt(tabIndex++, classesTabComp);
 
-            // ... Làm tương tự cho Students, Teachers, Courses, Rooms ...
             tabbedPane.addTab(null, null, studentPanel, "Manage Students");
             JPanel studentsTabComp = createTabComponent("Students", studentsIcon);
             tabbedPane.setTabComponentAt(tabIndex++, studentsTabComp);
@@ -340,7 +333,6 @@ public class MainView extends JFrame {
 
 
         } else if (user.getRole() == Role.TEACHER) {
-            // ... Làm tương tự cho các tab của Teacher ...
             tabbedPane.addTab(null, null, schedulePanel, "View My Schedule");
             JPanel scheduleTabComp = createTabComponent("My Schedule", scheduleIcon);
             tabbedPane.setTabComponentAt(tabIndex++, scheduleTabComp);
@@ -353,6 +345,9 @@ public class MainView extends JFrame {
             JPanel studentsTabComp = createTabComponent("My Students", studentsIcon);
             tabbedPane.setTabComponentAt(tabIndex++, studentsTabComp);
 
+            tabbedPane.addTab(null, null, coursePanel, "View Courses");
+            tabbedPane.setTabComponentAt(tabIndex++, createTabComponent("Courses", coursesIcon));
+
         } else if (user.getRole() == Role.STUDENT) {
             // ... Làm tương tự cho các tab của Student ...
             tabbedPane.addTab(null, null, schedulePanel, "View My Schedule");
@@ -362,9 +357,12 @@ public class MainView extends JFrame {
             tabbedPane.addTab(null, null, classPanel, "View My Classes");
             JPanel classesTabComp = createTabComponent("My Classes", classesIcon);
             tabbedPane.setTabComponentAt(tabIndex++, classesTabComp);
+
+            tabbedPane.addTab(null, null, coursePanel, "View Courses");
+            tabbedPane.setTabComponentAt(tabIndex++, createTabComponent("Courses", coursesIcon));
         }
 
-        setPanelControlsEnabled(isAdmin);
+        setPanelControlsForRole(currentUserRole);
 
         tabbedPane.revalidate();
         tabbedPane.repaint();
@@ -372,32 +370,26 @@ public class MainView extends JFrame {
 
 
     // --- THÊM PHƯƠNG THỨC HELPER NÀY VÀO MainView.java ---
-    private void setPanelControlsEnabled(boolean isAdmin) {
-
-        // Student Panel
+    private void setPanelControlsForRole(Role userRole) {
         if (studentPanel != null) {
-            studentPanel.setAdminControlsEnabled(isAdmin);
+            studentPanel.configureControlsForRole(userRole);
         }
-        // Teacher Panel
         if (teacherPanel != null) {
-            teacherPanel.setAdminControlsEnabled(isAdmin);
+            teacherPanel.setAdminControlsEnabled(userRole == Role.ADMIN);
         }
-        // Course Panel
         if (coursePanel != null) {
-            coursePanel.setAdminControlsEnabled(isAdmin);
+            coursePanel.configureControlsForRole(userRole);
         }
-        // Room Panel
         if (roomPanel != null) {
-            roomPanel.setAdminControlsEnabled(isAdmin);
+            roomPanel.setAdminControlsEnabled(userRole == Role.ADMIN);
         }
-        // Class Panel
         if (classPanel != null) {
-            classPanel.setAdminControlsEnabled(isAdmin);
+            classPanel.setAdminControlsEnabled(userRole == Role.ADMIN);
         }
-        // Schedule Panel
         if (schedulePanel != null) {
-            schedulePanel.setAdminControlsEnabled(isAdmin);
+            schedulePanel.setAdminControlsEnabled(userRole == Role.ADMIN);
         }
+
     }
 
     public void refreshSelectedTab() {

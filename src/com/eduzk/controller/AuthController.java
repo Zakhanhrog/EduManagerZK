@@ -1,8 +1,6 @@
 package com.eduzk.controller;
 
-import com.eduzk.model.dao.interfaces.IUserDAO;
-import com.eduzk.model.dao.interfaces.ITeacherDAO;
-import com.eduzk.model.dao.interfaces.IStudentDAO;
+import com.eduzk.model.dao.interfaces.*;
 import com.eduzk.model.entities.User;
 import com.eduzk.model.entities.Role;
 import com.eduzk.model.entities.Teacher;
@@ -20,6 +18,10 @@ public class AuthController {
     private final IUserDAO userDAO;
     private ITeacherDAO teacherDAO;
     private IStudentDAO studentDAO;
+    private ICourseDAO courseDAO;
+    private IRoomDAO roomDAO;
+    private IEduClassDAO eduClassDAO;
+    private IScheduleDAO scheduleDAO;
     private LoginView loginView;
     private User loggedInUser;
 
@@ -27,13 +29,20 @@ public class AuthController {
         this.userDAO = userDAO;
     }
 
-    public void setTeacherDAO(ITeacherDAO teacherDAO) {
-        this.teacherDAO = teacherDAO;
-    }
+    public void setTeacherDAO(ITeacherDAO teacherDAO) { this.teacherDAO = teacherDAO; }
+    public void setStudentDAO(IStudentDAO studentDAO) { this.studentDAO = studentDAO; }
+    public void setCourseDAO(ICourseDAO courseDAO) { this.courseDAO = courseDAO; }
+    public void setRoomDAO(IRoomDAO roomDAO) { this.roomDAO = roomDAO; }
+    public void setEduClassDAO(IEduClassDAO eduClassDAO) { this.eduClassDAO = eduClassDAO; }
+    public void setScheduleDAO(IScheduleDAO scheduleDAO) { this.scheduleDAO = scheduleDAO; }
 
-    public void setStudentDAO(IStudentDAO studentDAO) {
-        this.studentDAO = studentDAO;
-    }
+    public IUserDAO getUserDAO() { return userDAO; }
+    public ITeacherDAO getTeacherDAO() { return teacherDAO; }
+    public IStudentDAO getStudentDAO() { return studentDAO; }
+    public ICourseDAO getCourseDAO() { return courseDAO; }
+    public IRoomDAO getRoomDAO() { return roomDAO; }
+    public IEduClassDAO getEduClassDAO() { return eduClassDAO; }
+    public IScheduleDAO getScheduleDAO() { return scheduleDAO; }
 
     public void setLoginView(LoginView loginView) {
         this.loginView = loginView;
@@ -90,7 +99,19 @@ public class AuthController {
         }
         SwingUtilities.invokeLater(() -> {
             try {
-                MainController mainController = new MainController(loggedInUser, this); // <-- SỬA Ở ĐÂY
+                MainController mainController = new MainController(
+                        loggedInUser,
+                        this,            // Truyền chính AuthController
+                        // Truyền các DAO đã được inject vào AuthController
+                        this.getUserDAO(),
+                        this.getStudentDAO(),
+                        this.getTeacherDAO(),
+                        this.getCourseDAO(),
+                        this.getRoomDAO(),
+                        this.getEduClassDAO(),
+                        this.getScheduleDAO()
+                );
+
                 MainView mainView = new MainView(mainController);
                 mainController.setMainView(mainView);
                 mainView.setVisible(true);
