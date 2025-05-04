@@ -27,6 +27,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import com.eduzk.view.panels.LogsPanel;
 
+
 public class MainView extends JFrame {
 
     private final MainController mainController;
@@ -41,6 +42,7 @@ public class MainView extends JFrame {
     private AccountsPanel accountsPanel;
     private JPanel statusBar;
     private LogsPanel logsPanel;
+    private HelpPanel helpPanel;
 
     public MainView(MainController mainController) {
         this.mainController = mainController;
@@ -84,6 +86,7 @@ public class MainView extends JFrame {
         schedulePanel = new SchedulePanel(null);
         accountsPanel = new AccountsPanel(null);
         logsPanel = new LogsPanel();
+        helpPanel = new HelpPanel();
         statusBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 3));
         statusBar.add(statusLabel);
     }
@@ -335,6 +338,7 @@ public class MainView extends JFrame {
         Icon roomsIcon = loadTabSVGICon("/icons/rooms.svg");
         Icon accountsIcon = loadTabSVGICon("/icons/accounts.svg");
         Icon logsIcon = loadTabSVGICon("/icons/logs.svg");
+        Icon helpIcon = loadTabSVGICon("/icons/help.svg");
 
         // --- Thêm tab và đặt component tùy chỉnh ---
         boolean isAdmin = (user.getRole() == Role.ADMIN);
@@ -412,8 +416,9 @@ public class MainView extends JFrame {
             tabbedPane.setTabComponentAt(tabIndex++, createTabComponent("Courses", coursesIcon));
         }
 
+        tabbedPane.addTab(null, null, helpPanel, "Get Help and Information");
+        tabbedPane.setTabComponentAt(tabIndex++, createTabComponent("Help", helpIcon));
         setPanelControlsForRole(currentUserRole);
-
         tabbedPane.revalidate();
         tabbedPane.repaint();
     }

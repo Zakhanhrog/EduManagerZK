@@ -61,12 +61,12 @@ public class App {
                 System.out.println("LogService initialized.");
 
                 // Tạo tài khoản admin mặc định nếu cần
-                initializeDefaultAdminAccount((UserDAOImpl) userDAO); // Ép kiểu nếu hàm yêu cầu impl
+                initializeDefaultAdminAccount((UserDAOImpl) userDAO);
 
                 // Khởi tạo AuthController và INJECT TẤT CẢ DAO vào nó
                 System.out.println("Initializing AuthController and injecting DAOs...");
-                AuthController authController = new AuthController(userDAO); // userDAO qua constructor
-                authController.setTeacherDAO(teacherDAO);   // Các DAO khác qua setter
+                AuthController authController = new AuthController(userDAO);
+                authController.setTeacherDAO(teacherDAO);
                 authController.setStudentDAO(studentDAO);
                 authController.setCourseDAO(courseDAO);
                 authController.setRoomDAO(roomDAO);
@@ -83,7 +83,7 @@ public class App {
                 loginView.setVisible(true);
                 System.out.println("Application startup complete.");
 
-            } catch (Throwable t) { // Bắt lỗi nghiêm trọng
+            } catch (Throwable t) {
                 System.err.println("!!! CRITICAL ERROR DURING EDT INITIALIZATION !!!");
                 t.printStackTrace();
                 JOptionPane.showMessageDialog(null,
