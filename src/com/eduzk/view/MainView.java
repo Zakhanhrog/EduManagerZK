@@ -155,7 +155,7 @@ public class MainView extends JFrame {
         }
 
         // Help Menu
-        JMenu helpMenu = new JMenu("Help");
+        JMenu helpMenu = new JMenu("Version");
         JMenuItem aboutItem = new JMenuItem("About EduHub");
         aboutItem.addActionListener(e -> mainController.showAboutDialog());
         helpMenu.add(aboutItem);

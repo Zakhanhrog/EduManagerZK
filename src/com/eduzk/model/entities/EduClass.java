@@ -143,15 +143,13 @@ public class EduClass implements Serializable {
     }
 
     public void setCurrentEnrollment(int currentEnrollment) {
-        // Có thể thêm kiểm tra hợp lệ nếu muốn (ví dụ: không âm, không lớn hơn maxCapacity)
         if (currentEnrollment < 0) {
             System.err.println("Warning: Attempted to set negative current enrollment for class ID " + classId);
             this.currentEnrollment = 0;
         } else if (currentEnrollment > this.maxCapacity) {
             System.err.println("Warning: Attempted to set current enrollment (" + currentEnrollment +
                     ") exceeding max capacity (" + this.maxCapacity + ") for class ID " + classId);
-            // Có thể ném lỗi hoặc chỉ đặt bằng maxCapacity?
-            this.currentEnrollment = this.maxCapacity; // Hoặc giữ nguyên giá trị cũ?
+            this.currentEnrollment = this.maxCapacity;
         } else {
             this.currentEnrollment = currentEnrollment;
         }

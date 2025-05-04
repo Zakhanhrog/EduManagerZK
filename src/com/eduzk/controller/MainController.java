@@ -123,11 +123,11 @@ public class MainController {
         if (mainView != null) {
             UIUtils.showInfoMessage(mainView,
                     "About EduManager",
-                    "EduManager - Educational Management System\nVersion 1.0 (Devoloper zakhanh)");
+                    "EduManager - Educational Management System\nVersion 1.1.0 (Devoloper zakhanh)");
         } else {
             System.err.println("MainController Warning: mainView is null when trying to show About dialog.");
             JOptionPane.showMessageDialog(null,
-                    "EduManager - Educational Management System\nVersion 1.0 (Devoloper zakhanh)",
+                    "EduManager - Educational Management System\nVersion 1.1.0 (Devoloper zakhanh)",
                     "About EduManager",
                     JOptionPane.INFORMATION_MESSAGE);
         }

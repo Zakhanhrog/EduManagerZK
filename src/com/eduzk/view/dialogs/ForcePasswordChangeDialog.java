@@ -19,7 +19,7 @@ public class ForcePasswordChangeDialog extends JDialog {
     private JPasswordField newPasswordField;
     private JPasswordField confirmPasswordField;
     private JButton changeButton;
-    private JButton cancelButton; // Nút để hủy bỏ
+    private JButton cancelButton;
     private JLabel messageLabel;
     private JLabel errorLabel;
 
@@ -48,26 +48,23 @@ public class ForcePasswordChangeDialog extends JDialog {
                         "For security, please set a new password to continue.</center></html>",
                 SwingConstants.CENTER
         );
-        messageLabel.setFont(messageLabel.getFont().deriveFont(Font.BOLD, 13f)); // Make it slightly bigger and bold
-
+        messageLabel.setFont(messageLabel.getFont().deriveFont(Font.BOLD, 13f));
         // Password fields
-        newPasswordField = new JPasswordField(25); // Increase width slightly
+        newPasswordField = new JPasswordField(25);
         confirmPasswordField = new JPasswordField(25);
 
         // Buttons
         changeButton = new JButton("Change Password");
-        cancelButton = new JButton("Cancel"); // Nút để hủy
+        cancelButton = new JButton("Cancel");
 
         // Error label (initially empty)
-        errorLabel = new JLabel(" "); // Start with a space to reserve height
-        errorLabel.setForeground(UIManager.getColor("Label.errorForeground")); // Use standard error color
+        errorLabel = new JLabel(" ");
+        errorLabel.setForeground(UIManager.getColor("Label.errorForeground"));
         errorLabel.setHorizontalAlignment(SwingConstants.CENTER);
         errorLabel.setFont(errorLabel.getFont().deriveFont(Font.ITALIC));
 
-        // --- FlatLaf Specific Styling (Optional but recommended if using FlatLaf) ---
         newPasswordField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Enter new password (min 6 chars)");
         confirmPasswordField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Confirm new password");
-        // Add reveal button for passwords
         newPasswordField.putClientProperty(FlatClientProperties.STYLE, "showRevealButton: true");
         confirmPasswordField.putClientProperty(FlatClientProperties.STYLE, "showRevealButton: true");
         changeButton.putClientProperty(FlatClientProperties.BUTTON_TYPE, "primary");
@@ -117,20 +114,20 @@ public class ForcePasswordChangeDialog extends JDialog {
         // --- Error Label Row ---
         gbc.gridy++;
         gbc.gridx = 0;
-        gbc.gridwidth = 2; // Span columns
+        gbc.gridwidth = 2;
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(0, 5, 10, 5); // Padding below password fields, above buttons
+        gbc.insets = new Insets(0, 5, 10, 5);
         mainPanel.add(errorLabel, gbc);
 
         // --- Button Row ---
         gbc.gridy++;
         gbc.anchor = GridBagConstraints.CENTER;
-        gbc.fill = GridBagConstraints.NONE; // Buttons don't expand
-        gbc.insets = new Insets(10, 5, 0, 5); // Padding above buttons
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.insets = new Insets(10, 5, 0, 5);
 
         // Use a standard FlowLayout for the button panel for easy centering
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0)); // Center alignment, 15px gap
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
         buttonPanel.add(cancelButton);
         buttonPanel.add(changeButton);
         mainPanel.add(buttonPanel, gbc);
@@ -140,15 +137,11 @@ public class ForcePasswordChangeDialog extends JDialog {
     private void setupActions() {
         // Action for the "Change Password" button
         changeButton.addActionListener(e -> performPasswordChange());
-
         // Allow pressing Enter in the confirm password field to trigger the change
         confirmPasswordField.addActionListener(e -> performPasswordChange());
-
         // Action for the "Cancel" button - simply close the dialog
         cancelButton.addActionListener(e -> dispose());
-
-        // Handle window closing (clicking the 'X' button) - treat as Cancel
-        setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE); // Prevent default closing
+        setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
@@ -159,12 +152,9 @@ public class ForcePasswordChangeDialog extends JDialog {
     }
 
     private void performPasswordChange() {
-        // Clear previous error message
         errorLabel.setText(" ");
-
         String newPassword = new String(newPasswordField.getPassword());
         String confirmPassword = new String(confirmPasswordField.getPassword());
-
         // --- Input Validation ---
         if (!ValidationUtils.isNotEmpty(newPassword) || !ValidationUtils.isNotEmpty(confirmPassword)) {
             errorLabel.setText("Please enter and confirm the new password.");
@@ -178,8 +168,8 @@ public class ForcePasswordChangeDialog extends JDialog {
         }
         if (!newPassword.equals(confirmPassword)) {
             errorLabel.setText("The entered passwords do not match.");
-            confirmPasswordField.setText(""); // Clear confirmation field
-            confirmPasswordField.requestFocusInWindow(); // Set focus back to it
+            confirmPasswordField.setText("");
+            confirmPasswordField.requestFocusInWindow();
             return;
         }
         boolean success = authController.performForcedPasswordChange(userToUpdate, newPassword);

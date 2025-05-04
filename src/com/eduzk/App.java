@@ -11,11 +11,14 @@ import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.JOptionPane;
 import com.formdev.flatlaf.themes.FlatMacLightLaf;
+import com.eduzk.view.SplashScreen;
+import javax.swing.SwingWorker;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 import com.eduzk.model.dao.impl.LogService;
-import com.eduzk.model.dao.impl.IdGenerator;
+
 
 public class App {
-    // look and feel
     public static void main(String[] args) {
         try {
             System.setProperty( "apple.laf.useScreenMenuBar", "true" );
@@ -25,79 +28,138 @@ public class App {
             System.out.println("FlatLaf Look and Feel initialized successfully.");
         } catch( UnsupportedLookAndFeelException ex ) {
             System.err.println( "Failed to initialize FlatLaf Look and Feel: " + ex.getMessage() );
-            ex.printStackTrace();
         } catch (Exception e) {
             System.err.println( "An error occurred while setting Look and Feel: " + e.getMessage());
-            e.printStackTrace();
         }
 
-        // Chạy logic chính trên Event Dispatch Thread (EDT)
         SwingUtilities.invokeLater(() -> {
-            try {
-                System.out.println("Initializing ALL DAOs...");
-                final String dataDir = "data/";
-                final String idFile = dataDir + "next_ids.dat";
-                final String logFile = dataDir + "logs.dat";
 
-                //khoi tao ID
-                IdGenerator sharedIdGenerator = new IdGenerator(idFile);
-                System.out.println("Shared IdGenerator initialized.");
+            SplashScreen splash = new SplashScreen(null);
+            splash.setVisible(true);
 
-                // Khai báo dùng Interface cho linh hoạt
-                IUserDAO userDAO = new UserDAOImpl(dataDir + "users.dat", idFile);
-                ITeacherDAO teacherDAO = new TeacherDAOImpl(dataDir + "teachers.dat", sharedIdGenerator);
-                IStudentDAO studentDAO = new StudentDAOImpl(dataDir + "students.dat", sharedIdGenerator);
-                ICourseDAO courseDAO = new CourseDAOImpl(dataDir + "courses.dat", idFile);
-                IRoomDAO roomDAO = new RoomDAOImpl(dataDir + "rooms.dat", idFile);
-                IEduClassDAO eduClassDAO = new EduClassDAOImpl(dataDir + "educlasses.dat", sharedIdGenerator);
-                IScheduleDAO scheduleDAO = new ScheduleDAOImpl(dataDir + "schedules.dat", idFile);
-                System.out.println("ALL DAOs initialized.");
+            SwingWorker<AuthController, String> initializer = new SwingWorker<>() {
 
-                LogService logService = new LogService(logFile);
-                System.out.println("LogService initialized.");
+                @Override
+                protected AuthController doInBackground() throws Exception {
+                    try {
+                        publish("Initializing Core Components...");
+                        Thread.sleep(200);
 
-                // Tạo tài khoản admin mặc định nếu cần
-                initializeDefaultAdminAccount((UserDAOImpl) userDAO);
+                        publish("Setting up Data Paths...");
+                        final String dataDir = "data/";
+                        final String idFile = dataDir + "next_ids.dat";
+                        final String logFile = dataDir + "logs.dat";
+                        Thread.sleep(200);
 
-                // Khởi tạo AuthController và INJECT TẤT CẢ DAO vào nó
-                System.out.println("Initializing AuthController and injecting DAOs...");
-                AuthController authController = new AuthController(userDAO);
-                authController.setTeacherDAO(teacherDAO);
-                authController.setStudentDAO(studentDAO);
-                authController.setCourseDAO(courseDAO);
-                authController.setRoomDAO(roomDAO);
-                authController.setEduClassDAO(eduClassDAO);
-                authController.setScheduleDAO(scheduleDAO);
-                authController.setLogService(logService);
-                System.out.println("AuthController initialized.");
+                        publish("Initializing ID Generator...");
+                        IdGenerator sharedIdGenerator = new IdGenerator(idFile);
+                        System.out.println("Shared IdGenerator initialized.");
+                        Thread.sleep(200);
 
-                // Khởi tạo và hiển thị LoginView (giữ nguyên)
-                System.out.println("Initializing LoginView...");
-                LoginView loginView = new LoginView(authController);
-                authController.setLoginView(loginView);
-                System.out.println("LoginView initialized.");
-                loginView.setVisible(true);
-                System.out.println("Application startup complete.");
+                        publish("Initializing Data Access Objects (DAO)...");
+                        IUserDAO userDAO = new UserDAOImpl(dataDir + "users.dat", idFile);
+                        ITeacherDAO teacherDAO = new TeacherDAOImpl(dataDir + "teachers.dat", sharedIdGenerator);
+                        IStudentDAO studentDAO = new StudentDAOImpl(dataDir + "students.dat", sharedIdGenerator);
+                        ICourseDAO courseDAO = new CourseDAOImpl(dataDir + "courses.dat", idFile);
+                        IRoomDAO roomDAO = new RoomDAOImpl(dataDir + "rooms.dat", idFile);
+                        IEduClassDAO eduClassDAO = new EduClassDAOImpl(dataDir + "educlasses.dat", sharedIdGenerator);
+                        IScheduleDAO scheduleDAO = new ScheduleDAOImpl(dataDir + "schedules.dat", idFile);
+                        System.out.println("ALL DAOs initialized.");
+                        Thread.sleep(200);
 
-            } catch (Throwable t) {
-                System.err.println("!!! CRITICAL ERROR DURING EDT INITIALIZATION !!!");
-                t.printStackTrace();
-                JOptionPane.showMessageDialog(null,
-                        "A critical error occurred during application startup.\nPlease check the console output.\n\nError: " + t.getMessage(),
-                        "Startup Failed", JOptionPane.ERROR_MESSAGE);
-                System.exit(1);
-            }
+                        publish("Initializing Services...");
+                        LogService logService = new LogService(logFile);
+                        System.out.println("LogService initialized.");
+                        Thread.sleep(200);
+
+                        publish("Checking Default Admin Account...");
+                        initializeDefaultAdminAccount((UserDAOImpl) userDAO);
+                        Thread.sleep(200);
+
+                        publish("Initializing Authentication Controller...");
+                        AuthController authController = new AuthController(userDAO);
+                        authController.setTeacherDAO(teacherDAO);
+                        authController.setStudentDAO(studentDAO);
+                        authController.setCourseDAO(courseDAO);
+                        authController.setRoomDAO(roomDAO);
+                        authController.setEduClassDAO(eduClassDAO);
+                        authController.setScheduleDAO(scheduleDAO);
+                        authController.setLogService(logService);
+                        System.out.println("AuthController initialized.");
+                        Thread.sleep(200);
+
+                        publish("Initialization Complete!");
+                        Thread.sleep(300);
+
+                        return authController;
+
+                    } catch (Throwable t) {
+                        System.err.println("!!! CRITICAL ERROR DURING BACKGROUND INITIALIZATION !!!");
+                        t.printStackTrace();
+                        publish("Error: Initialization Failed! " + t.getMessage());
+                        Thread.sleep(2000);
+                        throw new Exception("Background initialization failed", t);
+                    }
+                }
+
+                @Override
+                protected void process(List<String> chunks) {
+                    String latestStatus = chunks.get(chunks.size() - 1);
+                    splash.setStatus(latestStatus);
+                }
+
+                @Override
+                protected void done() {
+                    splash.dispose();
+
+                    try {
+                        AuthController authController = get();
+
+                        System.out.println("Initializing LoginView...");
+                        LoginView loginView = new LoginView(authController);
+                        authController.setLoginView(loginView);
+                        System.out.println("LoginView initialized.");
+                        loginView.setVisible(true);
+                        System.out.println("Application startup complete.");
+
+                    } catch (InterruptedException | ExecutionException e) {
+                        System.err.println("Initialization failed in background thread!");
+                        Throwable cause = e.getCause() != null ? e.getCause() : e;
+                        JOptionPane.showMessageDialog(null,
+                                "A critical error occurred during application startup.\nPlease check the console output.\n\nError: " + cause.getMessage(),
+                                "Startup Failed", JOptionPane.ERROR_MESSAGE);
+                        System.exit(1);
+                    } catch (Exception e) {
+                        System.err.println("Failed to initialize LoginView!");
+                        e.printStackTrace();
+                        JOptionPane.showMessageDialog(null,
+                                "Could not launch the login screen.\nError: " + e.getMessage(),
+                                "Startup Error", JOptionPane.ERROR_MESSAGE);
+                        System.exit(1);
+                    }
+                }
+            };
+
+            initializer.execute();
+
+
         });
+
         System.out.println("main() method finished scheduling EDT task.");
     }
 
     private static void initializeDefaultAdminAccount(UserDAOImpl userDAO) {
         try {
             System.out.println("Checking if any users exist...");
-            if (userDAO.getAll().isEmpty()) {
-                System.out.println("No users found. Creating default ADMIN account...");
+            if (userDAO.findByUsername("admin").isEmpty()) {
+                System.out.println("Default admin 'admin' not found. Creating...");
                 try {
-                    User adminUser = new User(0, "admin", "admin", Role.ADMIN, null, null);
+                    User adminUser = new User();
+                    adminUser.setUsername("admin");
+                    adminUser.setPassword("admin");
+                    adminUser.setRole(Role.ADMIN);
+                    adminUser.setActive(true);
+                    adminUser.setRequiresPasswordChange(false);
                     userDAO.add(adminUser);
                     System.out.println("- Default admin user (admin/admin) created successfully.");
                 } catch (Exception adminEx) {
@@ -105,13 +167,12 @@ public class App {
                     adminEx.printStackTrace();
                 }
             } else {
-                System.out.println("Users already exist. Skipping default admin account creation.");
+                System.out.println("Default admin user 'admin' already exists.");
             }
         } catch (Exception generalEx) {
             System.err.println("!! Error during default admin account check/creation process: " + generalEx.getMessage());
             generalEx.printStackTrace();
         }
-
     }
 
 }

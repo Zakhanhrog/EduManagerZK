@@ -7,11 +7,11 @@ public class Course implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private int courseId;
-    private String courseCode; // E.g., ENG101, CS202
-    private String courseName; // E.g., "Introduction to Programming", "Business English"
+    private String courseCode;
+    private String courseName;
     private String description;
-    private int credits; // Or duration, or some measure of size/effort
-    private String level; // E.g., "Beginner", "Intermediate", "Advanced" or "Grade 10"
+    private int credits;
+    private String level;
 
     public Course() {
     }
@@ -88,14 +88,6 @@ public class Course implements Serializable {
 
     @Override
     public String toString() {
-        // Often used in ComboBoxes, so a concise representation is useful
         return courseCode + " - " + courseName;
-        // Or a more detailed version:
-        // return "Course{" +
-        //        "courseId=" + courseId +
-        //        ", courseCode='" + courseCode + '\'' +
-        //        ", courseName='" + courseName + '\'' +
-        //        ", level='" + level + '\'' +
-        //        '}';
     }
 }
