@@ -7,17 +7,37 @@ import java.awt.*;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
+
 
 public class HelpPanel extends JPanel {
 
     private JEditorPane helpEditorPane;
     private JScrollPane scrollPane;
+    private BufferedImage backgroundImage;
 
     public HelpPanel() {
         setLayout(new BorderLayout());
+        loadImageBackground();
         initComponents();
         setupLayout();
         loadHelpPage();
+    }
+    private void loadImageBackground() {
+        try {
+            URL imgUrl = getClass().getResource("/images/logo_background_blurred.png"); // Đường dẫn tới ảnh đã xử lý
+            if (imgUrl != null) {
+                backgroundImage = ImageIO.read(imgUrl);
+                System.out.println("HelpPanel: Background image loaded successfully.");
+            } else {
+                System.err.println("HelpPanel Error: Background image resource not found at /images/logo_background_blurred.png");
+                backgroundImage = null;
+            }
+        } catch (IOException e) {
+            System.err.println("HelpPanel Error: Failed to read background image: " + e.getMessage());
+            backgroundImage = null;
+        }
     }
 
     private void initComponents() {
@@ -26,12 +46,15 @@ public class HelpPanel extends JPanel {
         helpEditorPane.setContentType("text/html");
         helpEditorPane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
         helpEditorPane.setFont(UIManager.getFont("Label.font"));
-        helpEditorPane.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        helpEditorPane.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
+        helpEditorPane.setOpaque(false);
         helpEditorPane.addHyperlinkListener(new HyperlinkHandler());
         scrollPane = new JScrollPane(helpEditorPane);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setOpaque(false);
+        scrollPane.getViewport().setOpaque(false);
     }
 
     private void setupLayout() {
@@ -85,6 +108,28 @@ public class HelpPanel extends JPanel {
                     System.err.println("HelpPanel Warning: Desktop interaction not supported on this system.");
                 }
             }
+        }
+    }
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g); // Vẽ các thành phần con trước (như JScrollPane) - hoặc sau? Thử cả hai. Thường là super trước.
+
+        if (backgroundImage != null) {
+            Graphics2D g2d = (Graphics2D) g.create();
+
+            // Tính toán vị trí để vẽ ảnh ở giữa panel
+            int x = (this.getWidth() - backgroundImage.getWidth()) / 2;
+            int y = (this.getHeight() - backgroundImage.getHeight()) / 2;
+
+            // Có thể cần Composite để kiểm soát độ trong suốt khi vẽ,
+            // nhưng nếu ảnh PNG đã có alpha thì không cần thiết lắm.
+            // AlphaComposite ac = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.1f); // Ví dụ 10% opacity
+            // g2d.setComposite(ac);
+
+            // Vẽ ảnh
+            g2d.drawImage(backgroundImage, x, y, this);
+
+            g2d.dispose();
         }
     }
 }

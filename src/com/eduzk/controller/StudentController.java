@@ -158,8 +158,8 @@ public class StudentController {
                 newUser.setActive(true);
                 newUser.setStudentId(student.getStudentId());
                 newUser.setTeacherId(null);
+                newUser.setRequiresPasswordChange(true);
 
-                // Thêm User vào userDAO (có xử lý lỗi)
                 try {
                     if (userDAO.findByUsername(newUser.getUsername()).isPresent()) {
                         throw new DataAccessException("Phone number '" + newUser.getUsername() + "' is already registered as a username.");
@@ -180,7 +180,7 @@ public class StudentController {
                         if (userCreatedSuccessfully && mainView != null) {
                             mainView.refreshAccountsPanelData();
                         }
-                        return userCreatedSuccessfully;
+                        return true;
                     }
 
                 } catch (DataAccessException e) {
@@ -189,21 +189,21 @@ public class StudentController {
                     UIUtils.showWarningMessage(studentPanel, "User Creation Failed", "Student added, but failed to create linked user account:\n" + e.getMessage());
                     writeAddLog("Added Student (User Failed)", student);
                     if (studentPanel != null) studentPanel.refreshTable();
-                    return false;
+                    return true;
                 } catch (Exception ex) {
                     System.err.println("!!! UNEXPECTED ERROR adding User account for Student ID " + student.getStudentId() + " !!! Error: " + ex.getMessage());
                     ex.printStackTrace();
                     UIUtils.showErrorMessage(studentPanel, "Unexpected Error", "An unexpected error occurred while creating the user account.");
                     writeAddLog("Added Student (User Error)", student);
                     if (studentPanel != null) studentPanel.refreshTable();
-                    return false;
+                    return true;
                 }
             } else {
                 System.err.println("Could not get Student ID after adding student. User account not created.");
                 UIUtils.showWarningMessage(studentPanel, "User Creation Failed", "Student added, but could not get ID to create linked user account.");
                 writeAddLog("Added Student (ID Error)", student);
                 if (studentPanel != null) studentPanel.refreshTable();
-                return false;
+                return true;
             }
 
         } catch (DataAccessException | IllegalArgumentException e) {

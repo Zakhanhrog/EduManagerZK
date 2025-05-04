@@ -22,7 +22,7 @@ public class RoomPanel extends JPanel {
     private DefaultTableModel tableModel;
     private JButton addButton, editButton, deleteButton, searchButton;
     private JButton refreshButton;
-    private JTextField searchField; // Search by capacity
+    private JTextField searchField;
     private TableRowSorter<DefaultTableModel> sorter;
 
     public RoomPanel(RoomController controller) {
@@ -36,7 +36,7 @@ public class RoomPanel extends JPanel {
 
     public void setController(RoomController controller) {
         this.controller = controller;
-        refreshTable(); // Initial load
+        refreshTable();
     }
 
     private void initComponents() {
@@ -49,8 +49,8 @@ public class RoomPanel extends JPanel {
             }
             @Override
             public Class<?> getColumnClass(int columnIndex) {
-                if (columnIndex == 5) return Boolean.class; // 'Available' column
-                if (columnIndex == 3) return Integer.class; // 'Capacity' column
+                if (columnIndex == 5) return Boolean.class;
+                if (columnIndex == 3) return Integer.class;
                 return super.getColumnClass(columnIndex);
             }
         };
@@ -74,11 +74,10 @@ public class RoomPanel extends JPanel {
         TableColumn availCol = roomTable.getColumnModel().getColumn(5);
         availCol.setPreferredWidth(70);
 
-
         // Buttons
         int iconSize = 20;
 
-        addButton = new JButton("Add"); // Giả sử tên nút
+        addButton = new JButton("Add");
         Icon addIcon = loadSVGIconButton("/icons/add.svg", iconSize);
         if (addIcon != null) addButton.setIcon(addIcon);
 
@@ -94,14 +93,11 @@ public class RoomPanel extends JPanel {
         Icon refreshIcon = loadSVGIconButton("/icons/refresh.svg", iconSize);
         if (refreshIcon != null) refreshButton.setIcon(refreshIcon);
 
-
-        // Search Components
-        searchField = new JTextField(5); // Small field for capacity number
-        searchButton = new JButton("Find Capacity >=");
+        searchField = new JTextField(5);
+        searchButton = new JButton("Find Capacity");
     }
 
     private void setupLayout() {
-        // Top Panel (Search and Actions)
         JPanel topPanel = new JPanel(new BorderLayout(10, 0));
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         searchPanel.add(new JLabel("Min Capacity:"));
@@ -119,14 +115,12 @@ public class RoomPanel extends JPanel {
 
         add(topPanel, BorderLayout.NORTH);
 
-        // Center Panel (Table)
         JScrollPane scrollPane = new JScrollPane(roomTable);
         add(scrollPane, BorderLayout.CENTER);
     }
 
     private void setupActions() {
         addButton.addActionListener(e -> openRoomDialog(null));
-
         editButton.addActionListener(e -> {
             int selectedRow = roomTable.getSelectedRow();
             if (selectedRow >= 0) {
@@ -164,7 +158,7 @@ public class RoomPanel extends JPanel {
         searchField.addActionListener(e -> performSearch());
         refreshButton.addActionListener(e -> {
             System.out.println("RoomPanel: Refresh button clicked.");
-            refreshTable(); // Gọi lại chính phương thức refresh của panel này
+            refreshTable();
             UIUtils.showInfoMessage(this,"Refreshed", "Room list updated."); // Thông báo (tùy chọn)
         });
     }
@@ -175,30 +169,26 @@ public class RoomPanel extends JPanel {
         List<Room> rooms;
 
         if (searchText.isEmpty()) {
-            // If capacity search is empty, show all
             rooms = controller.getAllRooms();
-            sorter.setRowFilter(null); // Clear any filter
+            sorter.setRowFilter(null);
         } else {
             try {
                 int minCapacity = Integer.parseInt(searchText);
                 if (minCapacity <= 0) {
-                    // Show all if capacity is not positive
                     rooms = controller.getAllRooms();
                     sorter.setRowFilter(null);
-                    if (!searchText.equals("0")) { // Only warn if not exactly "0"
+                    if (!searchText.equals("0")) {
                         UIUtils.showWarningMessage(this, "Invalid Input", "Minimum capacity must be a positive number.");
                     }
-                    searchField.setText(""); // Clear invalid input
+                    searchField.setText("");
                 } else {
-                    // Search via controller DAO method
                     rooms = controller.searchRoomsByCapacity(minCapacity);
-                    // No RowFilter needed if DAO does the search
                 }
             } catch (NumberFormatException ex) {
                 UIUtils.showErrorMessage(this, "Invalid Input", "Please enter a valid number for minimum capacity.");
-                rooms = controller.getAllRooms(); // Show all on error
+                rooms = controller.getAllRooms();
                 sorter.setRowFilter(null);
-                searchField.setText(""); // Clear invalid input
+                searchField.setText("");
             }
         }
         populateTable(rooms);
@@ -222,7 +212,7 @@ public class RoomPanel extends JPanel {
     }
 
     private void populateTable(List<Room> rooms) {
-        tableModel.setRowCount(0); // Clear existing data
+        tableModel.setRowCount(0);
         if (rooms != null) {
             for (Room room : rooms) {
                 Vector<Object> row = new Vector<>();
@@ -238,7 +228,7 @@ public class RoomPanel extends JPanel {
     }
 
     public void setAdminControlsEnabled(boolean isAdmin) {
-        addButton.setVisible(isAdmin); // Hoặc setEnabled(isAdmin)
+        addButton.setVisible(isAdmin);
         editButton.setVisible(isAdmin);
         deleteButton.setVisible(isAdmin);
     }

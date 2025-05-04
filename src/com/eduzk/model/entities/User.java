@@ -8,15 +8,15 @@ public class User implements Serializable {
 
     private int userId;
     private String username;
-    private String password; // Consider hashing passwords in a real application
+    private String password;
     private Role role;
-    private boolean active; // To enable/disable user accounts
+    private boolean active;
     private Integer teacherId;
     private Integer studentId;
     private transient String displayName;
+    private boolean requiresPasswordChange;
 
     public String getDisplayName() {
-        // Nếu displayName chưa được set, trả về username làm mặc định
         return (displayName != null && !displayName.isEmpty()) ? displayName : username;
     }
 
@@ -25,7 +25,8 @@ public class User implements Serializable {
     }
 
     public User() {
-        this.active = true; // Default to active
+        this.active = true;
+        this.requiresPasswordChange = true;
     }
 
     public User(int userId, String username, String password, Role role, Integer teacherId, Integer studentId) {
@@ -34,56 +35,52 @@ public class User implements Serializable {
         this.password = password;
         this.role = role;
         this.active = true;
-        this.teacherId = teacherId; // Kiểu Integer
-        this.studentId = studentId; // Kiểu Integer
+        this.teacherId = teacherId;
+        this.studentId = studentId;
+        this.requiresPasswordChange = false;
+    }
+    public boolean isRequiresPasswordChange() {
+        return requiresPasswordChange;
+    }
+    public void setRequiresPasswordChange(boolean requiresPasswordChange) {
+        this.requiresPasswordChange = requiresPasswordChange;
     }
     public Integer getTeacherId() {
         return teacherId;
     }
-
     public void setTeacherId(Integer teacherId) {
         this.teacherId = teacherId;
     }
     public int getUserId() {
         return userId;
     }
-
     public void setUserId(int userId) {
         this.userId = userId;
     }
-
     public String getUsername() {
         return username;
     }
-
     public void setUsername(String username) {
         this.username = username;
     }
-
     public String getPassword() {
         return password;
     }
-
     public void setPassword(String password) {
         this.password = password;
     }
-
     public Role getRole() {
         return role;
     }
-
     public void setRole(Role role) {
         this.role = role;
     }
-
     public boolean isActive() {
         return active;
     }
-
     public void setActive(boolean active) {
         this.active = active;
     }
-
     public Integer getStudentId() { return studentId; }
     public void setStudentId(Integer studentId) { this.studentId = studentId; }
 
@@ -110,6 +107,7 @@ public class User implements Serializable {
                 ", active=" + active +
                 ", teacherId=" + teacherId +
                 ", studentId=" + studentId +
+                ", requiresPasswordChange=" + requiresPasswordChange +
                 '}';
     }
 }

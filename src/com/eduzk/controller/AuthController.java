@@ -14,6 +14,10 @@ import javax.swing.SwingUtilities;
 import javax.swing.JOptionPane;
 import java.util.Optional;
 import com.eduzk.model.dao.impl.LogService;
+import com.eduzk.model.entities.LogEntry;
+import com.eduzk.view.dialogs.ForcePasswordChangeDialog;
+import java.awt.Frame;
+import java.lang.reflect.InvocationTargetException;
 
 
 public class AuthController {
@@ -65,19 +69,38 @@ public class AuthController {
             return false;
         }
         try {
-            // Tìm user bằng username (hoặc SĐT đã đăng ký làm username)
             Optional<User> userOptional = userDAO.findByUsername(username.trim());
 
             if (userOptional.isPresent()) {
                 User user = userOptional.get();
                 if (user.getPassword().equals(password)) {
                     if (user.isActive()) {
-                        this.loggedInUser = user;
-                        loginSuccess();
-                        return true;
+                        if (user.isRequiresPasswordChange()) {
+                            System.out.println("User requires password change: " + user.getUsername());
+                            boolean passwordChanged = showForcePasswordChangeDialog(user); // Gọi hàm hiển thị dialog
 
+                            if (passwordChanged) {
+                                System.out.println("Password changed successfully. Proceeding to login.");
+                                User updatedUser = userDAO.getById(user.getUserId());
+                                if (updatedUser == null || updatedUser.isRequiresPasswordChange()) {
+                                    UIUtils.showErrorMessage(loginView, "Login Error", "Failed to verify password change. Please try logging in again.");
+                                    return false;
+                                }
+                                this.loggedInUser = updatedUser; // Gán user đã cập nhật
+                                loginSuccess(); // Mở MainView
+                                return true;
+                            } else {
+                                System.out.println("Password change was cancelled or failed.");
+                                UIUtils.showWarningMessage(loginView, "Password Change Required", "You must change your initial password to log in.");
+                                return false;
+                            }
+                        } else {
+                            this.loggedInUser = user;
+                            loginSuccess();
+                            return true;
+                        }
                     } else {
-                        UIUtils.showErrorMessage(loginView, "Login Failed", "User account is inactive. Please contact administrator.");
+                        UIUtils.showErrorMessage(loginView, "Login Failed", "User account is inactive...");
                         return false;
                     }
                 } else {
@@ -90,14 +113,62 @@ public class AuthController {
             }
         } catch (DataAccessException e) {
             System.err.println("Login DAO Error: " + e.getMessage());
-            e.printStackTrace(); // In stack trace ra console để debug
-            UIUtils.showErrorMessage(loginView, "Login Error", "A data access error occurred. Please try again later or contact support.");
+            e.printStackTrace();
+            UIUtils.showErrorMessage(loginView, "Login Error", "A data access error occurred...");
             return false;
         } catch (Exception e) {
             System.err.println("Unexpected Login Error: " + e.getMessage());
             e.printStackTrace();
             UIUtils.showErrorMessage(loginView, "Login Error", "An unexpected error occurred during login.");
             return false;
+        }
+    }
+    private boolean showForcePasswordChangeDialog(User user) {
+        final boolean[] successFlag = {false}; // Dùng mảng boolean để lấy kết quả từ EDT
+        try {
+            // Phải chạy trên EDT
+            SwingUtilities.invokeAndWait(() -> {
+                Frame parent = (loginView != null && loginView.isShowing()) ? loginView : null;
+                ForcePasswordChangeDialog dialog = new ForcePasswordChangeDialog(parent, this, user);
+                dialog.setVisible(true);
+                User checkUser = userDAO.getById(user.getUserId());
+                if (checkUser != null && !checkUser.isRequiresPasswordChange()) {
+                    successFlag[0] = true;
+                } else {
+                    successFlag[0] = false;
+                }
+            });
+        } catch (InterruptedException | InvocationTargetException e) {
+            System.err.println("Error showing/handling force password change dialog: " + e.getMessage());
+            e.printStackTrace();
+            successFlag[0] = false;
+        }
+        return successFlag[0];
+    }
+    public boolean performForcedPasswordChange(User user, String newPassword) {
+        // Validation mật khẩu mới nên được thực hiện trong Dialog trước khi gọi hàm này
+        try {
+            user.setPassword(newPassword);
+            user.setRequiresPasswordChange(false); // <<< QUAN TRỌNG: Đặt lại flag
+            userDAO.update(user); // <<< LƯU THAY ĐỔI VÀO DAO >>>
+
+            // Ghi log
+            if (logService != null) {
+                logService.addLogEntry(new LogEntry(
+                        java.time.LocalDateTime.now(),
+                        user.getDisplayName(), // Lấy tên hiển thị
+                        user.getRole().name(),
+                        "Forced Password Change", // Hành động
+                        "User changed initial default password." // Chi tiết
+                ));
+                System.out.println("Log entry added for forced password change for user: " + user.getUsername());
+            }
+            System.out.println("Password updated and flag cleared for user: " + user.getUsername());
+            return true; // Trả về true nếu thành công
+        } catch (Exception e) { // Bắt các lỗi có thể xảy ra từ DAO
+            System.err.println("Error performing forced password change in DAO for user " + user.getUsername() + ": " + e.getMessage());
+            e.printStackTrace();
+            return false; // Trả về false nếu có lỗi
         }
     }
 
@@ -275,6 +346,7 @@ public class AuthController {
             newUser.setActive(true);
             newUser.setTeacherId(teacherIdToLink);
             newUser.setStudentId(studentIdToLink);
+            newUser.setRequiresPasswordChange(true);
             System.out.println("Adding new user to database: " + newUser);
             userDAO.add(newUser);
             System.out.println("New user added successfully with ID: " + newUser.getUserId());
