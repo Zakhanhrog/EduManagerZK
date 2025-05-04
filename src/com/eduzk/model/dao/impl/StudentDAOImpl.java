@@ -3,20 +3,22 @@ package com.eduzk.model.dao.impl;
 import com.eduzk.model.dao.interfaces.IStudentDAO;
 import com.eduzk.model.entities.Student;
 import com.eduzk.model.exceptions.DataAccessException;
-
+import java.util.Set;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class StudentDAOImpl extends BaseDAO<Student> implements IStudentDAO {
 
     private final IdGenerator idGenerator;
 
-    public StudentDAOImpl(String dataFilePath, String idFilePath) {
+    public StudentDAOImpl(String dataFilePath, IdGenerator idGenerator) {
         super(dataFilePath);
-        this.idGenerator = new IdGenerator(idFilePath);
+        if (idGenerator == null) {
+            throw new IllegalArgumentException("IdGenerator cannot be null in StudentDAOImpl");
+        }
+        this.idGenerator = idGenerator;
     }
 
     @Override
@@ -38,10 +40,8 @@ public class StudentDAOImpl extends BaseDAO<Student> implements IStudentDAO {
             throw new IllegalArgumentException("Student cannot be null.");
         }
         student.setStudentId(idGenerator.getNextStudentId());
-
         lock.writeLock().lock();
         try {
-            // Optional: Add checks for duplicate emails or phone numbers if needed
             this.dataList.add(student);
             saveData();
         } finally {

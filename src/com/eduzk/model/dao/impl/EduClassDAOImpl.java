@@ -12,9 +12,12 @@ public class EduClassDAOImpl extends BaseDAO<EduClass> implements IEduClassDAO {
 
     private final IdGenerator idGenerator;
 
-    public EduClassDAOImpl(String dataFilePath, String idFilePath) {
+    public EduClassDAOImpl(String dataFilePath, IdGenerator idGenerator) {
         super(dataFilePath);
-        this.idGenerator = new IdGenerator(idFilePath);
+        if (idGenerator == null) {
+            throw new IllegalArgumentException("IdGenerator cannot be null in EduClassDAOImpl");
+        }
+        this.idGenerator = idGenerator;
     }
 
     @Override
@@ -81,12 +84,9 @@ public class EduClassDAOImpl extends BaseDAO<EduClass> implements IEduClassDAO {
         if (eduClass.getMaxCapacity() <= 0) {
             throw new IllegalArgumentException("Max capacity must be positive.");
         }
-
         eduClass.setClassId(idGenerator.getNextEduClassId());
-
         lock.writeLock().lock();
         try {
-            // Optional: Check for duplicate class names within the same semester/year?
             this.dataList.add(eduClass);
             saveData();
         } finally {

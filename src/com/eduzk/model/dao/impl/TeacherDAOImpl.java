@@ -11,10 +11,12 @@ public class TeacherDAOImpl extends BaseDAO<Teacher> implements ITeacherDAO {
 
     private final IdGenerator idGenerator;
 
-    public TeacherDAOImpl(String dataFilePath, String idFilePath) {
+    public TeacherDAOImpl(String dataFilePath, IdGenerator idGenerator) {
         super(dataFilePath);
-        this.idGenerator = new IdGenerator(idFilePath);
-        System.out.println("TeacherDAOImpl initialized. dataList size after load: " + (dataList == null ? "null" : dataList.size()));
+        if (idGenerator == null) {
+            throw new IllegalArgumentException("IdGenerator cannot be null in TeacherDAOImpl");
+        }
+        this.idGenerator = idGenerator;
     }
 
     @Override
@@ -38,10 +40,8 @@ public class TeacherDAOImpl extends BaseDAO<Teacher> implements ITeacherDAO {
             throw new IllegalArgumentException("Teacher cannot be null.");
         }
         teacher.setTeacherId(idGenerator.getNextTeacherId());
-
         lock.writeLock().lock();
         try {
-            // Optional: Check for duplicate email/phone
             this.dataList.add(teacher);
             saveData();
         } finally {

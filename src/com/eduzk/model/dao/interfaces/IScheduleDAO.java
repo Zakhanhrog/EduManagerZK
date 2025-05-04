@@ -3,7 +3,6 @@ package com.eduzk.model.dao.interfaces;
 import com.eduzk.model.entities.Schedule;
 import com.eduzk.model.exceptions.DataAccessException;
 import com.eduzk.model.exceptions.ScheduleConflictException;
-
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Collections;

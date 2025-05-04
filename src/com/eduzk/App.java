@@ -16,6 +16,7 @@ import com.formdev.flatlaf.FlatIntelliJLaf;
 import com.formdev.flatlaf.themes.FlatMacDarkLaf;
 import com.formdev.flatlaf.themes.FlatMacLightLaf;
 import com.eduzk.model.dao.impl.LogService;
+import com.eduzk.model.dao.impl.IdGenerator;
 
 public class App {
     // look and feel
@@ -42,15 +43,20 @@ public class App {
                 final String idFile = dataDir + "next_ids.dat";
                 final String logFile = dataDir + "logs.dat";
 
+                //khoi tao ID
+                IdGenerator sharedIdGenerator = new IdGenerator(idFile);
+                System.out.println("Shared IdGenerator initialized.");
+
                 // Khai báo dùng Interface cho linh hoạt
                 IUserDAO userDAO = new UserDAOImpl(dataDir + "users.dat", idFile);
-                ITeacherDAO teacherDAO = new TeacherDAOImpl(dataDir + "teachers.dat", idFile);
-                IStudentDAO studentDAO = new StudentDAOImpl(dataDir + "students.dat", idFile);
+                ITeacherDAO teacherDAO = new TeacherDAOImpl(dataDir + "teachers.dat", sharedIdGenerator);
+                IStudentDAO studentDAO = new StudentDAOImpl(dataDir + "students.dat", sharedIdGenerator);
                 ICourseDAO courseDAO = new CourseDAOImpl(dataDir + "courses.dat", idFile);
                 IRoomDAO roomDAO = new RoomDAOImpl(dataDir + "rooms.dat", idFile);
-                IEduClassDAO eduClassDAO = new EduClassDAOImpl(dataDir + "educlasses.dat", idFile);
+                IEduClassDAO eduClassDAO = new EduClassDAOImpl(dataDir + "educlasses.dat", sharedIdGenerator);
                 IScheduleDAO scheduleDAO = new ScheduleDAOImpl(dataDir + "schedules.dat", idFile);
                 System.out.println("ALL DAOs initialized.");
+
                 LogService logService = new LogService(logFile);
                 System.out.println("LogService initialized.");
 

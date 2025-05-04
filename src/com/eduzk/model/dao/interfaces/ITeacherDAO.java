@@ -2,7 +2,6 @@ package com.eduzk.model.dao.interfaces;
 
 import com.eduzk.model.entities.Teacher;
 import com.eduzk.model.exceptions.DataAccessException;
-
 import java.util.List;
 
 public interface ITeacherDAO {

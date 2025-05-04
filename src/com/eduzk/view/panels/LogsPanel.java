@@ -108,7 +108,6 @@ public class LogsPanel extends JPanel {
             System.out.println("LogsPanel: No log entries to populate.");
         }
 
-        // <<< KHÔI PHỤC TRẠNG THÁI SORT >>>
         if (sorter != null && sortKeys != null && !sortKeys.isEmpty()) {
             System.out.println("LogsPanel: Restoring previous sort keys.");
             sorter.setSortKeys(sortKeys);
@@ -120,11 +119,9 @@ public class LogsPanel extends JPanel {
 
     public void configureControlsForRole(Role userRole) {
         boolean isAdmin = (userRole == Role.ADMIN);
-        this.setVisible(isAdmin); // Chỉ hiển thị panel này cho Admin
-
         if (isAdmin && controller != null) {
             System.out.println("LogsPanel: Configured for Admin, requesting initial data load via controller.");
-            controller.requestPanelRefresh(); // Yêu cầu controller kiểm tra và làm mới
+            controller.requestPanelRefresh();
         } else if (!isAdmin) {
             tableModel.setRowCount(0);
         }

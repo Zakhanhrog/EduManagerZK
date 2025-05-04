@@ -1,4 +1,4 @@
-package com.eduzk.model.dao.interfaces; // Hoặc package phù hợp khác
+package com.eduzk.model.dao.interfaces;
 
 import com.eduzk.model.entities.LogEntry;
 import java.util.EventListener;
