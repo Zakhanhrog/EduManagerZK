@@ -1,92 +1,90 @@
 package com.eduzk.view.panels;
 
 import javax.swing.*;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.event.HyperlinkListener;
 import java.awt.*;
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
 
 public class HelpPanel extends JPanel {
 
-    private JTextArea helpTextArea;
+    private JEditorPane helpEditorPane;
     private JScrollPane scrollPane;
 
     public HelpPanel() {
         setLayout(new BorderLayout());
         initComponents();
         setupLayout();
-        loadHelpContent();
+        loadHelpPage();
     }
 
     private void initComponents() {
-        helpTextArea = new JTextArea();
-        helpTextArea.setEditable(false);
-        helpTextArea.setLineWrap(true);
-        helpTextArea.setWrapStyleWord(true); // Xuống dòng theo từ
-        helpTextArea.setFont(new Font("SansSerif", Font.PLAIN, 14));
-        helpTextArea.setMargin(new Insets(10, 10, 10, 10));
+        helpEditorPane = new JEditorPane();
+        helpEditorPane.setEditable(false);
+        helpEditorPane.setContentType("text/html");
+        helpEditorPane.putClientProperty(JEditorPane.HONOR_DISPLAY_PROPERTIES, Boolean.TRUE);
+        helpEditorPane.setFont(UIManager.getFont("Label.font"));
+        helpEditorPane.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        scrollPane = new JScrollPane(helpTextArea);
+        helpEditorPane.addHyperlinkListener(new HyperlinkHandler());
+        scrollPane = new JScrollPane(helpEditorPane);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER); // Không cần scroll ngang
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
     }
 
     private void setupLayout() {
         add(scrollPane, BorderLayout.CENTER);
     }
 
-    private void loadHelpContent() {
-        // --- Ví dụ nội dung trợ giúp ---
-        // Bạn có thể tải nội dung này từ file .txt hoặc .html nếu muốn
-        String helpText = """
-                EduZakhanh - Help & Information
-                ==================================
+    private void loadHelpPage() {
+        String helpFilePath = "/help/help.html";
+        URL helpURL = getClass().getResource(helpFilePath);
 
-                Welcome to the EduZakhanh Educational Management System!
-
-                General Navigation:
-                -------------------
-                - Use the tabs at the top to switch between different management sections (Schedule, Classes, Students, etc.).
-                - Most sections display data in tables. You can often sort data by clicking on column headers.
-                - Buttons for adding, editing, or deleting items are usually located above or below the tables.
-
-                Specific Sections (Admin View):
-                ---------------------------------
-                *   Schedule: View, add, edit, and delete class schedules within a selected date range. Avoid scheduling conflicts (overlapping times for the same teacher, room, or class).
-                *   Classes: Manage educational classes. Assign courses and teachers. Enroll or remove students. Set class capacity.
-                *   Students: Add, edit, view, and delete student profiles. Student phone numbers are used for registration.
-                *   Teachers: Add, edit, view, and delete teacher profiles. Teacher IDs are used for registration.
-                *   Courses: Manage the courses offered.
-                *   Rooms: Manage classroom details like number, building, capacity, and type.
-                *   Accounts: View and manage user accounts (Teachers, Students). Passwords can be reset here.
-                *   Logs: View a history of actions performed within the system.
-
-                Specific Sections (Teacher View):
-                ---------------------------------
-                *   My Schedule: View your teaching schedule.
-                *   My Classes: View the classes you are assigned to and the students enrolled.
-                *   My Students: Add, edit, view, and delete student profiles in your classes.
-                *   Courses: View available courses.
-
-                Specific Sections (Student View):
-                ---------------------------------
-                *   My Schedule: View your personal class schedule.
-                *   My Classes: View the classes you are enrolled in.
-                *   Courses: View available courses.
-
-                Exporting Data:
-                ---------------
-                - Use the 'Export' -> 'Export to Excel...' menu item to save data from various sections to an Excel file (permissions vary by role).
-
-                Themes:
-                -------
-                - Use the 'View' -> 'Themes' menu to change the application's appearance.
-
-                Need Further Assistance?
-                -------------------------
-                - Please contact the system administrator zakhanh.
-                """;
-
-        helpTextArea.setText(helpText);
-        SwingUtilities.invokeLater(() -> scrollPane.getVerticalScrollBar().setValue(0));
+        if (helpURL != null) {
+            try {
+                System.out.println("HelpPanel: Loading help content from: " + helpURL);
+                helpEditorPane.setPage(helpURL);
+            } catch (IOException e) {
+                System.err.println("HelpPanel Error: Could not load help page: " + helpURL + " - " + e.getMessage());
+                showError("Error loading help content. File might be missing or corrupted.");
+                e.printStackTrace();
+            }
+        } else {
+            System.err.println("HelpPanel Error: Help file resource not found at path: " + helpFilePath);
+            showError("Help file not found. Please contact support.");
+        }
     }
-
-    // Có thể thêm các phương thức khác nếu cần (ví dụ: tìm kiếm trong nội dung help)
+    private void showError(String message) {
+        helpEditorPane.setContentType("text/plain"); // Chuyển sang text thường để hiển thị lỗi
+        helpEditorPane.setText("ERROR:\n\n" + message);
+    }
+    private class HyperlinkHandler implements HyperlinkListener {
+        @Override
+        public void hyperlinkUpdate(HyperlinkEvent e) {
+            if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
+                // Khi người dùng nhấp vào link
+                System.out.println("HelpPanel: Link clicked: " + e.getURL());
+                if (Desktop.isDesktopSupported()) {
+                    Desktop desktop = Desktop.getDesktop();
+                    if (desktop.isSupported(Desktop.Action.BROWSE)) {
+                        try {
+                            // Mở link bằng trình duyệt mặc định của hệ thống
+                            desktop.browse(e.getURL().toURI());
+                        } catch (IOException | URISyntaxException ex) {
+                            System.err.println("HelpPanel Error: Could not open link in browser - " + ex.getMessage());
+                            JOptionPane.showMessageDialog(HelpPanel.this,
+                                    "Could not open the link:\n" + e.getURL(),
+                                    "Link Error", JOptionPane.WARNING_MESSAGE);
+                        }
+                    } else {
+                        System.err.println("HelpPanel Warning: Desktop browsing action not supported.");
+                    }
+                } else {
+                    System.err.println("HelpPanel Warning: Desktop interaction not supported on this system.");
+                }
+            }
+        }
+    }
 }
