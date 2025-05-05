@@ -25,9 +25,7 @@ public class EducationController implements ClassListChangeListener {
     private final IStudentDAO studentDAO;
     private final LogService logService;
     private EduClassController eduClassControllerRef;
-
     private EducationPanel educationPanel;
-
     private List<AcademicRecord> currentDisplayedRecords;
     private List<Student> currentDisplayedStudents;
     private int currentSelectedClassId = -1;
@@ -481,7 +479,7 @@ public class EducationController implements ClassListChangeListener {
     public void classListChanged() {
         System.out.println("EducationController received classListChanged notification.");
         if (educationPanel != null && (currentUser.getRole() == Role.ADMIN || currentUser.getRole() == Role.TEACHER)) {
-            SwingUtilities.invokeLater(() -> educationPanel.reloadClassList());
+            SwingUtilities.invokeLater(() -> educationPanel.reloadClassTree());
         }
     }
 
@@ -496,5 +494,15 @@ public class EducationController implements ClassListChangeListener {
         this.currentSelectedClassId = -1;
         this.currentDisplayedStudents.clear();
         this.currentDisplayedRecords.clear();
+    }
+    public void clearSelectedClass() {
+        System.out.println("EducationController: Clearing selected class data.");
+        this.currentSelectedClassId = -1; // Đặt lại ID lớp
+        if (this.currentDisplayedStudents != null) {
+            this.currentDisplayedStudents.clear(); // Xóa danh sách học sinh
+        }
+        if (this.currentDisplayedRecords != null) {
+            this.currentDisplayedRecords.clear(); // Xóa danh sách điểm
+        }
     }
 }
