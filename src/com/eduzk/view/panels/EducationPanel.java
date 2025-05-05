@@ -1,6 +1,7 @@
 package com.eduzk.view.panels;
 
 import com.eduzk.controller.EducationController;
+import com.eduzk.controller.MainController;
 import com.eduzk.model.entities.AcademicRecord;
 import com.eduzk.model.entities.EduClass;
 import com.eduzk.model.entities.Role;
@@ -8,63 +9,56 @@ import com.eduzk.model.entities.Student;
 import com.eduzk.model.entities.ArtStatus;
 import com.eduzk.model.entities.ConductRating;
 import com.eduzk.utils.UIUtils;
-
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 import javax.swing.table.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.text.DecimalFormat;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Vector;
 import javax.swing.event.TableModelEvent;
-import javax.swing.event.TableModelListener;
 
 public class EducationPanel extends JPanel {
 
     private EducationController controller;
-    private Role currentUserRole; // Lưu role để biết cách hiển thị
+    private MainController mainController;
+    private Role currentUserRole;
 
-    // --- Components ---
     private JSplitPane splitPane;
     private JPanel leftPanel;
     private JPanel rightPanel;
 
-    // Left Panel Components
     private JList<EduClass> classList;
     private DefaultListModel<EduClass> classListModel;
     private JScrollPane classListScrollPane;
-    // Placeholder for Assignments
     private JLabel assignmentsPlaceholder;
 
-    // Right Panel Components
     private JTable gradeTable;
     private DefaultTableModel gradeTableModel;
     private JScrollPane gradeTableScrollPane;
-    private JButton saveButton;
-    private JButton exportButton; // Thêm nút Export
-    private JLabel selectedClassLabel; // Hiển thị tên lớp đang chọn
+    private JButton exportButton;
+    private JLabel selectedClassLabel;
 
-    // Định dạng số thập phân cho điểm trung bình
-    private static final DecimalFormat df = new DecimalFormat("#.##");
-    // Key môn học (PHẢI THỐNG NHẤT VỚI CONTROLLER VÀ ENTITY)
+    private boolean isEditing = false;
+    private JButton editButton;
+    private JButton cancelEditButton;
+    private JButton saveChangesButton; // <<< ĐỔI TÊN TỪ saveButton
+
+    private static final DecimalFormat df = new DecimalFormat("#.00"); // <<< ĐỔI FORMAT
     private static final String[] SUBJECT_KEYS = {"Toán", "Văn", "Anh", "Lí", "Hoá", "Sinh", "Sử", "Địa", "GDCD", "Nghệ thuật"};
-    private static final String[] EDITABLE_SUBJECT_KEYS = {"Toán", "Văn", "Anh", "Lí", "Hoá", "Sinh", "Sử", "Địa", "GDCD"}; // Các môn nhập điểm số
+    private static final String[] EDITABLE_SUBJECT_KEYS = {"Toán", "Văn", "Anh", "Lí", "Hoá", "Sinh", "Sử", "Địa", "GDCD"};
     private static final String ART_KEY = "Nghệ thuật";
     private static final String CONDUCT_KEY = "Hạnh kiểm";
-    // Thứ tự cột trong bảng
     private static final String[] TABLE_COLUMNS = {"STT", "Tên HS", "Toán", "Văn", "Anh", "Lí", "Hoá", "Sinh", "Sử", "Địa", "GDCD", ART_KEY, "TB KHTN", "TB KHXH", "TB môn học", CONDUCT_KEY};
 
     private boolean hasPendingChanges = false;
 
     public EducationPanel() {
         setLayout(new BorderLayout());
-        // Controller sẽ được set sau qua setController
+    }
+
+    public void setMainController(MainController mainController) {
+        this.mainController = mainController;
     }
 
     public void setController(EducationController controller, Role userRole) {
@@ -72,32 +66,53 @@ public class EducationPanel extends JPanel {
         this.currentUserRole = userRole;
         if (this.controller != null) {
             this.controller.setEducationPanel(this);
-            initComponents(); // Khởi tạo component sau khi có controller và role
+            initComponents();
             setupLayout();
             setupActions();
-            configureViewForRole(); // Cấu hình hiển thị ban đầu
+            configureControlsForRole(this.currentUserRole); // <<< SỬA GỌI HÀM NÀY
+        } else {
+            // Xử lý trường hợp controller null nếu cần (ví dụ: ẩn panel)
+            this.removeAll();
+            this.add(new JLabel("Education module not available.", SwingConstants.CENTER));
+            this.revalidate();
+            this.repaint();
         }
     }
 
     private void initComponents() {
+        // --- Khởi tạo các Buttons trước khi set trạng thái ---
+        editButton = new JButton("Chỉnh Sửa");
+        editButton.setIcon(UIUtils.loadSVGIcon("/icons/edit.svg", 16)); // Thêm icon
+        cancelEditButton = new JButton("Hủy Bỏ");
+        saveChangesButton = new JButton("Lưu Thay Đổi");
+        saveChangesButton.setIcon(UIUtils.loadSVGIcon("/icons/save.svg", 16));
+        exportButton = new JButton("Xuất Excel");
+        exportButton.setIcon(UIUtils.loadSVGIcon("/icons/export.svg", 16));
+
+        // --- Thiết lập trạng thái ban đầu cho các nút ---
+        editButton.setEnabled(false);
+        saveChangesButton.setVisible(false);
+        cancelEditButton.setVisible(false);
+        exportButton.setEnabled(false);
+
         // --- Left Panel ---
         leftPanel = new JPanel(new BorderLayout(5, 5));
-        leftPanel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+        leftPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
         classListModel = new DefaultListModel<>();
         classList = new JList<>(classListModel);
         classList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        classList.setCellRenderer(new EduClassListCellRenderer()); // Renderer để hiển thị tên lớp đẹp hơn
+        classList.setCellRenderer(new EduClassListCellRenderer());
         classListScrollPane = new JScrollPane(classList);
         classListScrollPane.setBorder(new TitledBorder("Chọn Lớp"));
 
         assignmentsPlaceholder = new JLabel("<html><i>(Phần Giao bài tập<br>sẽ phát triển sau)</i></html>", SwingConstants.CENTER);
         assignmentsPlaceholder.setBorder(new TitledBorder("Giao Bài Tập"));
-        assignmentsPlaceholder.setPreferredSize(new Dimension(150, 100)); // Kích thước tạm thời
+        assignmentsPlaceholder.setPreferredSize(new Dimension(150, 100));
 
         // --- Right Panel ---
         rightPanel = new JPanel(new BorderLayout(5, 10));
-        rightPanel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+        rightPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
         selectedClassLabel = new JLabel("Chưa chọn lớp", SwingConstants.CENTER);
         selectedClassLabel.setFont(selectedClassLabel.getFont().deriveFont(Font.BOLD));
@@ -106,11 +121,9 @@ public class EducationPanel extends JPanel {
         gradeTableModel = new DefaultTableModel(TABLE_COLUMNS, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                // Chỉ cho phép sửa nếu là Admin/Teacher và là cột điểm/hạnh kiểm/nghệ thuật
-                if (controller != null && controller.canCurrentUserEdit()) {
+                if (isEditing && controller != null && controller.canCurrentUserEdit()) { // <<< KIỂM TRA isEditing
                     String colName = getColumnName(column);
-                    // Cho phép sửa các cột điểm số, Nghệ thuật và Hạnh kiểm
-                    for(String key : EDITABLE_SUBJECT_KEYS) {
+                    for (String key : EDITABLE_SUBJECT_KEYS) {
                         if (key.equals(colName)) return true;
                     }
                     return ART_KEY.equals(colName) || CONDUCT_KEY.equals(colName);
@@ -118,134 +131,131 @@ public class EducationPanel extends JPanel {
                 return false;
             }
 
-            // Định nghĩa kiểu dữ liệu cho cột để render và editor hoạt động đúng
             @Override
             public Class<?> getColumnClass(int columnIndex) {
                 String colName = getColumnName(columnIndex);
                 if (ART_KEY.equals(colName)) return ArtStatus.class;
                 if (CONDUCT_KEY.equals(colName)) return ConductRating.class;
-                // Cột STT và Tên HS là không phải số
-                if (columnIndex <= 1) return String.class;
-                // Các cột điểm và TB là số (Double)
-                return Double.class; // Hoặc dùng Number.class
+                if (columnIndex <= 1) return String.class; // STT, Tên HS
+                return Double.class; // Các cột điểm và TB
             }
         };
 
         gradeTable = new JTable(gradeTableModel);
-        gradeTable.setRowHeight(25); // Tăng chiều cao hàng cho dễ nhìn
-        gradeTable.getTableHeader().setReorderingAllowed(false); // Không cho kéo thả cột
-        gradeTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); // Chọn 1 hàng thôi
-        // Set editor và renderer cho cột đặc biệt
-        setupTableEditorsAndRenderers();
+        gradeTable.setRowHeight(25);
+        gradeTable.getTableHeader().setReorderingAllowed(false);
+        gradeTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        setupTableEditorsAndRenderers(); // Gọi sau khi table được tạo
         gradeTableScrollPane = new JScrollPane(gradeTable);
-
-        // Buttons
-        saveButton = new JButton("Lưu Thay Đổi");
-        saveButton.setIcon(UIUtils.loadSVGIcon("/icons/save.svg", 16)); // Giả sử có hàm load icon
-        saveButton.setEnabled(false); // Ban đầu vô hiệu hóa
-
-        exportButton = new JButton("Xuất Excel");
-        exportButton.setIcon(UIUtils.loadSVGIcon("/icons/export.svg", 16));
-        exportButton.setEnabled(false); // Chỉ enable khi có dữ liệu
+//        gradeTableScrollPane.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
+        gradeTableScrollPane.setBorder(BorderFactory.createTitledBorder("Bảng điểm chi tiết"));
 
         // --- Split Pane ---
         splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        splitPane.setResizeWeight(0.15); // Sidebar chiếm 15% chiều rộng ban đầu
+        splitPane.setResizeWeight(0.15);
         splitPane.setDividerSize(8);
     }
 
     private void setupTableEditorsAndRenderers() {
-        // Renderer cho các ô điểm (căn phải) và format số
-        DefaultTableCellRenderer numberRenderer = new DefaultTableCellRenderer();
-        numberRenderer.setHorizontalAlignment(SwingConstants.RIGHT);
-        DecimalFormat gradeFormat = new DecimalFormat("#.#"); // Format 1 chữ số thập phân
-        // Áp dụng cho các cột điểm số
+        // --- Renderer cho các cột điểm và TB ---
+        DefaultTableCellRenderer numberRenderer = new DefaultTableCellRenderer() {
+            private final DecimalFormat avgFormat = new DecimalFormat("#.00"); // Format 2 chữ số
+
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                label.setHorizontalAlignment(SwingConstants.RIGHT); // Căn phải
+                if (value instanceof Number) {
+                    label.setText(avgFormat.format(((Number) value).doubleValue())); // Format #.00
+                } else {
+                    label.setText(""); // Để trống nếu null
+                }
+                return label;
+            }
+        };
+
+        // Áp dụng cho các cột điểm số và cột TB
         for (int i = 2; i < TABLE_COLUMNS.length; i++) { // Bắt đầu từ cột "Toán"
             String colName = TABLE_COLUMNS[i];
-            boolean isCalculated = colName.startsWith("TB"); // Cột TB không cần renderer số? Hoặc cần format khác
-            boolean isGradeColumn = List.of(EDITABLE_SUBJECT_KEYS).contains(colName);
-            if(isGradeColumn || isCalculated){ // Áp dụng cho cột điểm và cột TB
-                TableColumn column = gradeTable.getColumnModel().getColumn(i);
-                column.setCellRenderer(new DefaultTableCellRenderer() {
-                    @Override
-                    public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                        JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                        label.setHorizontalAlignment(SwingConstants.RIGHT);
-                        if (value instanceof Number) {
-                            // Format điểm TB hoặc điểm thường
-                            label.setText(df.format(((Number) value).doubleValue()));
-                        } else if (value == null && isGradeColumn) {
-                            label.setText(""); // Hiển thị trống nếu điểm null
-                        }
-                        return label;
-                    }
-                });
+            // Chỉ áp dụng format số cho cột điểm và cột TB
+            if (!colName.equals(ART_KEY) && !colName.equals(CONDUCT_KEY)) {
+                gradeTable.getColumnModel().getColumn(i).setCellRenderer(numberRenderer);
             }
         }
 
+        // --- Editor và Renderer cho cột Enum (Nghệ thuật, Hạnh kiểm) ---
+        setupEnumColumn(ART_KEY, ArtStatus.values());
+        setupEnumColumn(CONDUCT_KEY, ConductRating.values());
 
-        // Editor và Renderer cho cột Nghệ thuật (ComboBox)
-        TableColumn artColumn = gradeTable.getColumnModel().getColumn(getColumnIndex(ART_KEY));
-        JComboBox<ArtStatus> artComboBox = new JComboBox<>(ArtStatus.values());
-        artColumn.setCellEditor(new DefaultCellEditor(artComboBox));
-        artColumn.setCellRenderer(new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                // Hiển thị toString() của Enum (Đạt/Không đạt)
-                return super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-            }
-        });
-
-        // Editor và Renderer cho cột Hạnh kiểm (ComboBox)
-        TableColumn conductColumn = gradeTable.getColumnModel().getColumn(getColumnIndex(CONDUCT_KEY));
-        JComboBox<ConductRating> conductComboBox = new JComboBox<>(ConductRating.values());
-        conductColumn.setCellEditor(new DefaultCellEditor(conductComboBox));
-        conductColumn.setCellRenderer(new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                // Hiển thị toString() của Enum
-                return super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-            }
-        });
-
-        // --- Editor cho các cột điểm số (JTextField với validation) ---
-        // Sử dụng DefaultCellEditor nhưng có thể tùy chỉnh thêm nếu cần validation phức tạp hơn
+        // --- Editor cho các cột điểm số (JTextField) ---
         JTextField numberTextField = new JTextField();
         numberTextField.setHorizontalAlignment(JTextField.RIGHT);
-        // Có thể thêm DocumentFilter để chỉ cho nhập số và trong khoảng 0-10
+        // TODO: Thêm DocumentFilter để giới hạn nhập liệu nếu cần
         DefaultCellEditor numberEditor = new DefaultCellEditor(numberTextField);
         for (String key : EDITABLE_SUBJECT_KEYS) {
-            TableColumn gradeColumn = gradeTable.getColumnModel().getColumn(getColumnIndex(key));
-            gradeColumn.setCellEditor(numberEditor);
+            int colIndex = getColumnIndex(key);
+            if (colIndex != -1) {
+                gradeTable.getColumnModel().getColumn(colIndex).setCellEditor(numberEditor);
+            }
         }
 
-
-        // --- Điều chỉnh độ rộng cột (sau khi đã có renderer/editor) ---
-        gradeTable.getColumnModel().getColumn(getColumnIndex("STT")).setMaxWidth(40);
-        gradeTable.getColumnModel().getColumn(getColumnIndex("Tên HS")).setPreferredWidth(180);
-        // Đặt độ rộng cố định hoặc min/max cho các cột điểm nếu muốn
-        gradeTable.getColumnModel().getColumn(getColumnIndex(ART_KEY)).setMinWidth(100);
-        gradeTable.getColumnModel().getColumn(getColumnIndex(CONDUCT_KEY)).setMinWidth(100);
-        gradeTable.getColumnModel().getColumn(getColumnIndex("TB KHTN")).setPreferredWidth(80);
-        gradeTable.getColumnModel().getColumn(getColumnIndex("TB KHXH")).setPreferredWidth(80);
-        gradeTable.getColumnModel().getColumn(getColumnIndex("TB môn học")).setPreferredWidth(90);
+        // --- Điều chỉnh độ rộng cột ---
+        setColumnWidths();
     }
+
+    // --- Helper setup cột Enum ---
+    private <E extends Enum<E>> void setupEnumColumn(String columnName, E[] enumValues) {
+        int columnIndex = getColumnIndex(columnName);
+        if (columnIndex != -1) {
+            TableColumn column = gradeTable.getColumnModel().getColumn(columnIndex);
+            JComboBox<E> comboBox = new JComboBox<>(enumValues);
+            column.setCellEditor(new DefaultCellEditor(comboBox));
+            // Renderer mặc định cho ComboBox thường hiển thị toString() của Enum, đã ổn
+            // Nếu muốn tùy chỉnh thêm cách hiển thị trong ô không sửa, tạo Renderer riêng
+        }
+    }
+
+    // --- Helper đặt độ rộng cột ---
+    private void setColumnWidths(){
+        try { // Thêm try-catch vì getColumnIndex có thể trả về -1
+            gradeTable.getColumnModel().getColumn(getColumnIndex("STT")).setMaxWidth(40);
+            gradeTable.getColumnModel().getColumn(getColumnIndex("Tên HS")).setPreferredWidth(180);
+            gradeTable.getColumnModel().getColumn(getColumnIndex(ART_KEY)).setMinWidth(100);
+            gradeTable.getColumnModel().getColumn(getColumnIndex(CONDUCT_KEY)).setMinWidth(100);
+            gradeTable.getColumnModel().getColumn(getColumnIndex("TB KHTN")).setPreferredWidth(80);
+            gradeTable.getColumnModel().getColumn(getColumnIndex("TB KHXH")).setPreferredWidth(80);
+            gradeTable.getColumnModel().getColumn(getColumnIndex("TB môn học")).setPreferredWidth(90);
+            // Đặt độ rộng mặc định cho các cột điểm
+            for(String key : EDITABLE_SUBJECT_KEYS) {
+                int colIdx = getColumnIndex(key);
+                if (colIdx != -1) {
+                    gradeTable.getColumnModel().getColumn(colIdx).setPreferredWidth(60);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error setting column widths: " + e.getMessage());
+        }
+    }
+
 
     private void setupLayout() {
         // Left Panel Layout
         JPanel assignmentWrapper = new JPanel(new BorderLayout());
-        assignmentWrapper.add(assignmentsPlaceholder, BorderLayout.NORTH); // Đặt placeholder vào wrapper
+        assignmentWrapper.add(assignmentsPlaceholder, BorderLayout.NORTH);
         leftPanel.add(classListScrollPane, BorderLayout.CENTER);
         leftPanel.add(assignmentWrapper, BorderLayout.SOUTH);
 
         // Right Panel Layout
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.add(exportButton);
-        buttonPanel.add(saveButton);
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0)); // Thêm khoảng cách ngang
+        buttonPanel.add(editButton);
+        buttonPanel.add(cancelEditButton);
+        buttonPanel.add(saveChangesButton); // <<< DÙNG TÊN MỚI
+        buttonPanel.add(exportButton); // Chuyển nút Export lên đây cho gọn
 
-        JPanel topOfRightPanel = new JPanel(new BorderLayout());
+        JPanel topOfRightPanel = new JPanel(new BorderLayout(10,0)); // Khoảng cách giữa label và nút
         topOfRightPanel.add(selectedClassLabel, BorderLayout.CENTER);
-        topOfRightPanel.add(buttonPanel, BorderLayout.EAST); // Đặt nút ở bên phải tiêu đề lớp
+        topOfRightPanel.add(buttonPanel, BorderLayout.EAST);
+        topOfRightPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 5, 0)); // Padding dưới
 
         rightPanel.add(topOfRightPanel, BorderLayout.NORTH);
         rightPanel.add(gradeTableScrollPane, BorderLayout.CENTER);
@@ -259,185 +269,218 @@ public class EducationPanel extends JPanel {
     }
 
     private void setupActions() {
-        // --- Xử lý chọn lớp trong JList ---
+        // --- Chọn lớp ---
         classList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting() && controller != null) {
-                // Kiểm tra xem có thay đổi chưa lưu không
-                if (hasPendingChanges) {
-                    if (!UIUtils.showConfirmDialog(this, "Unsaved Changes", "You have unsaved changes. Discard them and load the new class?")) {
-                        // Người dùng không muốn bỏ thay đổi -> chọn lại mục cũ
-                        // (Cần lưu lại index cũ để làm việc này) - TODO: Implement rollback selection
-                        return; // Không làm gì cả
+                if (isEditing && hasPendingChanges) {
+                    if (!UIUtils.showConfirmDialog(this, "Unsaved Changes", "Discard unsaved changes and load new class?")) {
+                        return;
                     }
                 }
+                setEditingMode(false); // <<< TẮT EDIT KHI CHỌN LỚP KHÁC
 
                 EduClass selectedClass = classList.getSelectedValue();
                 if (selectedClass != null) {
-                    selectedClassLabel.setText("Lớp: " + selectedClass.getClassName());
+                    selectedClassLabel.setText("Class: " + selectedClass.getClassName());
                     controller.loadDataForClass(selectedClass.getClassId());
-                    saveButton.setEnabled(false); // Reset nút Save khi tải lớp mới
-                    hasPendingChanges = false;
-                    exportButton.setEnabled(true); // Có dữ liệu để export
+                    exportButton.setEnabled(true);
                 } else {
-                    selectedClassLabel.setText("Chưa chọn lớp");
-                    gradeTableModel.setRowCount(0); // Xóa bảng
-                    saveButton.setEnabled(false);
-                    hasPendingChanges = false;
+                    selectedClassLabel.setText("No class selected");
+                    gradeTableModel.setRowCount(0);
+                    editButton.setEnabled(false); // <<< VÔ HIỆU HÓA EDIT KHI KHÔNG CÓ LỚP
                     exportButton.setEnabled(false);
+                    markChangesPending(false); // Reset flag
                 }
             }
         });
 
-        // --- Xử lý sự kiện thay đổi dữ liệu trong TableModel ---
+        // --- Thay đổi dữ liệu bảng ---
         gradeTableModel.addTableModelListener(e -> {
-            // Chỉ quan tâm khi dữ liệu thực sự thay đổi (không phải header,...)
-            if (e.getType() == TableModelEvent.UPDATE) {
+            if (e.getType() == TableModelEvent.UPDATE && isEditing) { // <<< CHỈ XỬ LÝ KHI ĐANG EDIT
                 int row = e.getFirstRow();
                 int column = e.getColumn();
-                // Chỉ xử lý nếu controller đã sẵn sàng và là cột có thể sửa
-                if (controller != null && row >= 0 && column >= 0 ) {
+                if (controller != null && row >= 0 && column >= 0) {
                     String columnName = gradeTableModel.getColumnName(column);
-                    // Kiểm tra xem cột có phải là cột có thể gây ra thay đổi cần lưu không
-                    boolean isEditableColumn = false;
-                    for(String key : EDITABLE_SUBJECT_KEYS) { if (key.equals(columnName)) {isEditableColumn = true; break;} }
-                    if(!isEditableColumn) isEditableColumn = ART_KEY.equals(columnName) || CONDUCT_KEY.equals(columnName);
+                    boolean isDataColumn = false; // Kiểm tra xem có phải cột điểm/hk/nt không
+                    for(String key : EDITABLE_SUBJECT_KEYS) { if (key.equals(columnName)) {isDataColumn = true; break;} }
+                    if(!isDataColumn) isDataColumn = ART_KEY.equals(columnName) || CONDUCT_KEY.equals(columnName);
 
-                    if(isEditableColumn) {
+                    if(isDataColumn) {
                         Object newValue = gradeTableModel.getValueAt(row, column);
-                        System.out.println("Table cell changed: row=" + row + ", col=" + column + ", name=" + columnName + ", value=" + newValue);
-                        // Gọi controller để cập nhật dữ liệu trong bộ nhớ và tính toán lại
+                        System.out.println("Table cell edited: row=" + row + ", col=" + column + ", name=" + columnName + ", value=" + newValue);
                         controller.updateRecordInMemory(row, columnName, newValue);
-                        // hasPendingChanges sẽ được set bởi controller sau khi gọi updateCalculatedValues
                     }
                 }
             }
         });
 
-        // --- Xử lý nút Lưu ---
-        saveButton.addActionListener(e -> {
-            if (controller != null) {
-                controller.saveAllChanges();
-                // Trạng thái nút Save sẽ được cập nhật bởi controller sau khi lưu
+        // --- Nút Edit ---
+        editButton.addActionListener(e -> {
+            setEditingMode(true);
+            UIUtils.showInfoMessage(this, "Edit Mode", "You can now edit grades and conduct.");
+        });
+
+        // --- Nút Cancel Edit ---
+        cancelEditButton.addActionListener(e -> {
+            if (hasPendingChanges) {
+                if (!UIUtils.showConfirmDialog(this, "Discard Changes?", "Are you sure you want to discard all unsaved changes?")) {
+                    return;
+                }
+            }
+            setEditingMode(false);
+            // Tải lại dữ liệu gốc cho lớp hiện tại
+            if(controller != null && controller.getCurrentSelectedClassId() > 0){
+                System.out.println("Cancelling edit, reloading data for class: " + controller.getCurrentSelectedClassId());
+                controller.loadDataForClass(controller.getCurrentSelectedClassId());
             }
         });
 
-        // --- Xử lý nút Export ---
+        // --- Nút Save Changes ---
+        saveChangesButton.addActionListener(e -> { // <<< DÙNG TÊN MỚI
+            if (controller != null) {
+                controller.saveAllChanges();
+                // Controller sẽ gọi markChangesPending(false) nếu lưu thành công
+                if (!hasPendingChanges) { // Kiểm tra lại flag
+                    setEditingMode(false); // Tự động tắt chế độ sửa nếu lưu thành công
+                }
+            }
+        });
+
+        // --- Nút Export ---
         exportButton.addActionListener(e -> {
-            if (controller != null && controller.getCurrentSelectedClassId() > 0) {
-                // TODO: Gọi MainController để hiển thị dialog chọn file và thực hiện export
-                // MainController sẽ gọi lại EducationController.getGradeDataForExport()
-                System.out.println("Export requested for class ID: " + controller.getCurrentSelectedClassId());
-                // Ví dụ: mainController.requestExcelExport(MainController.EXPORT_GRADES, controller.getCurrentSelectedClassId());
-                JOptionPane.showMessageDialog(this, "Chức năng Export đang được phát triển!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            if (controller != null && mainController != null && controller.getCurrentSelectedClassId() > 0) {
+                mainController.requestExcelExport(MainController.EXPORT_GRADES, controller.getCurrentSelectedClassId());
             } else {
-                UIUtils.showWarningMessage(this, "No Class Selected", "Please select a class to export grades.");
+                if(mainController == null) System.err.println("Export Error: MainController reference is null in EducationPanel.");
+                UIUtils.showWarningMessage(this, "Cannot Export", "Please select a class first.");
             }
         });
     }
 
-    // --- Cấu hình hiển thị dựa trên vai trò ---
-    private void configureViewForRole() {
-        if (controller == null) return;
+    // --- Cấu hình hiển thị dựa trên Role ---
+    public void configureControlsForRole(Role userRole) {
+        this.currentUserRole = userRole;
+        System.out.println("EducationPanel: Configuring controls for role: " + userRole);
 
-        switch (currentUserRole) {
+        boolean canEdit = (controller != null && controller.canCurrentUserEdit());
+
+        if (splitPane == null) { // Kiểm tra nếu components chưa được tạo
+            System.err.println("EducationPanel: Components not initialized in configureControlsForRole.");
+            return; // Không thể cấu hình nếu chưa init
+        }
+
+
+        switch (userRole) {
             case ADMIN:
             case TEACHER:
-                // Hiển thị danh sách lớp
-                splitPane.setLeftComponent(leftPanel); // Đảm bảo sidebar hiển thị
-                leftPanel.setVisible(true);
-                loadClassList();
-                // Các nút action sẽ được bật/tắt dựa trên quyền sửa (controller.canCurrentUserEdit())
-                saveButton.setVisible(true);
-                exportButton.setVisible(true);
+                splitPane.setLeftComponent(leftPanel);
+                splitPane.setDividerSize(8);
+                splitPane.setVisible(true);
+                if (leftPanel != null) leftPanel.setVisible(true);
+                if (rightPanel != null) {
+                    Component topComponent = ((BorderLayout)rightPanel.getLayout()).getLayoutComponent(BorderLayout.NORTH);
+                    if (topComponent != null) topComponent.setVisible(true);
+                    // Hiển thị các nút nhưng trạng thái enable/disable tùy vào quyền và dữ liệu
+                    if (editButton != null) editButton.setVisible(true);
+                    if (cancelEditButton != null) cancelEditButton.setVisible(isEditing); // Chỉ hiện khi đang sửa
+                    if (saveChangesButton != null) saveChangesButton.setVisible(isEditing); // Chỉ hiện khi đang sửa
+                    if (exportButton != null) exportButton.setVisible(true);
+                }
+                reloadClassList();
+                setEditingMode(false); // Luôn bắt đầu ở chế độ xem
+                // Cập nhật trạng thái enable/disable nút dựa trên lớp được chọn (nếu có) và quyền
+                EduClass selectedClass = (classList != null) ? classList.getSelectedValue() : null;
+                boolean classSelected = (selectedClass != null);
+                if(editButton!= null) editButton.setEnabled(classSelected && canEdit);
+                if(exportButton != null) exportButton.setEnabled(classSelected && gradeTableModel.getRowCount() > 0);
+                if(saveChangesButton != null) saveChangesButton.setEnabled(isEditing && hasPendingChanges && canEdit);
+                if(cancelEditButton != null) cancelEditButton.setVisible(isEditing);
+
                 break;
+
             case STUDENT:
-                // Ẩn sidebar chọn lớp, hiển thị trực tiếp bảng điểm cá nhân
-                splitPane.setLeftComponent(null); // Ẩn sidebar
-                splitPane.setDividerSize(0); // Ẩn đường chia
-                leftPanel.setVisible(false);
-                rightPanel.remove(rightPanel.getComponent(0)); // Xóa label chọn lớp và nút
-                // Tải dữ liệu của học sinh hiện tại
-                controller.loadDataForCurrentStudent();
-                // Ẩn nút Save và Export
-                saveButton.setVisible(false);
-                exportButton.setVisible(false);
-                // Có thể thêm tiêu đề khác cho rightPanel
-                rightPanel.setBorder(BorderFactory.createTitledBorder("Bảng điểm cá nhân"));
-                break;
-            default:
-                // Trường hợp không xác định, ẩn hết?
                 splitPane.setLeftComponent(null);
-                splitPane.setRightComponent(null);
+                splitPane.setDividerSize(0);
+                splitPane.setVisible(true);
+                if (leftPanel != null) leftPanel.setVisible(false);
+                if (rightPanel != null) {
+                    Component topComponent = ((BorderLayout)rightPanel.getLayout()).getLayoutComponent(BorderLayout.NORTH);
+                    if (topComponent != null) topComponent.setVisible(false); // Ẩn phần nút và label lớp
+                }
+                if(controller != null) controller.loadDataForCurrentStudent(); // Tải điểm cho student
+                setEditingMode(false); // Student không bao giờ sửa
+                // Ẩn tất cả các nút action
+                if(editButton != null) editButton.setVisible(false);
+                if(cancelEditButton != null) cancelEditButton.setVisible(false);
+                if(saveChangesButton != null) saveChangesButton.setVisible(false);
+                if(exportButton != null) exportButton.setVisible(false);
+                if (rightPanel != null) rightPanel.setBorder(BorderFactory.createTitledBorder("Bảng điểm cá nhân"));
+                break;
+
+            default:
+                splitPane.setVisible(false);
                 this.removeAll();
-                this.add(new JLabel("Truy cập bị giới hạn.", SwingConstants.CENTER));
+                this.add(new JLabel("Access Restricted.", SwingConstants.CENTER));
                 break;
         }
         this.revalidate();
         this.repaint();
     }
 
-    // Tải danh sách lớp vào JList
-    private void loadClassList() {
-        if(controller != null) {
+    // --- Tải lại danh sách lớp (Giữ nguyên) ---
+    public void reloadClassList() {
+        if (controller != null && classListModel != null) {
+            System.out.println("EducationPanel: Reloading class list.");
+            EduClass selectedBefore = classList.getSelectedValue();
             classListModel.clear();
             List<EduClass> classes = controller.getClassesForCurrentUser();
             if (classes != null) {
                 classes.forEach(classListModel::addElement);
             }
+            if (selectedBefore != null) {
+                for(int i=0; i<classListModel.getSize(); i++){
+                    if(classListModel.getElementAt(i).getClassId() == selectedBefore.getClassId()){
+                        classList.setSelectedIndex(i);
+                        break;
+                    }
+                }
+                if(classList.getSelectedValue() == null || classList.getSelectedValue().getClassId() != selectedBefore.getClassId()){
+                    classList.clearSelection();
+                    selectedClassLabel.setText("Chưa chọn lớp");
+                    gradeTableModel.setRowCount(0);
+                    setEditingMode(false); // Tắt edit khi không có lớp được chọn
+                    if(editButton != null) editButton.setEnabled(false);
+                    if(exportButton != null) exportButton.setEnabled(false);
+                }
+            } else {
+                // Nếu không có lớp nào được chọn sau khi reload
+                classList.clearSelection();
+                selectedClassLabel.setText("Chưa chọn lớp");
+                gradeTableModel.setRowCount(0);
+                setEditingMode(false);
+                if(editButton != null) editButton.setEnabled(false);
+                if(exportButton != null) exportButton.setEnabled(false);
+            }
+            System.out.println("EducationPanel: Class list reloaded with " + classListModel.getSize() + " items.");
         }
     }
 
-    // --- Cập nhật dữ liệu bảng (Admin/Teacher) ---
+    // --- Cập nhật bảng điểm (Admin/Teacher) (Giữ nguyên) ---
     public void updateTableData(List<Student> students, List<AcademicRecord> records) {
-        gradeTableModel.setRowCount(0); // Xóa dữ liệu cũ
+        gradeTableModel.setRowCount(0);
         if (students == null || records == null || students.size() != records.size()) {
-            System.err.println("Error updating table: Mismatch between students and records lists or lists are null.");
-            return; // Dữ liệu không khớp, không cập nhật
+            System.err.println("Error updating table: Mismatch/null student/record lists.");
+            setEditingMode(false); // Tắt edit nếu lỗi data
+            if(editButton != null) editButton.setEnabled(false);
+            if(exportButton != null) exportButton.setEnabled(false);
+            return;
         }
 
         for (int i = 0; i < students.size(); i++) {
             Student student = students.get(i);
             AcademicRecord record = records.get(i);
             Vector<Object> row = new Vector<>();
-
-            row.add(i + 1); // STT
-            row.add(student.getFullName());
-            // Lấy điểm các môn theo key đã thống nhất
-            row.add(record.getGrade("Toán"));
-            row.add(record.getGrade("Văn"));
-            row.add(record.getGrade("Anh"));
-            row.add(record.getGrade("Lí"));
-            row.add(record.getGrade("Hoá"));
-            row.add(record.getGrade("Sinh"));
-            row.add(record.getGrade("Sử"));
-            row.add(record.getGrade("Địa"));
-            row.add(record.getGrade("GDCD"));
-            row.add(record.getArtStatus()); // Thêm thẳng Enum
-            // Tính toán và thêm điểm TB (format nếu cần)
-            row.add(record.calculateAvgNaturalSciences());
-            row.add(record.calculateAvgSocialSciences());
-            row.add(record.calculateAvgOverallSubjects());
-            row.add(record.getConductRating()); // Thêm thẳng Enum
-
-            gradeTableModel.addRow(row);
-        }
-        saveButton.setEnabled(false); // Reset nút save sau khi tải lại
-        hasPendingChanges = false;
-        exportButton.setEnabled(gradeTableModel.getRowCount() > 0); // Enable export nếu có data
-    }
-
-    // --- Cập nhật bảng điểm cho Student ---
-    public void updateTableDataForStudent(Student student, List<AcademicRecord> records) {
-        // Sinh viên chỉ xem, không cần sửa, cấu trúc bảng có thể khác
-        // Tạm thời vẫn dùng model cũ nhưng không cho sửa
-        gradeTableModel.setRowCount(0);
-        if (student == null || records == null) return;
-
-        // Có thể hiển thị theo từng kỳ/năm nếu có thông tin đó trong record
-        for (AcademicRecord record : records) {
-            Vector<Object> row = new Vector<>();
-            // Có thể cần thêm cột Kỳ/Năm học ở đây
-            row.add(1); // STT luôn là 1
+            row.add(i + 1);
             row.add(student.getFullName());
             row.add(record.getGrade("Toán"));
             row.add(record.getGrade("Văn"));
@@ -455,121 +498,146 @@ public class EducationPanel extends JPanel {
             row.add(record.getConductRating());
             gradeTableModel.addRow(row);
         }
-        saveButton.setEnabled(false);
-        exportButton.setEnabled(false); // Sinh viên không export bảng điểm lớp
+        markChangesPending(false); // Reset flag khi tải data mới
+        setEditingMode(false);     // Luôn tắt edit khi tải data mới
+        // Cập nhật trạng thái nút dựa trên quyền và dữ liệu mới
+        boolean canEdit = (controller != null && controller.canCurrentUserEdit());
+        if(editButton != null) editButton.setEnabled(canEdit && gradeTableModel.getRowCount() > 0);
+        if(exportButton != null) exportButton.setEnabled(gradeTableModel.getRowCount() > 0);
     }
 
+    // --- Cập nhật bảng điểm cho Student (Giữ nguyên) ---
+    public void updateTableDataForStudent(Student student, List<AcademicRecord> records) {
+        gradeTableModel.setRowCount(0);
+        if (student == null || records == null) return;
+        for (AcademicRecord record : records) {
+            Vector<Object> row = new Vector<>();
+            row.add(1);
+            row.add(student.getFullName());
+            row.add(record.getGrade("Toán"));
+            row.add(record.getGrade("Văn"));
+            row.add(record.getGrade("Anh"));
+            row.add(record.getGrade("Lí"));
+            row.add(record.getGrade("Hoá"));
+            row.add(record.getGrade("Sinh"));
+            row.add(record.getGrade("Sử"));
+            row.add(record.getGrade("Địa"));
+            row.add(record.getGrade("GDCD"));
+            row.add(record.getArtStatus());
+            row.add(record.calculateAvgNaturalSciences());
+            row.add(record.calculateAvgSocialSciences());
+            row.add(record.calculateAvgOverallSubjects());
+            row.add(record.getConductRating());
+            gradeTableModel.addRow(row);
+        }
+        // Đảm bảo các nút bị ẩn/vô hiệu hóa cho student
+        setEditingMode(false);
+        if(editButton != null) editButton.setVisible(false);
+        if(cancelEditButton != null) cancelEditButton.setVisible(false);
+        if(saveChangesButton != null) saveChangesButton.setVisible(false);
+        if(exportButton != null) exportButton.setVisible(false);
+    }
 
-    // --- Cập nhật các ô tính toán trên giao diện sau khi sửa điểm ---
+    // --- Cập nhật các ô tính toán (Giữ nguyên) ---
     public void updateCalculatedValues(int rowIndex, AcademicRecord record) {
         if (rowIndex >= 0 && rowIndex < gradeTableModel.getRowCount()) {
-            gradeTableModel.setValueAt(record.calculateAvgNaturalSciences(), rowIndex, getColumnIndex("TB KHTN"));
-            gradeTableModel.setValueAt(record.calculateAvgSocialSciences(), rowIndex, getColumnIndex("TB KHXH"));
-            gradeTableModel.setValueAt(record.calculateAvgOverallSubjects(), rowIndex, getColumnIndex("TB môn học"));
+            try { // Thêm try-catch để tránh lỗi nếu getColumnIndex trả về -1
+                gradeTableModel.setValueAt(record.calculateAvgNaturalSciences(), rowIndex, getColumnIndex("TB KHTN"));
+                gradeTableModel.setValueAt(record.calculateAvgSocialSciences(), rowIndex, getColumnIndex("TB KHXH"));
+                gradeTableModel.setValueAt(record.calculateAvgOverallSubjects(), rowIndex, getColumnIndex("TB môn học"));
+            } catch(ArrayIndexOutOfBoundsException e) {
+                System.err.println("Error updating calculated values, column index likely invalid: " + e.getMessage());
+            }
         }
     }
 
-    // --- Đánh dấu có thay đổi chưa lưu ---
+    // --- Đánh dấu có thay đổi chưa lưu (SỬA ĐỂ DÙNG saveChangesButton) ---
     public void markChangesPending(boolean pending) {
         this.hasPendingChanges = pending;
-        saveButton.setEnabled(pending && controller.canCurrentUserEdit()); // Chỉ bật nếu có quyền sửa
+        if (saveChangesButton != null) {
+            // Chỉ bật nút Save khi đang ở chế độ sửa, có thay đổi, và có quyền
+            saveChangesButton.setEnabled(isEditing && pending && controller != null && controller.canCurrentUserEdit());
+        }
     }
 
-    // --- Refresh lại một ô cụ thể (ví dụ khi validation fail) ---
+    // --- Vẽ lại ô (Giữ nguyên) ---
     public void refreshTableCell(int rowIndex, String subjectKey){
         if(rowIndex >= 0 && rowIndex < gradeTableModel.getRowCount()){
             int columnIndex = getColumnIndex(subjectKey);
             if(columnIndex != -1){
                 System.out.println("Requesting repaint for cell: row=" + rowIndex + ", col=" + columnIndex);
-                // Chỉ cần yêu cầu model báo cáo rằng ô đã thay đổi để nó được vẽ lại
                 gradeTableModel.fireTableCellUpdated(rowIndex, columnIndex);
             }
         }
     }
 
-    // --- Helper lấy index cột theo tên ---
-    private int getColumnIndex(String columnName) {
+    // --- Helper lấy index cột (Thêm kiểm tra null cho gradeTable) ---
+    public int getColumnIndex(String columnName) {
+        if (gradeTable == null) return -1; // Trả về -1 nếu bảng chưa được tạo
         for (int i = 0; i < gradeTable.getColumnCount(); i++) {
             if (gradeTable.getColumnName(i).equals(columnName)) {
                 return i;
             }
         }
-        return -1; // Không tìm thấy
+        System.err.println("Warning: Column not found in gradeTable: " + columnName); // Log nếu không tìm thấy
+        return -1;
+    }
+
+    // --- Helper lấy TableModel (THÊM MỚI) ---
+    public DefaultTableModel getGradeTableModel() {
+        return gradeTableModel;
     }
 
 
-    // Renderer tùy chỉnh cho JList hiển thị tên lớp
+    // --- Renderer cho JList (Giữ nguyên) ---
     private static class EduClassListCellRenderer extends DefaultListCellRenderer {
         @Override
         public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
             JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             if (value instanceof EduClass) {
                 EduClass eduClass = (EduClass) value;
-                // Hiển thị tên lớp (có thể thêm thông tin khác nếu muốn)
                 label.setText(eduClass.getClassName());
-                // Có thể thêm Icon tùy theo trạng thái lớp nếu muốn
+            } else {
+                label.setText(value == null ? "" : value.toString()); // Xử lý các trường hợp khác
             }
             return label;
         }
     }
-    public void configureControlsForRole(Role userRole) { // <<< PHẢI CÓ PHƯƠNG THỨC NÀY
-        this.currentUserRole = userRole; // Lưu role nếu cần
 
-        System.out.println("EducationPanel: Configuring controls for role: " + userRole); // Thêm log để kiểm tra
+    // --- Phương thức quản lý chế độ Edit (THÊM MỚI/SỬA LẠI) ---
+    private void setEditingMode(boolean editing) {
+        this.isEditing = editing;
 
-        if (controller == null) {
-            System.err.println("EducationPanel: Cannot configure controls, controller is null.");
-            if(splitPane != null) splitPane.setVisible(false); // Ẩn đi nếu chưa sẵn sàng
-            return;
+        // Cập nhật trạng thái hiển thị và enable của các nút
+        // Thêm kiểm tra null để đảm bảo các nút đã được khởi tạo
+        if (editButton != null) {
+            editButton.setVisible(!editing);
+            // Chỉ bật nút Edit nếu không đang sửa, có controller, có quyền, và có dữ liệu trong bảng
+            editButton.setEnabled(!editing && controller != null && controller.canCurrentUserEdit() && (gradeTableModel != null && gradeTableModel.getRowCount() > 0));
+        }
+        if (cancelEditButton != null) {
+            cancelEditButton.setVisible(editing); // Hiện khi đang sửa
+        }
+        if (saveChangesButton != null) {
+            saveChangesButton.setVisible(editing);
+            saveChangesButton.setEnabled(editing && hasPendingChanges && controller != null && controller.canCurrentUserEdit());
         }
 
-        // --- Logic ẩn/hiện dựa trên role như đã viết trước đó ---
-        switch (userRole) {
-            case ADMIN:
-            case TEACHER:
-                if(splitPane != null) {
-                    splitPane.setLeftComponent(leftPanel);
-                    splitPane.setDividerSize(8);
-                    splitPane.setVisible(true);
-                }
-                if(leftPanel != null) leftPanel.setVisible(true);
-                if(rightPanel != null) {
-                    Component topComponent = ((BorderLayout)rightPanel.getLayout()).getLayoutComponent(BorderLayout.NORTH);
-                    if (topComponent != null) topComponent.setVisible(true);
-                    if(saveButton != null) saveButton.setVisible(true);
-                    if(exportButton != null) exportButton.setVisible(true);
-                }
-                loadClassList(); // Tải danh sách lớp
-                if(saveButton != null) saveButton.setEnabled(hasPendingChanges && controller.canCurrentUserEdit());
-                if(exportButton != null) exportButton.setEnabled(gradeTableModel != null && gradeTableModel.getRowCount() > 0);
-                break;
-
-            case STUDENT:
-                if(splitPane != null) {
-                    splitPane.setLeftComponent(null);
-                    splitPane.setDividerSize(0);
-                    splitPane.setVisible(true);
-                }
-                if(leftPanel != null) leftPanel.setVisible(false);
-                if(rightPanel != null) {
-                    Component topComponent = ((BorderLayout)rightPanel.getLayout()).getLayoutComponent(BorderLayout.NORTH);
-                    if (topComponent != null) topComponent.setVisible(false);
-                }
-                controller.loadDataForCurrentStudent();
-                if(saveButton != null) saveButton.setVisible(false);
-                if(exportButton != null) exportButton.setVisible(false);
-                if (rightPanel != null) rightPanel.setBorder(BorderFactory.createTitledBorder("Bảng điểm cá nhân")); // Có thể đặt title
-                break;
-
-            default:
-                if(splitPane != null) splitPane.setVisible(false);
-                this.removeAll();
-                this.add(new JLabel("Access Restricted.", SwingConstants.CENTER));
-                break;
+        if (gradeTable != null) {
+            gradeTable.repaint();
         }
-        // Yêu cầu vẽ lại
-        this.revalidate();
-        this.repaint();
+        System.out.println("Editing mode set to: " + editing);
+    }
+    public void updateSpecificCellValue(int rowIndex, String subjectKey, Object value) {
+        int columnIndex = getColumnIndex(subjectKey);
+        if (rowIndex >= 0 && rowIndex < gradeTableModel.getRowCount() && columnIndex != -1) {
+            SwingUtilities.invokeLater(() -> {
+                System.out.println("Updating TableModel cell: row=" + rowIndex + ", col=" + columnIndex + ", value=" + value);
+                gradeTableModel.setValueAt(value, rowIndex, columnIndex);
+            });
+        } else {
+            System.err.println("Error updating specific cell value: Invalid row/column index or key not found. Row: " + rowIndex + ", Key: " + subjectKey);
+        }
     }
 
 }

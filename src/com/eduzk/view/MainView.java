@@ -48,6 +48,9 @@ public class MainView extends JFrame {
     private EducationPanel educationPanel;
     private EducationController educationController;
 
+    public LogsPanel getLogsPanel() { // <<< THÊM PHƯƠNG THỨC GETTER NÀY
+        return this.logsPanel;
+    }
     public MainView(MainController mainController) {
         this.mainController = mainController;
         initComponents();
@@ -255,7 +258,7 @@ public class MainView extends JFrame {
                 // 5. Gọi Controller để thực hiện Export với lựa chọn và đường dẫn file
                 System.out.println("Export requested for: " + selectedOption + " to file: " + fileToSave.getAbsolutePath());
                 // Gọi phương thức export trong MainController (sẽ tạo ở bước sau)
-                mainController.exportDataToExcel(selectedOption, fileToSave);
+                mainController.exportDataToExcel(selectedOption, fileToSave, -1);
             } else {
                 System.out.println("Export save cancelled by user.");
             }
@@ -309,6 +312,7 @@ public class MainView extends JFrame {
         studentPanel.refreshTable();
         accountsPanel.setController(uc);
         logsPanel.setController(lc);
+        educationPanel.setMainController(this.mainController);
 
         if (sc != null) sc.setStudentPanel(studentPanel);
         if (tc != null) tc.setTeacherPanel(teacherPanel);

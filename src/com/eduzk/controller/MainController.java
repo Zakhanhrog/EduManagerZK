@@ -1,7 +1,7 @@
 package com.eduzk.controller;
 
 import java.io.IOException;
-import javax.swing.JOptionPane;
+import javax.swing.*;
 import com.eduzk.model.dao.interfaces.*;
 import com.eduzk.model.entities.*;
 import com.eduzk.utils.UIUtils;
@@ -10,15 +10,13 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.FileOutputStream;
 import java.io.File;
+import java.text.DecimalFormat;
 import java.util.List;
-import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
 import com.eduzk.model.dao.impl.LogService;
 import com.eduzk.controller.LogController;
 import com.eduzk.model.dao.interfaces.IAcademicRecordDAO;
 import com.eduzk.controller.EducationController;
-import javax.swing.table.DefaultTableModel;
-import java.text.DecimalFormat;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class MainController {
     public static final String EXPORT_STUDENTS = "Student List";
@@ -39,7 +37,7 @@ public class MainController {
     private ScheduleController scheduleController;
     private UserController userController;
     private LogController logController;
-    private EducationController educationController; // <<< THÊM
+    private EducationController educationController;
     private final IAcademicRecordDAO recordDAO;
 
     public MainController(User loggedInUser,
@@ -54,27 +52,30 @@ public class MainController {
                           LogService logService,
                           IAcademicRecordDAO recordDAO)
     {
-        if (recordDAO == null) { // <<< THÊM KIỂM TRA NULL
+        if (recordDAO == null) {
             throw new IllegalArgumentException("AcademicRecordDAO cannot be null in MainController");
         }
         this.recordDAO = recordDAO;
 
         if (loggedInUser == null) {
-            System.exit(1);
+            throw new IllegalArgumentException("LoggedInUser cannot be null in MainController");
         }
-        if (authController == null) { throw new IllegalArgumentException("AuthController cannot be null in MainController"); }
-        if (userDAO == null || studentDAO == null) {
-            throw new IllegalArgumentException("DAO cannot be null in MainController constructor");
+        if (authController == null) {
+            throw new IllegalArgumentException("AuthController cannot be null in MainController");
         }
+
         this.loggedInUser = loggedInUser;
         this.authController = authController;
+
         initializeControllers(userDAO, studentDAO, teacherDAO, courseDAO, roomDAO, eduClassDAO, scheduleDAO, logService, recordDAO);
     }
 
     private void initializeControllers(
             IUserDAO userDAO, IStudentDAO studentDAO, ITeacherDAO teacherDAO,
             ICourseDAO courseDAO, IRoomDAO roomDAO, IEduClassDAO eduClassDAO,
-            IScheduleDAO scheduleDAO, LogService logService,IAcademicRecordDAO recordDAO) {
+            IScheduleDAO scheduleDAO, LogService logService,
+            IAcademicRecordDAO recordDAO)
+    {
         try {
             studentController = new StudentController(studentDAO, eduClassDAO, userDAO, loggedInUser, logService);
             teacherController = new TeacherController(teacherDAO, userDAO, loggedInUser, logService);
@@ -84,11 +85,17 @@ public class MainController {
             scheduleController = new ScheduleController(scheduleDAO, eduClassDAO, teacherDAO, roomDAO, loggedInUser, logService);
             userController = new UserController(userDAO, loggedInUser, logService);
             logController = new LogController(logService, loggedInUser);
-            educationController = new EducationController(loggedInUser, recordDAO, eduClassDAO, studentDAO, logService);
-            System.out.println("Child Controllers initialized successfully using injected DAOs.");
+            educationController = new EducationController(loggedInUser, recordDAO, eduClassDAO, studentDAO, logService, eduClassController);
 
-            System.out.println("Child Controllers initialized.");
+            System.out.println("Child Controllers initialized successfully.");
+
         } catch (Exception e) {
+            System.err.println("!!! CRITICAL ERROR INITIALIZING CHILD CONTROLLERS !!!");
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null,
+                    "Failed to initialize application components.\nPlease check the console log or contact support.\nError: " + e.getMessage(),
+                    "Initialization Error",
+                    JOptionPane.ERROR_MESSAGE);
             System.exit(1);
         }
     }
@@ -99,7 +106,7 @@ public class MainController {
             System.err.println("Error: MainView is null in setMainView!");
             return;
         }
-        // 1. Truyền các controller con đã được khởi tạo vào MainView
+
         mainView.setControllers(
                 studentController,
                 teacherController,
@@ -110,10 +117,14 @@ public class MainController {
                 userController,
                 logController
         );
+
         mainView.setEducationController(this.educationController);
+
         if (studentController != null) studentController.setMainView(mainView);
         if (teacherController != null) teacherController.setMainView(mainView);
         if (scheduleController != null) scheduleController.setMainView(mainView);
+        if (logController != null && mainView.getLogsPanel() != null) logController.setLogsPanel(mainView.getLogsPanel());
+
 
         mainView.configureViewForUser(loggedInUser);
         mainView.refreshSelectedTab();
@@ -130,6 +141,9 @@ public class MainController {
     public void exitApplication() {
         if (UIUtils.showConfirmDialog(mainView, "Exit Confirmation", "Are you sure you want to exit EduManager?")) {
             System.out.println("Exiting application...");
+            if (this.logController != null) this.logController.cleanupListener();
+            if (this.educationController != null) this.educationController.cleanup();
+
             System.exit(0);
         }
     }
@@ -150,37 +164,65 @@ public class MainController {
 
     public void logout() {
         System.out.println("MainController: logout() called.");
+
+        if (this.logController != null) this.logController.cleanupListener();
+        if (this.educationController != null) this.educationController.cleanup();
+
         if (this.authController != null) {
-            System.out.println("MainController: Calling authController.showLoginView()...");
+            System.out.println("MainController: Calling authController.logout() and showLoginView()...");
+            this.authController.logout();
+            if (this.mainView != null) {
+                this.mainView.dispose();
+            }
             this.authController.showLoginView();
         } else {
-            System.err.println("MainController Error: authController is null! Cannot show login view.");
+            System.err.println("MainController Error: authController is null! Cannot logout properly.");
             JOptionPane.showMessageDialog(null, "Logout failed due to an internal error.", "Logout Error", JOptionPane.ERROR_MESSAGE);
             System.exit(1);
         }
     }
 
-    public StudentController getStudentController() {
-        return studentController;
-    }
-    public TeacherController getTeacherController() {
-        return teacherController;
-    }
-    public CourseController getCourseController() {
-        return courseController;
-    }
-    public RoomController getRoomController() {
-        return roomController;
-    }
-    public EduClassController getEduClassController() {
-        return eduClassController;
-    }
-    public ScheduleController getScheduleController() {
-        return scheduleController;
+    public StudentController getStudentController() { return studentController; }
+    public TeacherController getTeacherController() { return teacherController; }
+    public CourseController getCourseController() { return courseController; }
+    public RoomController getRoomController() { return roomController; }
+    public EduClassController getEduClassController() { return eduClassController; }
+    public ScheduleController getScheduleController() { return scheduleController; }
+    public EducationController getEducationController() { return educationController; }
+
+    public void requestExcelExport(String exportType, int associatedId) {
+        Role currentUserRole = getUserRole();
+        if (currentUserRole == Role.STUDENT && exportType.equals(EXPORT_GRADES)) {
+            UIUtils.showErrorMessage(mainView, "Permission Denied", "Students cannot export grade lists.");
+            return;
+        }
+
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Save Excel File - " + exportType);
+        String suggestedFileName = exportType.replace(" ", "_").replace("/", "")
+                + (associatedId > 0 ? "_ID" + associatedId : "")
+                + ".xlsx";
+        fileChooser.setSelectedFile(new File(suggestedFileName));
+        fileChooser.setFileFilter(new FileNameExtensionFilter("Excel Workbook (*.xlsx)", "xlsx"));
+        fileChooser.setAcceptAllFileFilterUsed(false);
+
+        int userSelection = fileChooser.showSaveDialog(mainView);
+
+        if (userSelection == JFileChooser.APPROVE_OPTION) {
+            File fileToSave = fileChooser.getSelectedFile();
+            String filePath = fileToSave.getAbsolutePath();
+            if (!filePath.toLowerCase().endsWith(".xlsx")) {
+                fileToSave = new File(filePath + ".xlsx");
+            }
+            System.out.println("Export requested for: " + exportType + (associatedId > 0 ? " (ID: "+associatedId+")" : "") + " to file: " + fileToSave.getAbsolutePath());
+            exportDataToExcel(exportType, fileToSave, associatedId);
+        } else {
+            System.out.println("Export save cancelled by user.");
+        }
     }
 
-    public void exportDataToExcel(String dataType, File outputFile) {
-        System.out.println("Starting Excel export for: " + dataType + " by user role: " + getUserRole()); // Log thêm role
+    public void exportDataToExcel(String dataType, File outputFile, int associatedId) {
+        System.out.println("Starting Excel export for: " + dataType + ", Associated ID: " + associatedId);
 
         Role userRole = getUserRole();
         if (userRole == null) {
@@ -191,8 +233,9 @@ public class MainController {
             UIUtils.showErrorMessage(mainView, "Permission Denied", "Export function is not available for your role.");
             return;
         }
+
         Workbook workbook = null;
-        try  {
+        try {
             workbook = new XSSFWorkbook();
             Sheet sheet = workbook.createSheet(dataType);
 
@@ -219,23 +262,17 @@ public class MainController {
                     exportScheduleData(sheet);
                     break;
                 case EXPORT_GRADES:
-                    // Cần biết lớp nào đang được chọn để export
-                    // Tạm thời giả sử người dùng đang ở tab Education và đã chọn lớp
-                    // Nếu không, cần có cách truyền classId vào đây
-                    if (educationController != null && educationController.getCurrentSelectedClassId() > 0) {
-                        exportGradeData(sheet, educationController.getCurrentSelectedClassId());
-                    } else {
-                        UIUtils.showWarningMessage(mainView, "Export Failed", "Please select a class in the Education tab to export grades.");
-                        return; // Không export nếu chưa chọn lớp
+                    if (associatedId <= 0) {
+                        throw new IllegalArgumentException("Class ID is required for exporting grades.");
                     }
+                    exportGradeData(sheet, associatedId);
                     break;
                 default:
                     System.err.println("Unsupported data type for export: " + dataType);
-                    UIUtils.showWarningMessage(mainView, "Export Failed", "Data type '" + dataType + "' is not supported for export yet.");
+                    UIUtils.showWarningMessage(mainView, "Export Failed", "Data type '" + dataType + "' is not supported for export.");
                     return;
             }
 
-            // --- Ghi Workbook ra file ---
             try (FileOutputStream fileOut = new FileOutputStream(outputFile)) {
                 workbook.write(fileOut);
                 System.out.println("Excel file exported successfully to: " + outputFile.getAbsolutePath());
@@ -253,10 +290,17 @@ public class MainController {
             System.err.println("Error during Excel export process: " + e.getMessage());
             e.printStackTrace();
             UIUtils.showErrorMessage(mainView, "Export Error", "An unexpected error occurred during export.\nError: " + e.getMessage());
+        } finally {
+            if (workbook != null) {
+                try {
+                    workbook.close();
+                } catch (IOException ioex) {
+                    System.err.println("Error closing workbook: " + ioex.getMessage());
+                }
+            }
         }
     }
 
-    // --- CÁC PHƯƠNG THỨC HELPER ĐỂ XUẤT TỪNG LOẠI DỮ LIỆU ---
     private void exportStudentData(Sheet sheet) {
         System.out.println("Exporting Student data...");
         if (studentController == null) { System.err.println("StudentController is null!"); return; }
@@ -264,15 +308,15 @@ public class MainController {
         List<Student> students = studentController.getAllStudents();
         if (students == null || students.isEmpty()) { UIUtils.showInfoMessage(mainView, "Export Info", "No student data to export."); return; }
 
-        // Tạo hàng tiêu đề
         Row headerRow = sheet.createRow(0);
         String[] headers = {"ID", "Full Name", "Date of Birth", "Gender", "Phone", "Email", "Parent"};
+        CellStyle headerStyle = createHeaderStyle(sheet.getWorkbook());
         for (int i = 0; i < headers.length; i++) {
             Cell cell = headerRow.createCell(i);
             cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
         }
 
-        // Ghi dữ liệu từng học viên
         int rowNum = 1;
         for (Student student : students) {
             Row row = sheet.createRow(rowNum++);
@@ -300,12 +344,15 @@ public class MainController {
         List<Teacher> teachers = teacherController.getAllTeachers();
         if (teachers == null || teachers.isEmpty()) { UIUtils.showInfoMessage(mainView, "Export Info", "No teacher data to export."); return; }
 
-        // Tạo header
         Row headerRow = sheet.createRow(0);
         String[] headers = {"ID", "Full Name", "Specialization", "Phone", "Email", "DOB", "Active"};
-        for(int i=0; i<headers.length; i++) headerRow.createCell(i).setCellValue(headers[i]);
+        CellStyle headerStyle = createHeaderStyle(sheet.getWorkbook());
+        for(int i=0; i<headers.length; i++){
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
+        }
 
-        // Ghi data
         int rowNum = 1;
         for(Teacher teacher : teachers) {
             Row row = sheet.createRow(rowNum++);
@@ -316,6 +363,7 @@ public class MainController {
             row.createCell(4).setCellValue(teacher.getEmail());
             Cell dobCell = row.createCell(5);
             if (teacher.getDateOfBirth() != null) dobCell.setCellValue(teacher.getDateOfBirth().toString());
+            else dobCell.setCellValue("");
             row.createCell(6).setCellValue(teacher.isActive());
         }
         for (int i = 0; i < headers.length; i++) sheet.autoSizeColumn(i);
@@ -329,7 +377,12 @@ public class MainController {
 
         Row headerRow = sheet.createRow(0);
         String[] headers = {"ID", "Code", "Name", "Level", "Credits", "Description"};
-        for(int i=0; i<headers.length; i++) headerRow.createCell(i).setCellValue(headers[i]);
+        CellStyle headerStyle = createHeaderStyle(sheet.getWorkbook());
+        for(int i=0; i<headers.length; i++){
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
+        }
 
         int rowNum = 1;
         for(Course course : courses) {
@@ -352,7 +405,12 @@ public class MainController {
 
         Row headerRow = sheet.createRow(0);
         String[] headers = {"ID", "Number", "Building", "Capacity", "Type", "Available"};
-        for(int i=0; i<headers.length; i++) headerRow.createCell(i).setCellValue(headers[i]);
+        CellStyle headerStyle = createHeaderStyle(sheet.getWorkbook());
+        for(int i=0; i<headers.length; i++){
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
+        }
 
         int rowNum = 1;
         for(Room room : rooms) {
@@ -375,7 +433,12 @@ public class MainController {
 
         Row headerRow = sheet.createRow(0);
         String[] headers = {"ID", "Class Name", "Course Code", "Course Name", "Teacher Name", "Year", "Semester", "Max Capacity", "Enrolled Count"};
-        for(int i=0; i<headers.length; i++) headerRow.createCell(i).setCellValue(headers[i]);
+        CellStyle headerStyle = createHeaderStyle(sheet.getWorkbook());
+        for(int i=0; i<headers.length; i++){
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
+        }
 
         int rowNum = 1;
         for(EduClass eduClass : classes) {
@@ -396,35 +459,102 @@ public class MainController {
     private void exportScheduleData(Sheet sheet) {
         System.out.println("Exporting Schedule data...");
         if (scheduleController == null) { System.err.println("ScheduleController is null!"); return; }
-        List<Schedule> schedules = null;
-        boolean useDateRange = false;
+        List<Schedule> schedules = scheduleController.getAllSchedules();
 
-        if (!useDateRange) {
-            System.out.println("Exporting ALL schedules...");
-            schedules = scheduleController.getAllSchedules();
-        }
-
-        if (schedules == null || schedules.isEmpty()) { UIUtils.showInfoMessage(mainView, "Export Info", "No schedule data to export (for the selected range/all)."); return; }
+        if (schedules == null || schedules.isEmpty()) { UIUtils.showInfoMessage(mainView, "Export Info", "No schedule data to export."); return; }
 
         Row headerRow = sheet.createRow(0);
         String[] headers = {"ID", "Date", "Start Time", "End Time", "Class Name", "Teacher Name", "Room Name"};
-        for(int i=0; i<headers.length; i++) headerRow.createCell(i).setCellValue(headers[i]);
+        CellStyle headerStyle = createHeaderStyle(sheet.getWorkbook());
+        for(int i=0; i<headers.length; i++){
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
+        }
 
         int rowNum = 1;
         for(Schedule schedule : schedules) {
             Row row = sheet.createRow(rowNum++);
             row.createCell(0).setCellValue(schedule.getScheduleId());
             Cell dateCell = row.createCell(1);
-            if (schedule.getDate() != null) dateCell.setCellValue(schedule.getDate().toString());
+            if (schedule.getDate() != null) dateCell.setCellValue(schedule.getDate().toString()); else dateCell.setCellValue("");
             Cell startCell = row.createCell(2);
-            if (schedule.getStartTime() != null) startCell.setCellValue(schedule.getStartTime().toString());
+            if (schedule.getStartTime() != null) startCell.setCellValue(schedule.getStartTime().toString()); else startCell.setCellValue("");
             Cell endCell = row.createCell(3);
-            if (schedule.getEndTime() != null) endCell.setCellValue(schedule.getEndTime().toString());
+            if (schedule.getEndTime() != null) endCell.setCellValue(schedule.getEndTime().toString()); else endCell.setCellValue("");
             row.createCell(4).setCellValue(scheduleController.getClassNameById(schedule.getClassId()));
             row.createCell(5).setCellValue(scheduleController.getTeacherNameById(schedule.getTeacherId()));
             row.createCell(6).setCellValue(scheduleController.getRoomNameById(schedule.getRoomId()));
         }
         for (int i = 0; i < headers.length; i++) sheet.autoSizeColumn(i);
+    }
+
+    private void exportGradeData(Sheet sheet, int classId) {
+        System.out.println("Exporting Grade data for class ID: " + classId);
+        if (educationController == null) { System.err.println("EducationController is null!"); return; }
+
+        Object[][] data = educationController.getGradeDataForExport(classId);
+        if (data == null || data.length == 0) {
+            UIUtils.showInfoMessage(mainView, "Export Info", "No grade data to export for this class.");
+            return;
+        }
+
+        String[] headers = {"STT", "Tên HS", "Toán", "Văn", "Anh", "Lí", "Hoá", "Sinh", "Sử", "Địa", "GDCD", "Nghệ thuật", "TB KHTN", "TB KHXH", "TB môn học", "Hạnh kiểm"};
+        Row headerRow = sheet.createRow(0);
+        CellStyle headerStyle = createHeaderStyle(sheet.getWorkbook());
+        for (int i = 0; i < headers.length; i++) {
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
+        }
+
+        int rowNum = 1;
+        CellStyle doubleStyle = sheet.getWorkbook().createCellStyle();
+        DataFormat format = sheet.getWorkbook().createDataFormat();
+        doubleStyle.setDataFormat(format.getFormat("0.00"));
+
+        CellStyle integerStyle = sheet.getWorkbook().createCellStyle();
+        integerStyle.setDataFormat(format.getFormat("0"));
+
+        for (Object[] rowData : data) {
+            Row row = sheet.createRow(rowNum++);
+            for (int i = 0; i < rowData.length; i++) {
+                Cell cell = row.createCell(i);
+                Object value = rowData[i];
+
+                if (i == 0) {
+                    if (value instanceof Integer) cell.setCellValue(((Integer) value).intValue());
+                    else if (value != null) cell.setCellValue(value.toString());
+                    cell.setCellStyle(integerStyle);
+                } else if (value instanceof Number && !(value instanceof Integer)) {
+                    cell.setCellValue(((Number) value).doubleValue());
+                    cell.setCellStyle(doubleStyle);
+                } else if (value != null) {
+                    cell.setCellValue(value.toString());
+                } else {
+                    cell.setCellValue("");
+                }
+            }
+        }
+
+        for (int i = 0; i < headers.length; i++) {
+            sheet.autoSizeColumn(i);
+        }
+        System.out.println("Grade data prepared for export.");
+    }
+
+    private CellStyle createHeaderStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setBold(true);
+        style.setFont(font);
+        style.setAlignment(HorizontalAlignment.CENTER);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        style.setBorderBottom(BorderStyle.THIN);
+        style.setBorderTop(BorderStyle.THIN);
+        style.setBorderLeft(BorderStyle.THIN);
+        style.setBorderRight(BorderStyle.THIN);
+        return style;
     }
 
     public void setLookAndFeel(String lafClassName) {
@@ -439,58 +569,5 @@ public class MainController {
             e.printStackTrace();
             UIUtils.showErrorMessage(mainView, "Theme Error", "Could not apply the selected theme.");
         }
-    }
-    private void exportGradeData(Sheet sheet, int classId) {
-        System.out.println("Exporting Grade data for class ID: " + classId);
-        if (educationController == null) { System.err.println("EducationController is null!"); return; }
-
-        // Lấy dữ liệu đã được xử lý từ controller
-        Object[][] data = educationController.getGradeDataForExport(classId);
-        if (data == null || data.length == 0) {
-            UIUtils.showInfoMessage(mainView, "Export Info", "No grade data to export for this class.");
-            return;
-        }
-
-        // Tạo hàng tiêu đề (LẤY TỪ EducationPanel.TABLE_COLUMNS cho nhất quán)
-        String[] headers = {"STT", "Tên HS", "Toán", "Văn", "Anh", "Lí", "Hoá", "Sinh", "Sử", "Địa", "GDCD", "Nghệ thuật", "TB KHTN", "TB KHXH", "TB môn học", "Hạnh kiểm"};
-        Row headerRow = sheet.createRow(0);
-        for (int i = 0; i < headers.length; i++) {
-            Cell cell = headerRow.createCell(i);
-            cell.setCellValue(headers[i]);
-            // Có thể thêm style cho header ở đây
-        }
-
-        // Ghi dữ liệu
-        int rowNum = 1;
-        CellStyle doubleStyle = sheet.getWorkbook().createCellStyle(); // Style cho số thập phân
-        DataFormat format = sheet.getWorkbook().createDataFormat();
-        doubleStyle.setDataFormat(format.getFormat("0.0#")); // Format 1 hoặc 2 chữ số thập phân
-
-        for (Object[] rowData : data) {
-            Row row = sheet.createRow(rowNum++);
-            for (int i = 0; i < rowData.length; i++) {
-                Cell cell = row.createCell(i);
-                Object value = rowData[i];
-                if (value instanceof Number && !(value instanceof Integer)) { // Định dạng số thập phân (điểm, TB)
-                    cell.setCellValue(((Number) value).doubleValue());
-                    cell.setCellStyle(doubleStyle);
-                } else if (value instanceof Integer) { // STT
-                    cell.setCellValue(((Integer) value).intValue());
-                } else if (value != null) { // Tên, Nghệ thuật, Hạnh kiểm
-                    cell.setCellValue(value.toString());
-                } else {
-                    cell.setCellValue(""); // Để trống nếu null
-                }
-            }
-        }
-
-        // Tự động điều chỉnh độ rộng cột
-        for (int i = 0; i < headers.length; i++) {
-            sheet.autoSizeColumn(i);
-        }
-        System.out.println("Grade data prepared for export.");
-    }
-    public EducationController getEducationController() {
-        return educationController;
     }
 }
