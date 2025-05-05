@@ -3,6 +3,7 @@ package com.eduzk.utils;
 import javax.swing.*;
 import java.awt.*;
 import java.net.URL;
+import com.formdev.flatlaf.extras.FlatSVGIcon;
 
 public class UIUtils {
 
@@ -75,5 +76,20 @@ public class UIUtils {
             return (Window) component;
         }
         return SwingUtilities.getWindowAncestor(component);
+    }
+    public static Icon loadSVGIcon(String path, int size) {
+        if (path == null || path.isEmpty()) return null;
+        try {
+            URL iconUrl = UIUtils.class.getResource(path); // Dùng getResource từ Class
+            if (iconUrl != null) {
+                return new FlatSVGIcon(iconUrl).derive(size, size);
+            } else {
+                System.err.println("UIUtils Warning: SVG icon resource not found at: " + path);
+                return null; // Trả về null nếu không tìm thấy
+            }
+        } catch (Exception e) {
+            System.err.println("UIUtils Error: loading/parsing SVG icon from path: " + path + " - " + e.getMessage());
+            return null; // Trả về null nếu có lỗi
+        }
     }
 }

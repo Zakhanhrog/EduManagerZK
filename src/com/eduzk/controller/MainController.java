@@ -15,6 +15,10 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import com.eduzk.model.dao.impl.LogService;
 import com.eduzk.controller.LogController;
+import com.eduzk.model.dao.interfaces.IAcademicRecordDAO;
+import com.eduzk.controller.EducationController;
+import javax.swing.table.DefaultTableModel;
+import java.text.DecimalFormat;
 
 public class MainController {
     public static final String EXPORT_STUDENTS = "Student List";
@@ -23,6 +27,7 @@ public class MainController {
     public static final String EXPORT_ROOMS = "Room List";
     public static final String EXPORT_CLASSES = "Class List (Basic Info)";
     public static final String EXPORT_SCHEDULE = "Schedule (Current View. All)";
+    public static final String EXPORT_GRADES = "Student Grades";
     private final User loggedInUser;
     private MainView mainView;
     private final AuthController authController;
@@ -34,6 +39,8 @@ public class MainController {
     private ScheduleController scheduleController;
     private UserController userController;
     private LogController logController;
+    private EducationController educationController; // <<< THÊM
+    private final IAcademicRecordDAO recordDAO;
 
     public MainController(User loggedInUser,
                           AuthController authController,
@@ -44,8 +51,14 @@ public class MainController {
                           IRoomDAO roomDAO,
                           IEduClassDAO eduClassDAO,
                           IScheduleDAO scheduleDAO,
-                          LogService logService)
+                          LogService logService,
+                          IAcademicRecordDAO recordDAO)
     {
+        if (recordDAO == null) { // <<< THÊM KIỂM TRA NULL
+            throw new IllegalArgumentException("AcademicRecordDAO cannot be null in MainController");
+        }
+        this.recordDAO = recordDAO;
+
         if (loggedInUser == null) {
             System.exit(1);
         }
@@ -55,13 +68,13 @@ public class MainController {
         }
         this.loggedInUser = loggedInUser;
         this.authController = authController;
-        initializeControllers(userDAO, studentDAO, teacherDAO, courseDAO, roomDAO, eduClassDAO, scheduleDAO, logService);
+        initializeControllers(userDAO, studentDAO, teacherDAO, courseDAO, roomDAO, eduClassDAO, scheduleDAO, logService, recordDAO);
     }
 
     private void initializeControllers(
             IUserDAO userDAO, IStudentDAO studentDAO, ITeacherDAO teacherDAO,
             ICourseDAO courseDAO, IRoomDAO roomDAO, IEduClassDAO eduClassDAO,
-            IScheduleDAO scheduleDAO, LogService logService) {
+            IScheduleDAO scheduleDAO, LogService logService,IAcademicRecordDAO recordDAO) {
         try {
             studentController = new StudentController(studentDAO, eduClassDAO, userDAO, loggedInUser, logService);
             teacherController = new TeacherController(teacherDAO, userDAO, loggedInUser, logService);
@@ -71,6 +84,7 @@ public class MainController {
             scheduleController = new ScheduleController(scheduleDAO, eduClassDAO, teacherDAO, roomDAO, loggedInUser, logService);
             userController = new UserController(userDAO, loggedInUser, logService);
             logController = new LogController(logService, loggedInUser);
+            educationController = new EducationController(loggedInUser, recordDAO, eduClassDAO, studentDAO, logService);
             System.out.println("Child Controllers initialized successfully using injected DAOs.");
 
             System.out.println("Child Controllers initialized.");
@@ -96,6 +110,7 @@ public class MainController {
                 userController,
                 logController
         );
+        mainView.setEducationController(this.educationController);
         if (studentController != null) studentController.setMainView(mainView);
         if (teacherController != null) teacherController.setMainView(mainView);
         if (scheduleController != null) scheduleController.setMainView(mainView);
@@ -202,6 +217,17 @@ public class MainController {
                     break;
                 case EXPORT_SCHEDULE:
                     exportScheduleData(sheet);
+                    break;
+                case EXPORT_GRADES:
+                    // Cần biết lớp nào đang được chọn để export
+                    // Tạm thời giả sử người dùng đang ở tab Education và đã chọn lớp
+                    // Nếu không, cần có cách truyền classId vào đây
+                    if (educationController != null && educationController.getCurrentSelectedClassId() > 0) {
+                        exportGradeData(sheet, educationController.getCurrentSelectedClassId());
+                    } else {
+                        UIUtils.showWarningMessage(mainView, "Export Failed", "Please select a class in the Education tab to export grades.");
+                        return; // Không export nếu chưa chọn lớp
+                    }
                     break;
                 default:
                     System.err.println("Unsupported data type for export: " + dataType);
@@ -413,5 +439,58 @@ public class MainController {
             e.printStackTrace();
             UIUtils.showErrorMessage(mainView, "Theme Error", "Could not apply the selected theme.");
         }
+    }
+    private void exportGradeData(Sheet sheet, int classId) {
+        System.out.println("Exporting Grade data for class ID: " + classId);
+        if (educationController == null) { System.err.println("EducationController is null!"); return; }
+
+        // Lấy dữ liệu đã được xử lý từ controller
+        Object[][] data = educationController.getGradeDataForExport(classId);
+        if (data == null || data.length == 0) {
+            UIUtils.showInfoMessage(mainView, "Export Info", "No grade data to export for this class.");
+            return;
+        }
+
+        // Tạo hàng tiêu đề (LẤY TỪ EducationPanel.TABLE_COLUMNS cho nhất quán)
+        String[] headers = {"STT", "Tên HS", "Toán", "Văn", "Anh", "Lí", "Hoá", "Sinh", "Sử", "Địa", "GDCD", "Nghệ thuật", "TB KHTN", "TB KHXH", "TB môn học", "Hạnh kiểm"};
+        Row headerRow = sheet.createRow(0);
+        for (int i = 0; i < headers.length; i++) {
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            // Có thể thêm style cho header ở đây
+        }
+
+        // Ghi dữ liệu
+        int rowNum = 1;
+        CellStyle doubleStyle = sheet.getWorkbook().createCellStyle(); // Style cho số thập phân
+        DataFormat format = sheet.getWorkbook().createDataFormat();
+        doubleStyle.setDataFormat(format.getFormat("0.0#")); // Format 1 hoặc 2 chữ số thập phân
+
+        for (Object[] rowData : data) {
+            Row row = sheet.createRow(rowNum++);
+            for (int i = 0; i < rowData.length; i++) {
+                Cell cell = row.createCell(i);
+                Object value = rowData[i];
+                if (value instanceof Number && !(value instanceof Integer)) { // Định dạng số thập phân (điểm, TB)
+                    cell.setCellValue(((Number) value).doubleValue());
+                    cell.setCellStyle(doubleStyle);
+                } else if (value instanceof Integer) { // STT
+                    cell.setCellValue(((Integer) value).intValue());
+                } else if (value != null) { // Tên, Nghệ thuật, Hạnh kiểm
+                    cell.setCellValue(value.toString());
+                } else {
+                    cell.setCellValue(""); // Để trống nếu null
+                }
+            }
+        }
+
+        // Tự động điều chỉnh độ rộng cột
+        for (int i = 0; i < headers.length; i++) {
+            sheet.autoSizeColumn(i);
+        }
+        System.out.println("Grade data prepared for export.");
+    }
+    public EducationController getEducationController() {
+        return educationController;
     }
 }

@@ -31,7 +31,7 @@ public class AuthController {
     private LogService logService;
     private LoginView loginView;
     private User loggedInUser;
-
+    private IAcademicRecordDAO recordDAO;
 
     public AuthController(IUserDAO userDAO) {
         this.userDAO = userDAO;
@@ -49,7 +49,7 @@ public class AuthController {
     public void setRoomDAO(IRoomDAO roomDAO) { this.roomDAO = roomDAO; }
     public void setEduClassDAO(IEduClassDAO eduClassDAO) { this.eduClassDAO = eduClassDAO; }
     public void setScheduleDAO(IScheduleDAO scheduleDAO) { this.scheduleDAO = scheduleDAO; }
-
+    public void setAcademicRecordDAO(IAcademicRecordDAO recordDAO) { this.recordDAO = recordDAO; }
     public IUserDAO getUserDAO() { return userDAO; }
     public ITeacherDAO getTeacherDAO() { return teacherDAO; }
     public IStudentDAO getStudentDAO() { return studentDAO; }
@@ -57,7 +57,7 @@ public class AuthController {
     public IRoomDAO getRoomDAO() { return roomDAO; }
     public IEduClassDAO getEduClassDAO() { return eduClassDAO; }
     public IScheduleDAO getScheduleDAO() { return scheduleDAO; }
-
+    public IAcademicRecordDAO getAcademicRecordDAO() { return recordDAO; }
     public void setLoginView(LoginView loginView) {
         this.loginView = loginView;
     }
@@ -86,8 +86,8 @@ public class AuthController {
                                     UIUtils.showErrorMessage(loginView, "Login Error", "Failed to verify password change. Please try logging in again.");
                                     return false;
                                 }
-                                this.loggedInUser = updatedUser; // Gán user đã cập nhật
-                                loginSuccess(); // Mở MainView
+                                this.loggedInUser = updatedUser;
+                                loginSuccess();
                                 return true;
                             } else {
                                 System.out.println("Password change was cancelled or failed.");
@@ -146,41 +146,40 @@ public class AuthController {
         return successFlag[0];
     }
     public boolean performForcedPasswordChange(User user, String newPassword) {
-        // Validation mật khẩu mới nên được thực hiện trong Dialog trước khi gọi hàm này
         try {
             user.setPassword(newPassword);
-            user.setRequiresPasswordChange(false); // <<< QUAN TRỌNG: Đặt lại flag
-            userDAO.update(user); // <<< LƯU THAY ĐỔI VÀO DAO >>>
+            user.setRequiresPasswordChange(false);
+            userDAO.update(user);
 
             // Ghi log
             if (logService != null) {
                 logService.addLogEntry(new LogEntry(
                         java.time.LocalDateTime.now(),
-                        user.getDisplayName(), // Lấy tên hiển thị
+                        user.getDisplayName(),
                         user.getRole().name(),
-                        "Forced Password Change", // Hành động
-                        "User changed initial default password." // Chi tiết
+                        "Forced Password Change",
+                        "User changed initial default password."
                 ));
                 System.out.println("Log entry added for forced password change for user: " + user.getUsername());
             }
             System.out.println("Password updated and flag cleared for user: " + user.getUsername());
-            return true; // Trả về true nếu thành công
-        } catch (Exception e) { // Bắt các lỗi có thể xảy ra từ DAO
+            return true;
+        } catch (Exception e) {
             System.err.println("Error performing forced password change in DAO for user " + user.getUsername() + ": " + e.getMessage());
             e.printStackTrace();
-            return false; // Trả về false nếu có lỗi
+            return false;
         }
     }
 
     private void loginSuccess() {
         if (loggedInUser != null) {
-            String nameToShow = loggedInUser.getUsername(); // Mặc định là username
+            String nameToShow = loggedInUser.getUsername();
 
             if (loggedInUser.getRole() == Role.TEACHER && loggedInUser.getTeacherId() != null && teacherDAO != null) {
                 try {
                     Teacher teacher = teacherDAO.getById(loggedInUser.getTeacherId());
                     if (teacher != null && teacher.getFullName() != null && !teacher.getFullName().isEmpty()) {
-                        nameToShow = teacher.getFullName(); // Lấy tên đầy đủ của Teacher
+                        nameToShow = teacher.getFullName();
                         System.out.println("Found Teacher Full Name: " + nameToShow);
                     } else {
                         System.err.println("Could not find full name for Teacher ID: " + loggedInUser.getTeacherId());
@@ -223,7 +222,8 @@ public class AuthController {
                         this.getRoomDAO(),
                         this.getEduClassDAO(),
                         this.getScheduleDAO(),
-                        this.getLogService()
+                        this.getLogService(),
+                        this.getAcademicRecordDAO()
                 );
 
                 MainView mainView = new MainView(mainController);

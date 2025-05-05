@@ -6,7 +6,6 @@ import com.eduzk.model.entities.EduClass;
 import com.eduzk.model.entities.Teacher;
 import com.eduzk.utils.UIUtils;
 import com.eduzk.utils.ValidationUtils;
-
 import javax.swing.*;
 import java.awt.*;
 import java.util.List;
@@ -20,8 +19,6 @@ public class ClassDialog extends JDialog {
     private final boolean isEditMode;
     private final List<Course> availableCourses;
     private final List<Teacher> availableTeachers;
-
-    // UI Components
     private JTextField idField;
     private JTextField classNameField;
     private JComboBox<Course> courseComboBox;
@@ -53,11 +50,11 @@ public class ClassDialog extends JDialog {
         idField = new JTextField(5);
         idField.setEditable(false);
         classNameField = new JTextField(25);
-        courseComboBox = new JComboBox<>(new Vector<>(availableCourses)); // Use Vector for JComboBox model
+        courseComboBox = new JComboBox<>(new Vector<>(availableCourses));
         teacherComboBox = new JComboBox<>(new Vector<>(availableTeachers));
-        yearField = new JTextField(10); // E.g., 2024-2025
-        semesterField = new JTextField(10); // E.g., Fall, Spring, 1
-        capacitySpinner = new JSpinner(new SpinnerNumberModel(1, 1, 500, 1)); // Min capacity 1
+        yearField = new JTextField(10);
+        semesterField = new JTextField(10);
+        capacitySpinner = new JSpinner(new SpinnerNumberModel(1, 1, 500, 1));
 
         // Custom renderers to display course/teacher names nicely in ComboBox
         courseComboBox.setRenderer(new DefaultListCellRenderer() {
@@ -68,8 +65,7 @@ public class ClassDialog extends JDialog {
                     Course c = (Course) value;
                     setText(c.getCourseCode() + " - " + c.getCourseName());
                 } else if (value == null && index == -1) {
-                    // Handle display when nothing is selected (if needed)
-                    setText(""); // Or "Select Course"
+                    setText("Select Course");
                 }
                 return this;
             }
@@ -83,7 +79,7 @@ public class ClassDialog extends JDialog {
                     Teacher t = (Teacher) value;
                     setText(t.getFullName());
                 } else if (value == null && index == -1) {
-                    setText(""); // Or "Select Teacher"
+                    setText("Select Teacher");
                 }
                 return this;
             }
@@ -149,9 +145,6 @@ public class ClassDialog extends JDialog {
         formPanel.add(new JLabel("Max Capacity*:"), gbc);
         gbc.gridx = 1; gbc.gridy = currentRow; gbc.gridwidth = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 0.0; // Don't let spinner stretch too much
         formPanel.add(capacitySpinner, gbc);
-        // Add empty components to fill remaining space in this row if needed
-        // gbc.gridx = 2; gbc.gridy = currentRow; gbc.weightx = 1.0; formPanel.add(new JLabel(""), gbc);
-
 
         // Button Panel
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
@@ -195,13 +188,12 @@ public class ClassDialog extends JDialog {
             return;
         }
         for (int i = 0; i < comboBox.getItemCount(); i++) {
-            // Use Objects.equals for null-safe comparison
             if (Objects.equals(comboBox.getItemAt(i), itemToSelect)) {
                 comboBox.setSelectedIndex(i);
                 return;
             }
         }
-        comboBox.setSelectedIndex(-1); // Item not found in the list
+        comboBox.setSelectedIndex(-1);
     }
 
 
@@ -243,7 +235,6 @@ public class ClassDialog extends JDialog {
             return;
         }
 
-
         // --- Create or Update EduClass Object ---
         EduClass eduClass = isEditMode ? classToEdit : new EduClass();
         eduClass.setClassName(className);
@@ -252,16 +243,9 @@ public class ClassDialog extends JDialog {
         eduClass.setAcademicYear(year);
         eduClass.setSemester(semester);
         eduClass.setMaxCapacity(capacity);
-        // Student list is managed separately (enroll/unenroll)
-        // ID handled by DAO or exists already
-
-
         // --- Call Controller ---
         boolean success;
         if (isEditMode) {
-            // Preserve enrolled students when updating
-            // EduClassController's update should ideally handle this,
-            // but we ensure the student list isn't lost here if needed.
             if (classToEdit != null) {
                 eduClass.setStudentIds(classToEdit.getStudentIds()); // Keep existing students
             }
@@ -271,8 +255,7 @@ public class ClassDialog extends JDialog {
         }
 
         if (success) {
-            dispose(); // Close dialog on success
+            dispose();
         }
-        // Controller shows messages
     }
 }

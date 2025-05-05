@@ -16,6 +16,8 @@ import javax.swing.SwingWorker;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import com.eduzk.model.dao.impl.LogService;
+import com.eduzk.model.dao.interfaces.IAcademicRecordDAO;
+import com.eduzk.model.dao.impl.AcademicRecordDAOImpl;
 
 
 public class App {
@@ -64,6 +66,7 @@ public class App {
                         IRoomDAO roomDAO = new RoomDAOImpl(dataDir + "rooms.dat", idFile);
                         IEduClassDAO eduClassDAO = new EduClassDAOImpl(dataDir + "educlasses.dat", sharedIdGenerator);
                         IScheduleDAO scheduleDAO = new ScheduleDAOImpl(dataDir + "schedules.dat", idFile);
+                        IAcademicRecordDAO academicRecordDAO = new AcademicRecordDAOImpl(dataDir + "academic_records.dat", sharedIdGenerator);
                         System.out.println("ALL DAOs initialized.");
                         Thread.sleep(200);
 
@@ -85,6 +88,7 @@ public class App {
                         authController.setEduClassDAO(eduClassDAO);
                         authController.setScheduleDAO(scheduleDAO);
                         authController.setLogService(logService);
+                        authController.setAcademicRecordDAO(academicRecordDAO);
                         System.out.println("AuthController initialized.");
                         Thread.sleep(200);
 
@@ -92,7 +96,6 @@ public class App {
                         Thread.sleep(300);
 
                         return authController;
-
                     } catch (Throwable t) {
                         System.err.println("!!! CRITICAL ERROR DURING BACKGROUND INITIALIZATION !!!");
                         t.printStackTrace();
@@ -114,7 +117,6 @@ public class App {
 
                     try {
                         AuthController authController = get();
-
                         System.out.println("Initializing LoginView...");
                         LoginView loginView = new LoginView(authController);
                         authController.setLoginView(loginView);
@@ -139,12 +141,8 @@ public class App {
                     }
                 }
             };
-
             initializer.execute();
-
-
         });
-
         System.out.println("main() method finished scheduling EDT task.");
     }
 

@@ -5,7 +5,7 @@ import com.eduzk.model.entities.Role;
 import com.eduzk.model.entities.Student;
 import com.eduzk.utils.DateUtils;
 import com.eduzk.utils.UIUtils;
-import com.eduzk.view.dialogs.StudentDialog; // Import the dialog
+import com.eduzk.view.dialogs.StudentDialog;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -32,7 +32,7 @@ public class StudentPanel extends JPanel {
 
     public StudentPanel(StudentController controller) {
         this.controller = controller;
-        setLayout(new BorderLayout(10, 10)); // Add gaps
+        setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Add padding
         initComponents();
         setupLayout();
@@ -42,7 +42,6 @@ public class StudentPanel extends JPanel {
     // Method to set the controller after instantiation (used by MainView)
     public void setController(StudentController controller) {
         this.controller = controller;
-        // Initial data load when controller is set
         refreshTable();
     }
 
@@ -57,7 +56,7 @@ public class StudentPanel extends JPanel {
         };
         studentTable = new JTable(tableModel);
         studentTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
-        studentTable.setAutoCreateRowSorter(true); // Enable basic sorting
+        studentTable.setAutoCreateRowSorter(true);
         sorter = (TableRowSorter<DefaultTableModel>) studentTable.getRowSorter();
 
 
@@ -93,7 +92,6 @@ public class StudentPanel extends JPanel {
     }
 
     private void setupLayout() {
-        // Top Panel (Search and Actions)
         JPanel topPanel = new JPanel(new BorderLayout(10, 0));
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         searchPanel.add(new JLabel("Search:"));

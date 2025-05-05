@@ -20,6 +20,7 @@ public class IdGenerator {
     private static final String ROOM_ID_KEY = "room";
     private static final String EDUCLASS_ID_KEY = "educlass";
     private static final String SCHEDULE_ID_KEY = "schedule";
+    private static final String ACADEMIC_RECORD_ID_KEY = "academic_record";
 
     public IdGenerator(String idFilePath) {
         this.idFilePath = idFilePath;
@@ -33,7 +34,6 @@ public class IdGenerator {
         try {
             File file = new File(idFilePath);
             if (!file.exists()) {
-                // If the file doesn't exist, initialize with default values
                 initializeDefaultKeys();
                 saveNextIds(); // Create the file with defaults
                 return;
@@ -71,6 +71,7 @@ public class IdGenerator {
         nextIdMap.putIfAbsent(ROOM_ID_KEY, 1);
         nextIdMap.putIfAbsent(EDUCLASS_ID_KEY, 1);
         nextIdMap.putIfAbsent(SCHEDULE_ID_KEY, 1);
+        nextIdMap.putIfAbsent(ACADEMIC_RECORD_ID_KEY, 1);
     }
 
 
@@ -99,6 +100,9 @@ public class IdGenerator {
         } finally {
             lock.unlock();
         }
+    }
+    public int getNextAcademicRecordId() {
+        return getNextId(ACADEMIC_RECORD_ID_KEY);
     }
 
     public int getNextUserId() {

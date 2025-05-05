@@ -17,14 +17,14 @@ public class CourseController {
 
     private final ICourseDAO courseDAO;
     private final User currentUser;
-    private final LogService logService; // <-- THÊM BIẾN LOGSERVICE
+    private final LogService logService;
     private CoursePanel coursePanel;
 
     // --- SỬA CONSTRUCTOR ĐỂ NHẬN LogService ---
-    public CourseController(ICourseDAO courseDAO, User currentUser, LogService logService) { // Thêm LogService
+    public CourseController(ICourseDAO courseDAO, User currentUser, LogService logService) {
         this.courseDAO = courseDAO;
         this.currentUser = currentUser;
-        this.logService = logService; // <-- LƯU LogService
+        this.logService = logService;
     }
 
     public void setCoursePanel(CoursePanel coursePanel) {
@@ -33,7 +33,6 @@ public class CourseController {
 
     public List<Course> getAllCourses() {
         try {
-            // Logic này không lọc theo vai trò, Teacher/Student sẽ thấy hết
             return courseDAO.getAll();
         } catch (DataAccessException e) {
             System.err.println("Error loading courses: " + e.getMessage());
@@ -47,7 +46,7 @@ public class CourseController {
             return getAllCourses();
         }
         try {
-            return courseDAO.findByName(name); // Giả sử có hàm này trong DAO
+            return courseDAO.findByName(name);
         } catch (DataAccessException e) {
             System.err.println("Error searching courses: " + e.getMessage());
             UIUtils.showErrorMessage(coursePanel, "Error", "Failed to search courses.");
@@ -57,16 +56,13 @@ public class CourseController {
 
     // --- SỬA addCourse ĐỂ GHI LOG ---
     public boolean addCourse(Course course) {
-        // ... (Validation giữ nguyên) ...
         if (course == null || !ValidationUtils.isNotEmpty(course.getCourseCode()) || !ValidationUtils.isNotEmpty(course.getCourseName())) {
             UIUtils.showWarningMessage(coursePanel, "Validation Error", "Course code and name cannot be empty.");
             return false;
         }
 
         try {
-            courseDAO.add(course); // Thêm course
-
-            // *** GHI LOG SAU KHI THÀNH CÔNG ***
+            courseDAO.add(course);
             writeAddLog("Added Course", course);
 
             if (coursePanel != null) {
@@ -88,9 +84,7 @@ public class CourseController {
             return false;
         }
         try {
-            courseDAO.update(course); // Cập nhật course
-
-            // *** GHI LOG SAU KHI THÀNH CÔNG ***
+            courseDAO.update(course);
             writeUpdateLog("Updated Course", course);
 
             if (coursePanel != null) {
@@ -105,28 +99,24 @@ public class CourseController {
         }
     }
 
-    // --- SỬA deleteCourse ĐỂ GHI LOG ---
     public boolean deleteCourse(int courseId) {
         if (courseId <= 0) {
             UIUtils.showWarningMessage(coursePanel, "Error", "Invalid course ID for deletion.");
             return false;
         }
-        // Lấy thông tin course trước khi xóa để ghi log
         Course courseToDelete = null;
         try {
-            courseToDelete = courseDAO.getById(courseId); // Cần hàm getById trong DAO
+            courseToDelete = courseDAO.getById(courseId);
         } catch (DataAccessException e) {
             System.err.println("Error finding course to delete (for logging): " + e.getMessage());
-            // Có thể vẫn tiếp tục xóa nếu muốn
         }
         String courseInfoForLog = (courseToDelete != null)
                 ? ("ID: " + courseId + ", Code: " + courseToDelete.getCourseCode() + ", Name: " + courseToDelete.getCourseName())
                 : ("ID: " + courseId);
 
         try {
-            courseDAO.delete(courseId); // Xóa course
+            courseDAO.delete(courseId);
 
-            // *** GHI LOG SAU KHI THÀNH CÔNG ***
             writeDeleteLog("Deleted Course", courseInfoForLog);
 
             if (coursePanel != null) {
@@ -141,7 +131,6 @@ public class CourseController {
         }
     }
 
-    // --- getCourseById (Giữ nguyên) ---
     public Course getCourseById(int courseId) {
         if (courseId <= 0) return null;
         try {
@@ -152,7 +141,6 @@ public class CourseController {
         }
     }
 
-    // --- CÁC HÀM HELPER GHI LOG (Copy và chỉnh sửa nếu cần) ---
     private void writeAddLog(String action, Course course) {
         writeLog(action, "ID: " + course.getCourseId() + ", Code: " + course.getCourseCode() + ", Name: " + course.getCourseName());
     }
@@ -171,7 +159,7 @@ public class CourseController {
             try {
                 LogEntry log = new LogEntry(
                         LocalDateTime.now(),
-                        currentUser.getDisplayName(), // Dùng DisplayName
+                        currentUser.getDisplayName(),
                         currentUser.getRole().name(),
                         action,
                         details
@@ -184,5 +172,4 @@ public class CourseController {
             System.err.println("LogService or CurrentUser is null. Cannot write log for action: " + action);
         }
     }
-
-} // Kết thúc lớp CourseController
+}

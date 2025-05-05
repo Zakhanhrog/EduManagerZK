@@ -93,15 +93,15 @@ public class SchedulePanel extends JPanel {
         // Buttons
         int iconSize = 20;
 
-        addButton = new JButton("Add Entry");
+        addButton = new JButton("Add Schedule");
         Icon addIcon = loadSVGIconButton("/icons/add.svg", iconSize);
         if (addIcon != null) addButton.setIcon(addIcon);
 
-        editButton = new JButton("Edit Entry");
+        editButton = new JButton("Edit Schedule");
         Icon editIcon = loadSVGIconButton("/icons/edit.svg", iconSize);
         if (editIcon != null) editButton.setIcon(editIcon);
 
-        deleteButton = new JButton("Delete Entry");
+        deleteButton = new JButton("Delete Schedule");
         Icon deleteIcon = loadSVGIconButton("/icons/delete.svg", iconSize);
         if (deleteIcon != null) deleteButton.setIcon(deleteIcon);
 

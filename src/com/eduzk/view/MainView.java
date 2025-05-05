@@ -26,6 +26,8 @@ import com.formdev.flatlaf.extras.FlatSVGIcon;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import com.eduzk.view.panels.LogsPanel;
+import com.eduzk.view.panels.EducationPanel;
+import com.eduzk.controller.EducationController;
 
 
 public class MainView extends JFrame {
@@ -43,6 +45,8 @@ public class MainView extends JFrame {
     private JPanel statusBar;
     private LogsPanel logsPanel;
     private HelpPanel helpPanel;
+    private EducationPanel educationPanel;
+    private EducationController educationController;
 
     public MainView(MainController mainController) {
         this.mainController = mainController;
@@ -87,6 +91,7 @@ public class MainView extends JFrame {
         accountsPanel = new AccountsPanel(null);
         logsPanel = new LogsPanel();
         helpPanel = new HelpPanel();
+        educationPanel = new EducationPanel();
         statusBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 3));
         statusBar.add(statusLabel);
     }
@@ -339,6 +344,8 @@ public class MainView extends JFrame {
         Icon accountsIcon = loadTabSVGICon("/icons/accounts.svg");
         Icon logsIcon = loadTabSVGICon("/icons/logs.svg");
         Icon helpIcon = loadTabSVGICon("/icons/help.svg");
+        Icon educationIcon = loadTabSVGICon("/icons/education.svg"); // Nhớ tạo icon này
+
 
         // --- Thêm tab và đặt component tùy chỉnh ---
         boolean isAdmin = (user.getRole() == Role.ADMIN);
@@ -368,6 +375,9 @@ public class MainView extends JFrame {
             tabbedPane.addTab(null, null, roomPanel, "Manage Rooms");
             JPanel roomsTabComp = createTabComponent("Rooms", roomsIcon);
             tabbedPane.setTabComponentAt(tabIndex++, roomsTabComp);
+
+            tabbedPane.addTab(null, null, educationPanel, "Học tập"); // Đặt tooltip nếu muốn
+            tabbedPane.setTabComponentAt(tabIndex++, createTabComponent("Education", educationIcon));
 
             JSeparator separator = new JSeparator(SwingConstants.VERTICAL);
             separator.setPreferredSize(new Dimension(5, 20));
@@ -442,12 +452,16 @@ public class MainView extends JFrame {
         if (schedulePanel != null) {
             schedulePanel.setAdminControlsEnabled(userRole == Role.ADMIN);
         }
+        if (educationPanel != null) {
+            educationPanel.configureControlsForRole(userRole);
+        }
         if (accountsPanel != null) {
             accountsPanel.configureControlsForRole(userRole);
         }
         if (logsPanel != null) {
             logsPanel.configureControlsForRole(userRole); // Gọi hàm tương ứng
         }
+
     }
 
     public void refreshSelectedTab() {
@@ -472,6 +486,7 @@ public class MainView extends JFrame {
             }else if (selectedComponent instanceof LogsPanel) {
                 ((LogsPanel) selectedComponent).refreshTable();
             }
+
         }
     }
     @Override
@@ -558,4 +573,11 @@ public class MainView extends JFrame {
             System.err.println("MainView: accountsPanel is null, cannot refresh.");
         }
     }
+    public void setEducationController(EducationController ec) {
+        this.educationController = ec;
+        if (this.educationPanel != null && this.educationController != null && mainController != null) {
+            this.educationPanel.setController(this.educationController, mainController.getUserRole());
+        }
+    }
+
 }

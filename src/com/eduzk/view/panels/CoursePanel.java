@@ -4,7 +4,7 @@ import com.eduzk.controller.CourseController;
 import com.eduzk.model.entities.Course;
 import com.eduzk.model.entities.Role;
 import com.eduzk.utils.UIUtils;
-import com.eduzk.view.dialogs.CourseDialog; // Import the dialog
+import com.eduzk.view.dialogs.CourseDialog;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
@@ -55,17 +55,13 @@ public class CoursePanel extends JPanel {
 
         // Thêm topPanel vào panel chính (this) ở phía Bắc
         add(topPanel, BorderLayout.NORTH);
-
-        // Center Panel (Table)
-        // Đặt courseTable vào trong JScrollPane
         JScrollPane scrollPane = new JScrollPane(courseTable);
-        // Thêm scrollPane vào panel chính (this) ở giữa
         add(scrollPane, BorderLayout.CENTER);
     }
 
     public void setController(CourseController controller) {
         this.controller = controller;
-        refreshTable(); // Initial load
+        refreshTable();
     }
 
     private void initComponents() {
@@ -99,15 +95,15 @@ public class CoursePanel extends JPanel {
 
         // Buttons
         int iconSize = 20;
-        addButton = new JButton("Add Class"); // Bỏ icon khỏi constructor
+        addButton = new JButton("Add Course");
         Icon addIcon = loadSVGIconButton("/icons/add.svg", iconSize);
         if (addIcon != null) addButton.setIcon(addIcon);
 
-        editButton = new JButton("Edit Class");
+        editButton = new JButton("Edit Course");
         Icon editIcon = loadSVGIconButton("/icons/edit.svg", iconSize);
         if (editIcon != null) editButton.setIcon(editIcon);
 
-        deleteButton = new JButton("Delete Class");
+        deleteButton = new JButton("Delete Course");
         Icon deleteIcon = loadSVGIconButton("/icons/delete.svg", iconSize);
         if (deleteIcon != null) deleteButton.setIcon(deleteIcon);
 
@@ -128,7 +124,7 @@ public class CoursePanel extends JPanel {
             int selectedRow = courseTable.getSelectedRow();
             if (selectedRow >= 0) {
                 int modelRow = courseTable.convertRowIndexToModel(selectedRow);
-                int courseId = (int) tableModel.getValueAt(modelRow, 0); // ID column
+                int courseId = (int) tableModel.getValueAt(modelRow, 0);
                 Course courseToEdit = controller.getCourseById(courseId);
                 if (courseToEdit != null) {
                     openCourseDialog(courseToEdit);
