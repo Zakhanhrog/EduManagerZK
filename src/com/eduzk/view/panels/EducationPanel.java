@@ -69,9 +69,8 @@ public class EducationPanel extends JPanel {
             initComponents();
             setupLayout();
             setupActions();
-            configureControlsForRole(this.currentUserRole); // <<< SỬA GỌI HÀM NÀY
+            configureControlsForRole(this.currentUserRole);
         } else {
-            // Xử lý trường hợp controller null nếu cần (ví dụ: ẩn panel)
             this.removeAll();
             this.add(new JLabel("Education module not available.", SwingConstants.CENTER));
             this.revalidate();
@@ -80,14 +79,13 @@ public class EducationPanel extends JPanel {
     }
 
     private void initComponents() {
-        // --- Khởi tạo các Buttons trước khi set trạng thái ---
         editButton = new JButton("Chỉnh Sửa");
-        editButton.setIcon(UIUtils.loadSVGIcon("/icons/edit.svg", 16)); // Thêm icon
+        editButton.setIcon(UIUtils.loadSVGIcon("/icons/edit.svg", 20)); // Thêm icon
         cancelEditButton = new JButton("Hủy Bỏ");
         saveChangesButton = new JButton("Lưu Thay Đổi");
-        saveChangesButton.setIcon(UIUtils.loadSVGIcon("/icons/save.svg", 16));
+        saveChangesButton.setIcon(UIUtils.loadSVGIcon("/icons/save.svg", 20));
         exportButton = new JButton("Xuất Excel");
-        exportButton.setIcon(UIUtils.loadSVGIcon("/icons/export.svg", 16));
+        exportButton.setIcon(UIUtils.loadSVGIcon("/icons/export.svg", 20));
 
         // --- Thiết lập trạng thái ban đầu cho các nút ---
         editButton.setEnabled(false);
@@ -144,11 +142,14 @@ public class EducationPanel extends JPanel {
         gradeTable = new JTable(gradeTableModel);
         gradeTable.setRowHeight(25);
         gradeTable.getTableHeader().setReorderingAllowed(false);
-        gradeTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        gradeTable.setCellSelectionEnabled(true);
+        gradeTable.setRowSelectionAllowed(false);
+        gradeTable.setColumnSelectionAllowed(false);
         setupTableEditorsAndRenderers(); // Gọi sau khi table được tạo
         gradeTableScrollPane = new JScrollPane(gradeTable);
-//        gradeTableScrollPane.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
-        gradeTableScrollPane.setBorder(BorderFactory.createTitledBorder("Bảng điểm chi tiết"));
+        gradeTableScrollPane.setBorder(BorderFactory.createLineBorder(Color.RED, 1));
+        gradeTable.setShowGrid(true);
+//        gradeTableScrollPane.setBorder(BorderFactory.createTitledBorder("Bảng điểm chi tiết"));
 
         // --- Split Pane ---
         splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
