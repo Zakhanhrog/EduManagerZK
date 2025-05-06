@@ -843,4 +843,50 @@ public class EducationController implements ClassListChangeListener {
         System.err.println("getAcademicRecordAt: Invalid rowIndex (" + rowIndex + ") or null/empty record list.");
         return null; // Trả về null nếu không hợp lệ
     }
+    public void loadAssignmentsForStudent() {
+        if (currentUser == null || currentUser.getRole() != Role.STUDENT || currentUser.getStudentId() == null) {
+            if (educationPanel != null) educationPanel.displayAssignments(Collections.emptyList());
+            return;
+        }
+
+        int studentId = currentUser.getStudentId();
+        System.out.println("EducationController: Loading assignments for current student ID: " + studentId);
+        try {
+            // Cách 2: Tìm lớp học chứa học sinh này (phổ biến hơn)
+            List<EduClass> studentClasses = classDAO.findByStudentId(studentId); // Giả sử có phương thức này trong IEduClassDAO
+            if (studentClasses == null || studentClasses.isEmpty()) {
+                System.err.println("Student " + studentId + " is not enrolled in any class.");
+                if (educationPanel != null) educationPanel.displayAssignments(Collections.emptyList());
+                return;
+            }
+            // Lấy ID của lớp đầu tiên tìm thấy (giả định học sinh chỉ thuộc 1 lớp trong context này)
+            int studentClassId = studentClasses.get(0).getClassId();
+            String studentClassName = studentClasses.get(0).getClassName(); // Lấy tên lớp để log
+
+            System.out.println("Student " + studentId + " belongs to class ID: " + studentClassId + " (" + studentClassName + ")");
+            // --- Kết thúc lấy Class ID ---
+
+
+            // Fetch assignments từ DAO cho lớp đó
+            List<Assignment> assignments = assignmentDAO.findByClassId(studentClassId);
+
+            // Update the UI panel
+            if (educationPanel != null) {
+                educationPanel.displayAssignments(assignments);
+                writeLog("Viewed Assignments", "Student viewed assignments for their class: " + studentClassName);
+            }
+        } catch (DataAccessException e) {
+            System.err.println("Error loading assignments for student " + studentId + ": " + e.getMessage());
+            UIUtils.showErrorMessage(educationPanel, "Load Error", "Failed to load assignments for your class.");
+            if (educationPanel != null) {
+                educationPanel.displayAssignments(Collections.emptyList()); // Show empty list on error
+            }
+        } catch (IndexOutOfBoundsException e) {
+            System.err.println("Error: Could not determine class for student " + studentId + " from DAO results.");
+            UIUtils.showErrorMessage(educationPanel, "Error", "Could not determine your class to load assignments.");
+            if (educationPanel != null) {
+                educationPanel.displayAssignments(Collections.emptyList());
+            }
+        }
+    }
 }

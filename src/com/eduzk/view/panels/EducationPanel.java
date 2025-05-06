@@ -257,7 +257,7 @@ public class EducationPanel extends JPanel {
                 JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 label.setHorizontalAlignment(SwingConstants.RIGHT); // Căn phải
 
-                Number numberToFormat = null; // Biến để lưu giá trị số sau khi xử lý
+                Number numberToFormat = null;
 
                 // Xử lý các kiểu dữ liệu khác nhau cho value
                 if (value instanceof Number) {
@@ -276,18 +276,11 @@ public class EducationPanel extends JPanel {
                             // System.err.println("Renderer parse error: " + e.getMessage() + " for value: " + value);
                         }
                     }
-                    // Nếu stringValue rỗng, numberToFormat vẫn là null
                 }
-                // Các kiểu dữ liệu khác (hoặc null) sẽ khiến numberToFormat là null
-
-                // Định dạng và hiển thị
                 if (numberToFormat != null) {
                     // Nếu có số hợp lệ, định dạng nó
                     label.setText(df.format(numberToFormat.doubleValue()));
                 } else {
-                    // Nếu không có số hợp lệ (null, String rỗng, String lỗi, kiểu khác)
-                    // Hiển thị giá trị gốc dưới dạng String (hoặc rỗng nếu null)
-                    // Điều này ngăn ô bị trống một cách không cần thiết
                     label.setText(value != null ? value.toString() : "");
                 }
 
@@ -648,23 +641,50 @@ public class EducationPanel extends JPanel {
 
         if (userObject instanceof String) {
             String nodeText = (String) userObject;
-            if ("Results & reviews".equals(nodeText)) {
-                showPlaceholderView("Select a class under 'Results & reviews' to view grades.");
-                if (controller != null) controller.clearSelectedClass();
-                editButton.setEnabled(false);
-                exportButton.setEnabled(false);
+
+            if (("Results".equals(nodeText) && currentUserRole == Role.STUDENT) ||
+                    ("Results & reviews".equals(nodeText) && (currentUserRole == Role.ADMIN || currentUserRole == Role.TEACHER)))
+            {
+                if (currentUserRole == Role.STUDENT) {
+                    // STUDENT: Hiển thị bảng điểm cá nhân
+                    rightPanelLayout.show(rightPanel, GRADE_PANEL_CARD);
+                    if (controller != null) {
+                        controller.loadDataForCurrentStudent(); // Tải điểm của học sinh
+                    }
+                    editButton.setEnabled(false); // Học sinh không được sửa
+                    exportButton.setEnabled(false); // Học sinh không được xuất (trừ khi có yêu cầu khác)
+                } else {
+                    // ADMIN/TEACHER: Hiển thị placeholder khi chọn node gốc "Results & reviews"
+                    showPlaceholderView("Select a class under 'Results & reviews' to view grades.");
+                    if (controller != null) controller.clearSelectedClass();
+                    editButton.setEnabled(false);
+                    exportButton.setEnabled(false);
+                }
             } else if ("Assignments".equals(nodeText)) {
+                // Xử lý khi chọn node Assignments cho TẤT CẢ vai trò có thể thấy nó
                 rightPanelLayout.show(rightPanel, ASSIGNMENT_PANEL_CARD);
                 if (controller != null) {
-                    List<EduClass> classes = controller.getClassesForCurrentUser();
-                    populateAssignmentClassComboBox(classes);
-                    if (assignmentClassComboBox.getItemCount() > 0) {
-                        assignmentClassComboBox.setSelectedIndex(0);
-                    } else {
-                        displayAssignments(Collections.emptyList());
+                    if (currentUserRole == Role.ADMIN || currentUserRole == Role.TEACHER) {
+                        // Load combobox và danh sách bài tập cho lớp đầu tiên (nếu có)
+                        List<EduClass> classes = controller.getClassesForCurrentUser();
+                        populateAssignmentClassComboBox(classes); // Đã có sẵn
+                        if (assignmentClassComboBox.getItemCount() > 0) {
+                            assignmentClassComboBox.setSelectedIndex(0); // Tự động trigger loadAssignmentsForClass
+                        } else {
+                            displayAssignments(Collections.emptyList());
+                        }
+                        updateAssignmentButtonStates(); // Cập nhật nút cho Admin/Teacher
+                    } else if (currentUserRole == Role.STUDENT) {
+                        // STUDENT: Load bài tập cho lớp của học sinh
+                        assignmentClassComboBox.setVisible(false); // Ẩn combobox chọn lớp
+                        assignmentButtonPanel.setVisible(false); // Ẩn nút thêm/sửa/xóa
+                        comboPanel.setVisible(false); // Ẩn label và combobox panel
+                        assignmentTopPanel.setVisible(false); //Ẩn toàn bộ phần top của assignment panel
+
+                        // Yêu cầu controller tải bài tập cho học sinh hiện tại
+                        controller.loadAssignmentsForStudent(); // <<< Cần tạo phương thức này trong Controller
                     }
                 }
-                updateAssignmentButtonStates();
             }
         } else if (userObject instanceof EduClass) {
             rightPanelLayout.show(rightPanel, GRADE_PANEL_CARD);
@@ -727,8 +747,12 @@ public class EducationPanel extends JPanel {
 
         boolean isPrivilegedUser = (userRole == Role.ADMIN || userRole == Role.TEACHER);
 
-        leftPanel.setVisible(isPrivilegedUser);
-        splitPane.setDividerSize(isPrivilegedUser ? 8 : 0);
+        leftPanel.setVisible(true);
+        splitPane.setLeftComponent(leftPanel);
+        splitPane.setDividerSize(8);
+        splitPane.setVisible(true);
+        this.removeAll();
+        this.add(splitPane, BorderLayout.CENTER);
         if (isPrivilegedUser) {
             splitPane.setLeftComponent(leftPanel);
             reloadClassTree();
@@ -739,15 +763,10 @@ public class EducationPanel extends JPanel {
             gradePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
         } else if (userRole == Role.STUDENT) {
-            leftPanel.setVisible(false);
-            splitPane.setLeftComponent(null);
-            splitPane.setDividerSize(0);
-
-            rightPanelLayout.show(rightPanel, GRADE_PANEL_CARD);
-            if (controller != null) {
-                controller.loadDataForCurrentStudent();
-            }
+            reloadClassTree();
+            handleTreeNodeSelection(null);
             topOfGradePanel.setVisible(false);
+            assignmentTopPanel.setVisible(false);
             gradePanel.setBorder(BorderFactory.createTitledBorder("Bảng điểm cá nhân"));
 
         } else {
@@ -779,45 +798,54 @@ public class EducationPanel extends JPanel {
                 selectedUserObjectBefore = ((DefaultMutableTreeNode) selectedPathBefore.getLastPathComponent()).getUserObject();
             }
 
-            resultsNode.removeAllChildren();
-            List<EduClass> classes = controller.getClassesForCurrentUser();
+            mainRootNode.removeAllChildren(); // Xóa cả results và assignments cũ
+
+            // Tạo node Results dựa trên vai trò
+            String resultsNodeText = (currentUserRole == Role.STUDENT) ? "Results" : "Results & reviews";
+            resultsNode = new DefaultMutableTreeNode(resultsNodeText); // Đặt tên node mới
+            mainRootNode.add(resultsNode); // Thêm node results mới
+
+            // Tạo node Assignments (tên giữ nguyên)
+            assignmentsNode = new DefaultMutableTreeNode("Assignments");
+            mainRootNode.add(assignmentsNode); // Thêm node assignments mới
+
             DefaultMutableTreeNode nodeToSelectAfter = null;
 
-            if (classes != null) {
-                classes.sort(Comparator.comparing(EduClass::getClassName, String.CASE_INSENSITIVE_ORDER));
-                for (EduClass eduClass : classes) {
-                    DefaultMutableTreeNode classNode = new DefaultMutableTreeNode(eduClass);
-                    resultsNode.add(classNode);
-                    if (selectedUserObjectBefore instanceof EduClass && eduClass.getClassId() == ((EduClass)selectedUserObjectBefore).getClassId()) {
-                        nodeToSelectAfter = classNode;
+            // Chỉ thêm các lớp con cho Admin/Teacher
+            if (currentUserRole == Role.ADMIN || currentUserRole == Role.TEACHER) {
+                List<EduClass> classes = controller.getClassesForCurrentUser();
+                if (classes != null) {
+                    classes.sort(Comparator.comparing(EduClass::getClassName, String.CASE_INSENSITIVE_ORDER));
+                    for (EduClass eduClass : classes) {
+                        DefaultMutableTreeNode classNode = new DefaultMutableTreeNode(eduClass);
+                        resultsNode.add(classNode); // Thêm lớp vào dưới "Results & reviews"
+                        if (selectedUserObjectBefore instanceof EduClass && eduClass.getClassId() == ((EduClass) selectedUserObjectBefore).getClassId()) {
+                            nodeToSelectAfter = classNode;
+                        }
                     }
                 }
+                // Cập nhật combobox bài tập (chỉ cần cho Admin/Teacher)
+                if (controller != null) {
+                    populateAssignmentClassComboBox(classes);
+                }
+            } else {
+                populateAssignmentClassComboBox(Collections.emptyList()); // Xóa combobox
             }
 
-            treeModel.reload(resultsNode);
+            treeModel.reload(mainRootNode);
             classTree.expandPath(new TreePath(resultsNode.getPath()));
             classTree.expandPath(new TreePath(assignmentsNode.getPath()));
 
             if (nodeToSelectAfter != null) {
+                if (selectedUserObjectBefore instanceof String && "Assignments".equals(selectedUserObjectBefore)) {
+                    nodeToSelectAfter = assignmentsNode;
+                } else {
+                    nodeToSelectAfter = resultsNode;
+                }
                 TreePath pathToSelect = new TreePath(nodeToSelectAfter.getPath());
                 classTree.setSelectionPath(pathToSelect);
                 classTree.scrollPathToVisible(pathToSelect);
                 handleTreeNodeSelection(nodeToSelectAfter);
-            } else if (selectedUserObjectBefore instanceof String && "Assignments".equals(selectedUserObjectBefore)) {
-                nodeToSelectAfter = assignmentsNode;
-                TreePath pathToSelect = new TreePath(nodeToSelectAfter.getPath());
-                classTree.setSelectionPath(pathToSelect);
-                classTree.scrollPathToVisible(pathToSelect);
-                handleTreeNodeSelection(nodeToSelectAfter);
-            }
-            else {
-                nodeToSelectAfter = resultsNode;
-                TreePath pathToSelect = new TreePath(nodeToSelectAfter.getPath());
-                classTree.setSelectionPath(pathToSelect);
-                handleTreeNodeSelection(nodeToSelectAfter);
-            }
-            if (controller != null) {
-                populateAssignmentClassComboBox(classes);
             }
             System.out.println("EducationPanel: Class tree reloaded and view potentially updated.");
         }
@@ -946,16 +974,6 @@ public class EducationPanel extends JPanel {
         setEditingMode(this.isEditing);
     }
 
-    public void refreshTableCell(int rowIndex, String subjectKey){
-        if(rowIndex >= 0 && rowIndex < gradeTableModel.getRowCount()){
-            int columnIndex = getColumnIndex(subjectKey);
-            if(columnIndex != -1){
-                System.out.println("Requesting repaint for grade cell: row=" + rowIndex + ", col=" + columnIndex);
-                gradeTableModel.fireTableCellUpdated(rowIndex, columnIndex);
-            }
-        }
-    }
-
     public int getColumnIndex(String columnName) {
         if (gradeTable == null || columnName == null) return -1;
         for (int i = 0; i < gradeTable.getColumnCount(); i++) {
@@ -965,11 +983,6 @@ public class EducationPanel extends JPanel {
         }
         return -1;
     }
-
-    public DefaultTableModel getGradeTableModel() {
-        return gradeTableModel;
-    }
-
     private void showPlaceholderView(String message) {
         if (placeholderLabel != null) {
             placeholderLabel.setText("<html><center><i>" + message + "</i></center></html>");
@@ -984,12 +997,6 @@ public class EducationPanel extends JPanel {
         deleteAssignmentButton.setEnabled(false);
         setEditingMode(false);
         markChangesPending(false);
-    }
-
-    private void showGradeTableView() {
-        if (rightPanelLayout != null && rightPanel != null) {
-            rightPanelLayout.show(rightPanel, GRADE_PANEL_CARD);
-        }
     }
 
     private class EduClassTreeCellRenderer extends DefaultTreeCellRenderer {
@@ -1018,7 +1025,8 @@ public class EducationPanel extends JPanel {
                 if (userObject instanceof String) {
                     String nodeText = (String) userObject;
                     label.setText(nodeText);
-                    if ("Results & reviews".equals(nodeText)) {
+
+                    if ("Results".equals(nodeText) || "Results & reviews".equals(nodeText)) { // Kiểm tra cả hai tên
                         label.setIcon(specificResultsIcon != null ? specificResultsIcon : (expanded ? defaultOpenIcon : defaultClosedIcon));
                     } else if ("Assignments".equals(nodeText)) {
                         label.setIcon(specificAssignmentIcon != null ? specificAssignmentIcon : (expanded ? defaultOpenIcon : defaultClosedIcon));
@@ -1100,9 +1108,7 @@ public class EducationPanel extends JPanel {
     private boolean areEqual(Object obj1, Object obj2) {
         if (obj1 == null && obj2 == null) return true;
         if (obj1 == null || obj2 == null) return false;
-        // Thêm các kiểu so sánh khác nếu cần (ví dụ: Enum)
         if (obj1 instanceof Double && obj2 instanceof Double) {
-            // So sánh Double với sai số nhỏ để tránh vấn đề dấu phẩy động
             return Math.abs(((Double)obj1) - ((Double)obj2)) < 0.001;
         }
         return obj1.equals(obj2);
