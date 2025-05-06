@@ -392,11 +392,9 @@ public class MainView extends JFrame {
             tabbedPane.setTabComponentAt(tabIndex, separatorPanel);
             tabbedPane.setEnabledAt(tabIndex++, false);
 
-            // Thêm tab Accounts
             tabbedPane.addTab(null, null, accountsPanel, "Manage User Accounts");
             tabbedPane.setTabComponentAt(tabIndex++, createTabComponent("Accounts", accountsIcon));
 
-            // *** THÊM TAB LOGS ***
             tabbedPane.addTab(null, null, logsPanel, "View Action Logs");
             tabbedPane.setTabComponentAt(tabIndex++, createTabComponent("Logs", logsIcon));
 
@@ -416,8 +414,10 @@ public class MainView extends JFrame {
             tabbedPane.addTab(null, null, coursePanel, "View Courses");
             tabbedPane.setTabComponentAt(tabIndex++, createTabComponent("Courses", coursesIcon));
 
+            tabbedPane.addTab(null, null, educationPanel, "Manage Grades & Assignments"); // Có thể đổi tooltip nếu muốn
+            tabbedPane.setTabComponentAt(tabIndex++, createTabComponent("Education", educationIcon));
+
         } else if (user.getRole() == Role.STUDENT) {
-            // ... Làm tương tự cho các tab của Student ...
             tabbedPane.addTab(null, null, schedulePanel, "View My Schedule");
             JPanel scheduleTabComp = createTabComponent("My Schedule", scheduleIcon);
             tabbedPane.setTabComponentAt(tabIndex++, scheduleTabComp);
@@ -428,6 +428,10 @@ public class MainView extends JFrame {
 
             tabbedPane.addTab(null, null, coursePanel, "View Courses");
             tabbedPane.setTabComponentAt(tabIndex++, createTabComponent("Courses", coursesIcon));
+
+            tabbedPane.addTab(null, null, educationPanel, "View Learning Results and Assignments"); // Tooltip (có thể đổi)
+            tabbedPane.setTabComponentAt(tabIndex++, createTabComponent("Learning Results", educationIcon));
+
         }
 
         tabbedPane.addTab(null, null, helpPanel, "Get Help and Information");

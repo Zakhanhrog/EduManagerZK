@@ -444,8 +444,6 @@ public class EducationPanel extends JPanel {
 
                     // Nếu là cột dữ liệu có thể chỉnh sửa
                     if (isEditableDataColumn) {
-                        // Lấy giá trị MỚI NHẤT từ DefaultTableModel (vì setValueAt của nó vừa chạy)
-                        // Giá trị này đã được trình soạn thảo ô (editor) xử lý.
                         Object newValueFromEditor = gradeTableModel.getValueAt(row, column);
 
                         System.out.println("Grade Table cell update event: row=" + row + ", col=" + column + ", name=" + columnName + ", value from editor=" + newValueFromEditor);
@@ -741,7 +739,10 @@ public class EducationPanel extends JPanel {
             gradePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
         } else if (userRole == Role.STUDENT) {
+            leftPanel.setVisible(false);
             splitPane.setLeftComponent(null);
+            splitPane.setDividerSize(0);
+
             rightPanelLayout.show(rightPanel, GRADE_PANEL_CARD);
             if (controller != null) {
                 controller.loadDataForCurrentStudent();
@@ -794,10 +795,8 @@ public class EducationPanel extends JPanel {
             }
 
             treeModel.reload(resultsNode);
-
             classTree.expandPath(new TreePath(resultsNode.getPath()));
             classTree.expandPath(new TreePath(assignmentsNode.getPath()));
-
 
             if (nodeToSelectAfter != null) {
                 TreePath pathToSelect = new TreePath(nodeToSelectAfter.getPath());
@@ -817,11 +816,9 @@ public class EducationPanel extends JPanel {
                 classTree.setSelectionPath(pathToSelect);
                 handleTreeNodeSelection(nodeToSelectAfter);
             }
-
             if (controller != null) {
                 populateAssignmentClassComboBox(classes);
             }
-
             System.out.println("EducationPanel: Class tree reloaded and view potentially updated.");
         }
     }
@@ -859,7 +856,6 @@ public class EducationPanel extends JPanel {
             row.add(record.getConductRating());
             gradeTableModel.addRow(row);
         }
-
         setEditingMode(false);
         markChangesPending(false);
         boolean canEdit = (controller != null && controller.canCurrentUserEditGrades());

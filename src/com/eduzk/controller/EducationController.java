@@ -82,36 +82,23 @@ public class EducationController implements ClassListChangeListener {
             List<EduClass> classes;
             switch (currentUser.getRole()) {
                 case ADMIN:
-                    // Admin sees all classes
-                    classes = classDAO.getAll();
-                    break;
                 case TEACHER:
-                    // Teacher sees classes they teach
-                    if (currentUser.getTeacherId() != null) {
-                        classes = classDAO.findByTeacherId(currentUser.getTeacherId());
-                    } else {
-                        System.err.println("Warning: Teacher user has null teacherId.");
-                        classes = Collections.emptyList();
-                    }
+                    classes = classDAO.getAll();
                     break;
                 case STUDENT:
                 default:
-                    // Students don't see the class list in the tree/combo by default
                     classes = Collections.emptyList();
                     break;
             }
-            // Sort classes alphabetically before returning
             if (classes != null) {
                 classes.sort(Comparator.comparing(EduClass::getClassName, String.CASE_INSENSITIVE_ORDER));
             } else {
-                classes = Collections.emptyList(); // Ensure non-null return
+                classes = Collections.emptyList();
             }
             return classes;
 
         } catch (DataAccessException e) {
             System.err.println("Error getting classes for user: " + currentUser.getUsername() + " - " + e.getMessage());
-            // Show error to user? For now, just return empty list.
-            // UIUtils.showErrorMessage(educationPanel, "Error", "Could not load class list.");
             return Collections.emptyList();
         }
     }
@@ -368,14 +355,6 @@ public class EducationController implements ClassListChangeListener {
             UIUtils.showInfoMessage(educationPanel, "No Data", "There is no grade data or class selected to save.");
             return;
         }
-        // Check if there are actually pending changes
-        // Note: EducationPanel's hasPendingChanges flag should be reliable here
-        // if (!educationPanel.hasPendingChanges()) { // Requires adding a getter for hasPendingChanges
-        //     UIUtils.showInfoMessage(educationPanel, "No Changes", "No changes detected to save.");
-        //     return;
-        // }
-
-
         // Confirm before saving
         if (!UIUtils.showConfirmDialog(educationPanel, "Confirm Save", "Save all grade and conduct changes for the current class?")) {
             return; // User cancelled
@@ -480,20 +459,7 @@ public class EducationController implements ClassListChangeListener {
 
         // Teacher can edit if it's their class
         if (currentUser.getRole() == Role.TEACHER) {
-            // Requires a class to be selected in the grade view context
-            if (currentSelectedClassId <= 0 || currentUser.getTeacherId() == null) {
-                return false; // No class selected or teacher ID missing
-            }
-            try {
-                EduClass selectedClass = classDAO.getById(currentSelectedClassId);
-                // Check if the class exists and the current user is the primary teacher
-                return selectedClass != null &&
-                        selectedClass.getPrimaryTeacher() != null &&
-                        currentUser.getTeacherId().equals(selectedClass.getPrimaryTeacher().getTeacherId());
-            } catch (DataAccessException e) {
-                System.err.println("Error checking grade edit permission for class " + currentSelectedClassId + ": " + e.getMessage());
-                return false; // Deny permission on error
-            }
+            return true;
         }
         // Students and other roles cannot edit grades
         return false;
@@ -505,29 +471,9 @@ public class EducationController implements ClassListChangeListener {
         if (currentUser == null) return false;
         // Admin can always manage
         if (currentUser.getRole() == Role.ADMIN) return true;
-
         // Teacher can manage if it's their class (check based on assignment combo box)
         if (currentUser.getRole() == Role.TEACHER) {
-            // Get the class currently selected in the Assignment Panel's ComboBox
-            EduClass selectedAssignmentClass = null;
-            if (educationPanel != null) {
-                selectedAssignmentClass = educationPanel.getSelectedAssignmentClass(); // Use the helper method
-            }
-
-            if (selectedAssignmentClass == null || currentUser.getTeacherId() == null) {
-                return false; // No class selected in assignment view or teacher ID missing
-            }
-            try {
-                // Verify teacher ownership from DAO data for security
-                EduClass classFromDAO = classDAO.getById(selectedAssignmentClass.getClassId());
-                // Check if the class exists and the current user is the primary teacher
-                return classFromDAO != null &&
-                        classFromDAO.getPrimaryTeacher() != null &&
-                        currentUser.getTeacherId().equals(classFromDAO.getPrimaryTeacher().getTeacherId());
-            } catch (DataAccessException e) {
-                System.err.println("Error checking assignment management permission for class " + selectedAssignmentClass.getClassId() + ": " + e.getMessage());
-                return false; // Deny permission on error
-            }
+            return true;
         }
         // Students and other roles cannot manage assignments
         return false;
@@ -763,12 +709,6 @@ public class EducationController implements ClassListChangeListener {
         }
     }
 
-    /**
-     * Handles the request to edit an existing assignment.
-     * Opens the AssignmentDialog pre-filled with the assignment's data.
-     * @param selectedClass The EduClass context (the class selected in the combo box).
-     * @param assignmentId The ID of the assignment to be edited.
-     */
     public void handleEditAssignment(EduClass selectedClass, int assignmentId) {
         // Check permission
         if (!canCurrentUserManageAssignments()) {
