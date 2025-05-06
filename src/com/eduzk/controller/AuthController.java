@@ -1,5 +1,6 @@
 package com.eduzk.controller;
 
+import com.eduzk.model.dao.impl.IdGenerator;
 import com.eduzk.model.dao.interfaces.*;
 import com.eduzk.model.entities.User;
 import com.eduzk.model.entities.Role;
@@ -32,10 +33,49 @@ public class AuthController {
     private LoginView loginView;
     private User loggedInUser;
     private IAcademicRecordDAO recordDAO;
+    private final IdGenerator idGenerator;
 
-    public AuthController(IUserDAO userDAO) {
-        this.userDAO = userDAO;
-    }
+        // ----- THÊM CONSTRUCTOR ĐẦY ĐỦ NÀY -----
+        public AuthController(
+                IUserDAO userDAO,
+                ITeacherDAO teacherDAO,
+                IStudentDAO studentDAO,
+                ICourseDAO courseDAO,
+                IRoomDAO roomDAO,
+                IEduClassDAO eduClassDAO,
+                IScheduleDAO scheduleDAO,
+                LogService logService,
+                IAcademicRecordDAO recordDAO,
+                IdGenerator idGenerator)   // Nhận IdGenerator
+        {
+            // ----- Kiểm tra null -----
+            if (userDAO == null) throw new IllegalArgumentException("UserDAO cannot be null");
+            if (teacherDAO == null) throw new IllegalArgumentException("TeacherDAO cannot be null");
+            if (studentDAO == null) throw new IllegalArgumentException("StudentDAO cannot be null");
+            if (courseDAO == null) throw new IllegalArgumentException("CourseDAO cannot be null");
+            if (roomDAO == null) throw new IllegalArgumentException("RoomDAO cannot be null");
+            if (eduClassDAO == null) throw new IllegalArgumentException("EduClassDAO cannot be null");
+            if (scheduleDAO == null) throw new IllegalArgumentException("ScheduleDAO cannot be null");
+            if (logService == null) throw new IllegalArgumentException("LogService cannot be null");
+            if (recordDAO == null) throw new IllegalArgumentException("AcademicRecordDAO cannot be null");
+            if (idGenerator == null) throw new IllegalArgumentException("IdGenerator cannot be null");
+            // ----- Kết thúc kiểm tra null -----
+
+            // ----- Gán giá trị -----
+            this.userDAO = userDAO;
+            this.teacherDAO = teacherDAO;
+            this.studentDAO = studentDAO;
+            this.courseDAO = courseDAO;
+            this.roomDAO = roomDAO;
+            this.eduClassDAO = eduClassDAO;
+            this.scheduleDAO = scheduleDAO;
+            this.logService = logService;
+            this.recordDAO = recordDAO;
+            this.idGenerator = idGenerator; // <<< GÁN GIÁ TRỊ CHO idGenerator
+            // ----- Kết thúc gán -----
+
+            // Gán controller cho view
+        }
 
     public void setLogService(LogService logService) {
         this.logService = logService;
@@ -126,7 +166,6 @@ public class AuthController {
     private boolean showForcePasswordChangeDialog(User user) {
         final boolean[] successFlag = {false}; // Dùng mảng boolean để lấy kết quả từ EDT
         try {
-            // Phải chạy trên EDT
             SwingUtilities.invokeAndWait(() -> {
                 Frame parent = (loginView != null && loginView.isShowing()) ? loginView : null;
                 ForcePasswordChangeDialog dialog = new ForcePasswordChangeDialog(parent, this, user);
@@ -223,7 +262,8 @@ public class AuthController {
                         this.getEduClassDAO(),
                         this.getScheduleDAO(),
                         this.getLogService(),
-                        this.getAcademicRecordDAO()
+                        this.getAcademicRecordDAO(),
+                        this.idGenerator
                 );
 
                 MainView mainView = new MainView(mainController);

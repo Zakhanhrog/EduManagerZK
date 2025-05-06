@@ -9,7 +9,10 @@ import com.eduzk.model.entities.Student;
 import com.eduzk.model.entities.ArtStatus;
 import com.eduzk.model.entities.ConductRating;
 import com.eduzk.utils.UIUtils;
-
+import com.eduzk.model.entities.Assignment;
+import com.eduzk.view.dialogs.AssignmentDialog;
+import javax.swing.table.DefaultTableCellRenderer;
+import java.time.format.DateTimeFormatter;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.event.TableModelEvent;
@@ -26,6 +29,8 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.text.DecimalFormat;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Vector;
@@ -38,25 +43,50 @@ public class EducationPanel extends JPanel {
 
     private JSplitPane splitPane;
     private JPanel leftPanel;
-    private JPanel rightPanel;
+    private JPanel rightPanel; // Will use CardLayout
 
     private JTree classTree;
     private DefaultTreeModel treeModel;
-    private DefaultMutableTreeNode mainRootNode; // Thêm nút gốc chính
+    private DefaultMutableTreeNode mainRootNode;
     private DefaultMutableTreeNode resultsNode;
     private DefaultMutableTreeNode assignmentsNode;
     private JScrollPane treeScrollPane;
+    private Icon resultsRootIcon;
+    private Icon assignmentIcon; // Icon for Assignment node in tree
 
+    private JPanel gradePanel; // Panel to hold grade components within CardLayout
     private JTable gradeTable;
     private DefaultTableModel gradeTableModel;
     private JScrollPane gradeTableScrollPane;
-    private JButton exportButton;
-    private JLabel selectedClassLabel;
+    private JButton exportButton; // Export Grades
+    private JLabel selectedClassLabel; // Label for selected class in Grade view
+    private boolean isEditing = false; // Grade editing mode flag
+    private JButton editButton; // Edit Grades
+    private JButton cancelButton; // Cancel Grade edits
+    private JButton saveChangesButton; // Save Grade changes
+    private boolean hasPendingChanges = false; // Grade changes pending flag
+    private JPanel gradeButtonPanel;
+    private JPanel topOfGradePanel;
 
-    private boolean isEditing = false;
-    private JButton editButton;
-    private JButton cancelEditButton;
-    private JButton saveChangesButton;
+    private JPanel assignmentManagementPanel; // Panel to hold assignment components within CardLayout
+    private JComboBox<EduClass> assignmentClassComboBox;
+    private JTable assignmentTable;
+    private DefaultTableModel assignmentTableModel;
+    private JScrollPane assignmentTableScrollPane;
+    private JButton addAssignmentButton;
+    private JButton editAssignmentButton;
+    private JButton deleteAssignmentButton;
+    private JPanel assignmentButtonPanel;
+    private JPanel assignmentTopPanel;
+    private JPanel comboPanel; // Panel for combobox label + combobox
+
+    private JPanel placeholderPanel;
+    private JLabel placeholderLabel;
+
+    private CardLayout rightPanelLayout;
+    private static final String GRADE_PANEL_CARD = "Grades";
+    private static final String ASSIGNMENT_PANEL_CARD = "Assignments";
+    private static final String PLACEHOLDER_CARD = "Placeholder";
 
     private static final DecimalFormat df = new DecimalFormat("#.00");
     private static final String[] SUBJECT_KEYS = {"Toán", "Văn", "Anh", "Lí", "Hoá", "Sinh", "Sử", "Địa", "GDCD", "Nghệ thuật"};
@@ -64,10 +94,8 @@ public class EducationPanel extends JPanel {
     private static final String ART_KEY = "Nghệ thuật";
     private static final String CONDUCT_KEY = "Hạnh kiểm";
     private static final String[] TABLE_COLUMNS = {"STT", "Tên HS", "Toán", "Văn", "Anh", "Lí", "Hoá", "Sinh", "Sử", "Địa", "GDCD", ART_KEY, "TB KHTN", "TB KHXH", "TB môn học", CONDUCT_KEY};
+    private static final DateTimeFormatter ASSIGNMENT_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    private boolean hasPendingChanges = false;
-    private Icon resultsRootIcon;
-    private Icon assignmentIcon;
 
     public EducationPanel() {
         super(new BorderLayout());
@@ -97,7 +125,7 @@ public class EducationPanel extends JPanel {
     private void initComponents() {
         editButton = new JButton("Chỉnh Sửa");
         editButton.setIcon(UIUtils.loadSVGIcon("/icons/edit.svg", 20));
-        cancelEditButton = new JButton("Hủy Bỏ");
+        cancelButton = new JButton("Hủy Bỏ");
         saveChangesButton = new JButton("Lưu Thay Đổi");
         saveChangesButton.setIcon(UIUtils.loadSVGIcon("/icons/save.svg", 20));
         exportButton = new JButton("Xuất Excel");
@@ -108,37 +136,16 @@ public class EducationPanel extends JPanel {
 
         editButton.setEnabled(false);
         saveChangesButton.setVisible(false);
-        cancelEditButton.setVisible(false);
+        cancelButton.setVisible(false);
         exportButton.setEnabled(false);
 
-        leftPanel = new JPanel(new BorderLayout(5, 5));
-        leftPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-
-        mainRootNode = new DefaultMutableTreeNode("Education Root");
-        resultsNode = new DefaultMutableTreeNode("Results & reviews");
-        assignmentsNode = new DefaultMutableTreeNode("Assignments");
-        mainRootNode.add(resultsNode);
-        mainRootNode.add(assignmentsNode);
-
-        treeModel = new DefaultTreeModel(mainRootNode);
-        classTree = new JTree(treeModel);
-        classTree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
-        classTree.setRootVisible(false);
-        classTree.setShowsRootHandles(true);
-        classTree.setCellRenderer(new EduClassTreeCellRenderer(resultsRootIcon, assignmentIcon));
-        treeScrollPane = new JScrollPane(classTree);
-        treeScrollPane.setBorder(BorderFactory.createEmptyBorder());
-        rightPanel = new JPanel(new BorderLayout(5, 10));
-        rightPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-
-
-        selectedClassLabel = new JLabel("Select an item or class", SwingConstants.CENTER);
+        selectedClassLabel = new JLabel("Select a class from 'Results & reviews'", SwingConstants.CENTER);
         selectedClassLabel.setFont(selectedClassLabel.getFont().deriveFont(Font.BOLD));
 
         gradeTableModel = new DefaultTableModel(TABLE_COLUMNS, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                if (isEditing && controller != null && controller.canCurrentUserEdit()) {
+                if (isEditing && controller != null && controller.canCurrentUserEditGrades()) {
                     String colName = getColumnName(column);
                     for (String key : EDITABLE_SUBJECT_KEYS) {
                         if (key.equals(colName)) return true;
@@ -164,23 +171,83 @@ public class EducationPanel extends JPanel {
         gradeTable.setCellSelectionEnabled(true);
         gradeTable.setRowSelectionAllowed(false);
         gradeTable.setColumnSelectionAllowed(false);
-        JTableHeader header = gradeTable.getTableHeader();
-        if (header != null) {
-            header.setFont(header.getFont().deriveFont(Font.BOLD));
-            DefaultTableCellRenderer headerRenderer = (DefaultTableCellRenderer) header.getDefaultRenderer();
+        JTableHeader gradeHeader = gradeTable.getTableHeader();
+        if (gradeHeader != null) {
+            gradeHeader.setFont(gradeHeader.getFont().deriveFont(Font.BOLD));
+            DefaultTableCellRenderer headerRenderer = (DefaultTableCellRenderer) gradeHeader.getDefaultRenderer();
             if (headerRenderer != null) {
                 headerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
             }
         }
         gradeTable.setShowGrid(true);
         gradeTable.setGridColor(Color.LIGHT_GRAY);
-
         setupTableEditorsAndRenderers();
         gradeTableScrollPane = new JScrollPane(gradeTable);
         gradeTableScrollPane.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
+        gradeButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        topOfGradePanel = new JPanel(new BorderLayout(10, 0));
+        gradePanel = new JPanel(new BorderLayout(5, 10));
+
+        assignmentClassComboBox = new JComboBox<>();
+        assignmentClassComboBox.setPrototypeDisplayValue(new EduClass(0, "Longest Class Name Possible Here", null, null, 0, "", ""));
+
+        assignmentTableModel = new DefaultTableModel(new String[]{"ID", "Title", "Due Date", "Description"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        assignmentTable = new JTable(assignmentTableModel);
+        assignmentTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        assignmentTable.setAutoCreateRowSorter(true);
+        assignmentTable.getTableHeader().setReorderingAllowed(false);
+        assignmentTableScrollPane = new JScrollPane(assignmentTable);
+
+        addAssignmentButton = new JButton("Add");
+        addAssignmentButton.setIcon(UIUtils.loadSVGIcon("/icons/add.svg", 20));
+        editAssignmentButton = new JButton("Edit");
+        editAssignmentButton.setIcon(UIUtils.loadSVGIcon("/icons/edit.svg", 20));
+        deleteAssignmentButton = new JButton("Delete");
+        deleteAssignmentButton.setIcon(UIUtils.loadSVGIcon("/icons/delete.svg", 20));
+
+        addAssignmentButton.setEnabled(false);
+        editAssignmentButton.setEnabled(false);
+        deleteAssignmentButton.setEnabled(false);
+
+        assignmentButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        comboPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        assignmentTopPanel = new JPanel(new BorderLayout(10, 5));
+        assignmentManagementPanel = new JPanel(new BorderLayout(5, 10));
+
+        leftPanel = new JPanel(new BorderLayout(5, 5));
+        leftPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
+        mainRootNode = new DefaultMutableTreeNode("Education Root");
+        resultsNode = new DefaultMutableTreeNode("Results & reviews");
+        assignmentsNode = new DefaultMutableTreeNode("Assignments");
+        mainRootNode.add(resultsNode);
+        mainRootNode.add(assignmentsNode);
+
+        treeModel = new DefaultTreeModel(mainRootNode);
+        classTree = new JTree(treeModel);
+        classTree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
+        classTree.setRootVisible(false);
+        classTree.setShowsRootHandles(true);
+        classTree.setCellRenderer(new EduClassTreeCellRenderer(resultsRootIcon, assignmentIcon));
+        treeScrollPane = new JScrollPane(classTree);
+        treeScrollPane.setBorder(BorderFactory.createEmptyBorder());
+
+        rightPanelLayout = new CardLayout();
+        rightPanel = new JPanel(rightPanelLayout);
+
+        placeholderPanel = new JPanel(new BorderLayout());
+        placeholderLabel = new JLabel("Select an item from the left.", SwingConstants.CENTER);
+        placeholderLabel.setName("placeholderLabel");
+        placeholderLabel.setForeground(Color.GRAY);
+        placeholderLabel.setFont(placeholderLabel.getFont().deriveFont(14f));
 
         splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        splitPane.setResizeWeight(0.15);
+        splitPane.setResizeWeight(0.20);
         splitPane.setDividerSize(8);
     }
 
@@ -189,14 +256,12 @@ public class EducationPanel extends JPanel {
         centerRenderer.setHorizontalAlignment(SwingConstants.CENTER);
 
         DefaultTableCellRenderer rightNumberRenderer = new DefaultTableCellRenderer() {
-            private final DecimalFormat avgFormat = new DecimalFormat("#.00");
-
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                 JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 label.setHorizontalAlignment(SwingConstants.RIGHT);
                 if (value instanceof Number) {
-                    label.setText(avgFormat.format(((Number) value).doubleValue()));
+                    label.setText(df.format(((Number) value).doubleValue()));
                 } else {
                     label.setText("");
                 }
@@ -204,32 +269,29 @@ public class EducationPanel extends JPanel {
             }
         };
 
-        int tenHsColIndex = getColumnIndex("Tên HS");
-        if (tenHsColIndex != -1) {
-            TableColumn tenHsColumn = gradeTable.getColumnModel().getColumn(tenHsColIndex);
-            tenHsColumn.setCellRenderer(new DefaultTableCellRenderer() {
-                @Override
-                public Component getTableCellRendererComponent(JTable table, Object value,
-                                                               boolean isSelected, boolean hasFocus,
-                                                               int row, int column) {
-                    Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                    c.setFont(c.getFont().deriveFont(Font.BOLD));
-                    return c;
-                }
-            });
-        }
+        DefaultTableCellRenderer boldRenderer = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                                                           boolean isSelected, boolean hasFocus,
+                                                           int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                c.setFont(c.getFont().deriveFont(Font.BOLD));
+                return c;
+            }
+        };
+
+        DefaultTableCellRenderer enumRenderer = new DefaultTableCellRenderer();
+        enumRenderer.setHorizontalAlignment(SwingConstants.CENTER);
 
         for (int i = 0; i < gradeTable.getColumnCount(); i++) {
             TableColumn column = gradeTable.getColumnModel().getColumn(i);
             String colName = gradeTable.getColumnName(i);
 
             if (colName.equals("Tên HS")) {
-                continue;
+                column.setCellRenderer(boldRenderer);
             } else if (colName.equals("STT")) {
                 column.setCellRenderer(centerRenderer);
             } else if (colName.equals(ART_KEY) || colName.equals(CONDUCT_KEY)) {
-                DefaultTableCellRenderer enumRenderer = new DefaultTableCellRenderer();
-                enumRenderer.setHorizontalAlignment(SwingConstants.CENTER);
                 column.setCellRenderer(enumRenderer);
                 if (colName.equals(ART_KEY)) {
                     JComboBox<ArtStatus> artComboBox = new JComboBox<>(ArtStatus.values());
@@ -263,6 +325,7 @@ public class EducationPanel extends JPanel {
     private void setColumnWidths(){
         try {
             gradeTable.getColumnModel().getColumn(getColumnIndex("STT")).setMaxWidth(40);
+            gradeTable.getColumnModel().getColumn(getColumnIndex("STT")).setMinWidth(30);
             gradeTable.getColumnModel().getColumn(getColumnIndex("Tên HS")).setPreferredWidth(180);
             gradeTable.getColumnModel().getColumn(getColumnIndex(ART_KEY)).setMinWidth(100);
             gradeTable.getColumnModel().getColumn(getColumnIndex(CONDUCT_KEY)).setMinWidth(100);
@@ -276,82 +339,58 @@ public class EducationPanel extends JPanel {
                 }
             }
         } catch (Exception e) {
-            System.err.println("Error setting column widths: " + e.getMessage());
+            System.err.println("Error setting grade table column widths: " + e.getMessage());
         }
     }
 
     private void setupLayout() {
         leftPanel.add(treeScrollPane, BorderLayout.CENTER);
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        buttonPanel.add(editButton);
-        buttonPanel.add(cancelEditButton);
-        buttonPanel.add(saveChangesButton);
-        buttonPanel.add(exportButton);
+        gradeButtonPanel.add(editButton);
+        gradeButtonPanel.add(cancelButton);
+        gradeButtonPanel.add(saveChangesButton);
+        gradeButtonPanel.add(exportButton);
 
-        JPanel topOfRightPanel = new JPanel(new BorderLayout(10,0));
-        topOfRightPanel.add(selectedClassLabel, BorderLayout.CENTER);
-        topOfRightPanel.add(buttonPanel, BorderLayout.EAST);
-        topOfRightPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 5, 0));
+        topOfGradePanel.add(selectedClassLabel, BorderLayout.CENTER);
+        topOfGradePanel.add(gradeButtonPanel, BorderLayout.EAST);
+        topOfGradePanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 5, 0));
 
-        rightPanel.add(topOfRightPanel, BorderLayout.NORTH);
-        rightPanel.add(gradeTableScrollPane, BorderLayout.CENTER);
+        gradePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        gradePanel.add(topOfGradePanel, BorderLayout.NORTH);
+        gradePanel.add(gradeTableScrollPane, BorderLayout.CENTER);
+
+        assignmentButtonPanel.add(addAssignmentButton);
+        assignmentButtonPanel.add(editAssignmentButton);
+        assignmentButtonPanel.add(deleteAssignmentButton);
+
+        comboPanel.add(new JLabel("Manage Assignments for Class:"));
+        comboPanel.add(assignmentClassComboBox);
+        assignmentTopPanel.add(comboPanel, BorderLayout.WEST);
+        assignmentTopPanel.add(assignmentButtonPanel, BorderLayout.EAST);
+
+        assignmentManagementPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        assignmentManagementPanel.add(assignmentTopPanel, BorderLayout.NORTH);
+        assignmentManagementPanel.add(assignmentTableScrollPane, BorderLayout.CENTER);
+
+        placeholderPanel.add(placeholderLabel, BorderLayout.CENTER);
+
+        rightPanel.add(placeholderPanel, PLACEHOLDER_CARD);
+        rightPanel.add(gradePanel, GRADE_PANEL_CARD);
+        rightPanel.add(assignmentManagementPanel, ASSIGNMENT_PANEL_CARD);
 
         splitPane.setLeftComponent(leftPanel);
         splitPane.setRightComponent(rightPanel);
 
         add(splitPane, BorderLayout.CENTER);
+
+        rightPanelLayout.show(rightPanel, PLACEHOLDER_CARD);
     }
 
     private void setupActions() {
-        classTree.addTreeSelectionListener(new TreeSelectionListener() {
-            @Override
-            public void valueChanged(TreeSelectionEvent e) {
+        classTree.addTreeSelectionListener(e -> {
+            if (e.isAddedPath()) {
                 DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) classTree.getLastSelectedPathComponent();
-
-                if (selectedNode == null) {
-                    showPlaceholderView("Please select an item from the left.");
-                    return;
-                }
-
-                Object userObject = selectedNode.getUserObject();
-
-                if (userObject instanceof String) {
-                    String nodeText = (String) userObject;
-                    if ("Results & reviews".equals(nodeText)) {
-                        showPlaceholderView("Select a class under 'Results & reviews' to view grades.");
-                        if (controller != null) controller.clearSelectedClass();
-                        setEditingMode(false);
-                        editButton.setEnabled(false);
-                        exportButton.setEnabled(false);
-                        markChangesPending(false);
-                    } else if ("Assignments".equals(nodeText)) {
-                        showPlaceholderView("Assignment management feature is under development.");
-                        if (controller != null) controller.clearSelectedClass();
-                        setEditingMode(false);
-                        editButton.setEnabled(false);
-                        exportButton.setEnabled(false);
-                        markChangesPending(false);
-                    }
-                } else if (userObject instanceof EduClass) {
-                    showGradeTableView();
-                    if (isEditing && hasPendingChanges) {
-                        if (!UIUtils.showConfirmDialog(EducationPanel.this, "Unsaved Changes", "Discard unsaved changes?")) {
-                            return;
-                        }
-                    }
-                    setEditingMode(false);
-                    EduClass selectedClass = (EduClass) userObject;
-                    selectedClassLabel.setText("Class: " + selectedClass.getClassName());
-                    if (controller != null) {
-                        controller.loadDataForClass(selectedClass.getClassId());
-                        boolean canEdit = controller.canCurrentUserEdit();
-                        boolean hasData = gradeTableModel.getRowCount() > 0;
-                        editButton.setEnabled(canEdit && hasData);
-                        exportButton.setEnabled(hasData);
-                        markChangesPending(false);
-                    }
-                }
+                handleTreeNodeSelection(selectedNode);
             }
         });
 
@@ -359,7 +398,7 @@ public class EducationPanel extends JPanel {
             if (e.getType() == TableModelEvent.UPDATE && isEditing) {
                 int row = e.getFirstRow();
                 int column = e.getColumn();
-                if (controller != null && row >= 0 && column >= 0 ) {
+                if (controller != null && row >= 0 && column >= 0) {
                     String columnName = gradeTableModel.getColumnName(column);
                     boolean isDataColumn = false;
                     for(String key : EDITABLE_SUBJECT_KEYS) { if (key.equals(columnName)) {isDataColumn = true; break;} }
@@ -367,8 +406,9 @@ public class EducationPanel extends JPanel {
 
                     if(isDataColumn) {
                         Object newValue = gradeTableModel.getValueAt(row, column);
-                        System.out.println("Table cell edited: row=" + row + ", col=" + column + ", name=" + columnName + ", value=" + newValue);
+                        System.out.println("Grade Table cell edited: row=" + row + ", col=" + column + ", name=" + columnName + ", value=" + newValue);
                         controller.updateRecordInMemory(row, columnName, newValue);
+                        markChangesPending(true);
                     }
                 }
             }
@@ -379,15 +419,16 @@ public class EducationPanel extends JPanel {
             UIUtils.showInfoMessage(this, "Edit Mode", "You can now edit grades and conduct.");
         });
 
-        cancelEditButton.addActionListener(e -> {
+        cancelButton.addActionListener(e -> {
             if (hasPendingChanges) {
                 if (!UIUtils.showConfirmDialog(this, "Discard Changes?", "Are you sure you want to discard all unsaved changes?")) {
                     return;
                 }
             }
             setEditingMode(false);
+            markChangesPending(false);
             if(controller != null && controller.getCurrentSelectedClassId() > 0){
-                System.out.println("Cancelling edit, reloading data for class: " + controller.getCurrentSelectedClassId());
+                System.out.println("Cancelling edit, reloading grade data for class: " + controller.getCurrentSelectedClassId());
                 controller.loadDataForClass(controller.getCurrentSelectedClassId());
             }
         });
@@ -395,9 +436,6 @@ public class EducationPanel extends JPanel {
         saveChangesButton.addActionListener(e -> {
             if (controller != null) {
                 controller.saveAllChanges();
-                if (!hasPendingChanges) {
-                    setEditingMode(false);
-                }
             }
         });
 
@@ -406,87 +444,235 @@ public class EducationPanel extends JPanel {
                 mainController.requestExcelExport(MainController.EXPORT_GRADES, controller.getCurrentSelectedClassId());
             } else {
                 if(mainController == null) System.err.println("Export Error: MainController reference is null in EducationPanel.");
-                UIUtils.showWarningMessage(this, "Cannot Export", "Please select a class first.");
+                TreePath selectionPath = classTree.getSelectionPath();
+                boolean classNodeSelected = selectionPath != null &&
+                        selectionPath.getLastPathComponent() instanceof DefaultMutableTreeNode &&
+                        ((DefaultMutableTreeNode)selectionPath.getLastPathComponent()).getUserObject() instanceof EduClass;
+
+                if (!classNodeSelected) {
+                    UIUtils.showWarningMessage(this, "Cannot Export", "Please select a class under 'Results & reviews' first.");
+                } else {
+                    UIUtils.showWarningMessage(this, "Cannot Export", "Export function not available currently.");
+                }
             }
         });
+
+        assignmentClassComboBox.addActionListener(e -> {
+            EduClass selectedClass = (EduClass) assignmentClassComboBox.getSelectedItem();
+            if (controller != null && selectedClass != null) {
+                controller.loadAssignmentsForClass(selectedClass.getClassId());
+            } else if (controller != null) {
+                displayAssignments(Collections.emptyList());
+            }
+            updateAssignmentButtonStates();
+        });
+
+        addAssignmentButton.addActionListener(e -> {
+            EduClass selectedClass = getSelectedAssignmentClass();
+            if (controller != null && selectedClass != null) {
+                controller.handleAddAssignment(selectedClass);
+            } else {
+                UIUtils.showWarningMessage(this, "Action Required", "Please select a class first.");
+            }
+        });
+
+        editAssignmentButton.addActionListener(e -> {
+            int selectedRow = assignmentTable.getSelectedRow();
+            if (selectedRow >= 0) {
+                EduClass selectedClass = getSelectedAssignmentClass();
+                if (selectedClass != null) {
+                    int modelRow = assignmentTable.convertRowIndexToModel(selectedRow);
+                    int assignmentId = (int) assignmentTableModel.getValueAt(modelRow, 0);
+                    if (controller != null) {
+                        controller.handleEditAssignment(selectedClass, assignmentId);
+                    }
+                } else {
+                    UIUtils.showWarningMessage(this, "Action Required", "Please select a class first.");
+                }
+            } else {
+                UIUtils.showWarningMessage(this, "Action Required", "Please select an assignment to edit.");
+            }
+        });
+
+        deleteAssignmentButton.addActionListener(e -> {
+            int selectedRow = assignmentTable.getSelectedRow();
+            if (selectedRow >= 0) {
+                int modelRow = assignmentTable.convertRowIndexToModel(selectedRow);
+                int assignmentId = (int) assignmentTableModel.getValueAt(modelRow, 0);
+                String assignmentTitle = (String) assignmentTableModel.getValueAt(modelRow, 1);
+
+                if (UIUtils.showConfirmDialog(this, "Confirm Deletion", "Are you sure you want to delete assignment '" + assignmentTitle + "'?")) {
+                    if (controller != null) {
+                        controller.handleDeleteAssignment(assignmentId);
+                    }
+                }
+            } else {
+                UIUtils.showWarningMessage(this, "Action Required", "Please select an assignment to delete.");
+            }
+        });
+
+        assignmentTable.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                updateAssignmentButtonStates();
+            }
+        });
+    }
+
+    private void handleTreeNodeSelection(DefaultMutableTreeNode selectedNode) {
+        if (selectedNode == null) {
+            showPlaceholderView("Please select an item from the left.");
+            return;
+        }
+
+        Object userObject = selectedNode.getUserObject();
+
+        if (isEditing && hasPendingChanges) {
+            int choice = JOptionPane.showConfirmDialog(
+                    this,
+                    "You have unsaved changes in the grade editor. Discard changes and continue?",
+                    "Unsaved Changes",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE);
+
+            if (choice == JOptionPane.NO_OPTION) {
+                return;
+            } else {
+                setEditingMode(false);
+                markChangesPending(false);
+            }
+        } else {
+            setEditingMode(false);
+            markChangesPending(false);
+        }
+
+        if (userObject instanceof String) {
+            String nodeText = (String) userObject;
+            if ("Results & reviews".equals(nodeText)) {
+                showPlaceholderView("Select a class under 'Results & reviews' to view grades.");
+                if (controller != null) controller.clearSelectedClass();
+                editButton.setEnabled(false);
+                exportButton.setEnabled(false);
+            } else if ("Assignments".equals(nodeText)) {
+                rightPanelLayout.show(rightPanel, ASSIGNMENT_PANEL_CARD);
+                if (controller != null) {
+                    List<EduClass> classes = controller.getClassesForCurrentUser();
+                    populateAssignmentClassComboBox(classes);
+                    if (assignmentClassComboBox.getItemCount() > 0) {
+                        assignmentClassComboBox.setSelectedIndex(0);
+                    } else {
+                        displayAssignments(Collections.emptyList());
+                    }
+                }
+                updateAssignmentButtonStates();
+            }
+        } else if (userObject instanceof EduClass) {
+            rightPanelLayout.show(rightPanel, GRADE_PANEL_CARD);
+            EduClass selectedClass = (EduClass) userObject;
+            selectedClassLabel.setText("Grades for Class: " + selectedClass.getClassName());
+            if (controller != null) {
+                controller.loadDataForClass(selectedClass.getClassId());
+                boolean canEditGrades = controller.canCurrentUserEditGrades();
+                boolean hasData = gradeTableModel.getRowCount() > 0;
+                editButton.setEnabled(canEditGrades && hasData);
+                exportButton.setEnabled(hasData);
+            }
+        } else {
+            showPlaceholderView("Selection not recognized.");
+        }
+    }
+
+    private void populateAssignmentClassComboBox(List<EduClass> classes) {
+        Object selectedItem = assignmentClassComboBox.getSelectedItem();
+
+        assignmentClassComboBox.removeAllItems();
+        if (classes != null && !classes.isEmpty()) {
+            classes.sort(Comparator.comparing(EduClass::getClassName, String.CASE_INSENSITIVE_ORDER));
+            for (EduClass eduClass : classes) {
+                assignmentClassComboBox.addItem(eduClass);
+            }
+            if (selectedItem instanceof EduClass && classes.contains(selectedItem)) {
+                assignmentClassComboBox.setSelectedItem(selectedItem);
+            } else {
+                assignmentClassComboBox.setSelectedIndex(0);
+            }
+        }
+        assignmentClassComboBox.setEnabled(assignmentClassComboBox.getItemCount() > 0);
+    }
+
+    private void updateAssignmentButtonStates() {
+        EduClass selectedClass = getSelectedAssignmentClass();
+        boolean classSelected = (selectedClass != null);
+        boolean assignmentSelected = (assignmentTable.getSelectedRow() != -1);
+        boolean canManage = (controller != null && controller.canCurrentUserManageAssignments());
+
+        addAssignmentButton.setEnabled(classSelected && canManage && !isEditing);
+        editAssignmentButton.setEnabled(classSelected && assignmentSelected && canManage && !isEditing);
+        deleteAssignmentButton.setEnabled(classSelected && assignmentSelected && canManage && !isEditing);
     }
 
     public void configureControlsForRole(Role userRole) {
         this.currentUserRole = userRole;
         System.out.println("EducationPanel: Configuring controls for role: " + userRole);
 
-        boolean canEdit = (controller != null && controller.canCurrentUserEdit());
-
-        if (splitPane == null || leftPanel == null || rightPanel == null || editButton == null || cancelEditButton == null || saveChangesButton == null || exportButton == null) {
-            System.err.println("EducationPanel: Components not fully initialized in configureControlsForRole.");
+        if (splitPane == null || leftPanel == null || rightPanel == null || editButton == null ||
+                cancelButton == null || saveChangesButton == null || exportButton == null ||
+                addAssignmentButton == null || editAssignmentButton == null || deleteAssignmentButton == null ||
+                classTree == null || treeModel == null || resultsNode == null || assignmentsNode == null ||
+                rightPanelLayout == null || assignmentManagementPanel == null || gradePanel == null || placeholderPanel == null)
+        {
+            System.err.println("EducationPanel: Components not fully initialized in configureControlsForRole. Aborting configuration.");
             return;
         }
 
-        switch (userRole) {
-            case ADMIN:
-            case TEACHER:
-                splitPane.setLeftComponent(leftPanel);
-                splitPane.setDividerSize(8);
-                splitPane.setVisible(true);
-                leftPanel.setVisible(true);
-                showGradeTableView();
-                reloadClassTree();
-                setEditingMode(false);
+        boolean isPrivilegedUser = (userRole == Role.ADMIN || userRole == Role.TEACHER);
 
-                TreePath selectionPath = classTree.getSelectionPath();
-                boolean classSelected = (selectionPath != null && selectionPath.getLastPathComponent() instanceof DefaultMutableTreeNode && ((DefaultMutableTreeNode)selectionPath.getLastPathComponent()).getUserObject() instanceof EduClass);
-                boolean hasData = (gradeTableModel != null && gradeTableModel.getRowCount() > 0);
+        leftPanel.setVisible(isPrivilegedUser);
+        splitPane.setDividerSize(isPrivilegedUser ? 8 : 0);
+        if (isPrivilegedUser) {
+            splitPane.setLeftComponent(leftPanel);
+            reloadClassTree();
+            handleTreeNodeSelection((DefaultMutableTreeNode) treeModel.getRoot());
 
-                editButton.setVisible(true);
-                exportButton.setVisible(true);
-                cancelEditButton.setVisible(isEditing);
-                saveChangesButton.setVisible(isEditing);
+            topOfGradePanel.setVisible(true);
+            assignmentTopPanel.setVisible(true);
+            gradePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
-                editButton.setEnabled(classSelected && canEdit && hasData);
-                exportButton.setEnabled(classSelected && hasData);
-                saveChangesButton.setEnabled(isEditing && hasPendingChanges && canEdit);
-                break;
+        } else if (userRole == Role.STUDENT) {
+            splitPane.setLeftComponent(null);
+            rightPanelLayout.show(rightPanel, GRADE_PANEL_CARD);
+            if (controller != null) {
+                controller.loadDataForCurrentStudent();
+            }
+            topOfGradePanel.setVisible(false);
+            gradePanel.setBorder(BorderFactory.createTitledBorder("Bảng điểm cá nhân"));
 
-            case STUDENT:
-                splitPane.setLeftComponent(null);
-                splitPane.setDividerSize(0);
-                splitPane.setVisible(true);
-                leftPanel.setVisible(false);
-                showGradeTableView();
-                if(controller != null) controller.loadDataForCurrentStudent();
-                setEditingMode(false);
-                editButton.setVisible(false);
-                cancelEditButton.setVisible(false);
-                saveChangesButton.setVisible(false);
-                exportButton.setVisible(false);
-                if (rightPanel != null) {
-                    Component topComponent = ((BorderLayout)rightPanel.getLayout()).getLayoutComponent(BorderLayout.NORTH);
-                    if (topComponent != null) rightPanel.remove(topComponent);
-                    rightPanel.setBorder(BorderFactory.createTitledBorder("Bảng điểm cá nhân"));
-                }
-                break;
-
-            default:
-                splitPane.setVisible(false);
-                this.removeAll();
-                this.add(new JLabel("Access Restricted.", SwingConstants.CENTER));
-                break;
+        } else {
+            splitPane.setVisible(false);
+            this.removeAll();
+            this.add(new JLabel("Access Restricted.", SwingConstants.CENTER));
         }
+
+        editButton.setEnabled(false);
+        cancelButton.setVisible(false);
+        saveChangesButton.setVisible(false);
+        exportButton.setEnabled(false);
+        addAssignmentButton.setEnabled(false);
+        editAssignmentButton.setEnabled(false);
+        deleteAssignmentButton.setEnabled(false);
+
         this.revalidate();
         this.repaint();
     }
 
+
     public void reloadClassTree() {
-        if (controller != null && treeModel != null && resultsNode != null) {
+        if (controller != null && treeModel != null && resultsNode != null && classTree != null) {
             System.out.println("EducationPanel: Reloading class tree.");
 
-            TreePath selectedPath = classTree.getSelectionPath();
-            EduClass selectedClassBefore = null;
-            if (selectedPath != null && selectedPath.getLastPathComponent() instanceof DefaultMutableTreeNode) {
-                DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) selectedPath.getLastPathComponent();
-                if (selectedNode.getUserObject() instanceof EduClass) {
-                    selectedClassBefore = (EduClass) selectedNode.getUserObject();
-                }
+            TreePath selectedPathBefore = classTree.getSelectionPath();
+            Object selectedUserObjectBefore = null;
+            if (selectedPathBefore != null && selectedPathBefore.getLastPathComponent() instanceof DefaultMutableTreeNode) {
+                selectedUserObjectBefore = ((DefaultMutableTreeNode) selectedPathBefore.getLastPathComponent()).getUserObject();
             }
 
             resultsNode.removeAllChildren();
@@ -494,45 +680,57 @@ public class EducationPanel extends JPanel {
             DefaultMutableTreeNode nodeToSelectAfter = null;
 
             if (classes != null) {
+                classes.sort(Comparator.comparing(EduClass::getClassName, String.CASE_INSENSITIVE_ORDER));
                 for (EduClass eduClass : classes) {
                     DefaultMutableTreeNode classNode = new DefaultMutableTreeNode(eduClass);
                     resultsNode.add(classNode);
-                    if (selectedClassBefore != null && eduClass.getClassId() == selectedClassBefore.getClassId()) {
+                    if (selectedUserObjectBefore instanceof EduClass && eduClass.getClassId() == ((EduClass)selectedUserObjectBefore).getClassId()) {
                         nodeToSelectAfter = classNode;
                     }
                 }
             }
 
             treeModel.reload(resultsNode);
+
             classTree.expandPath(new TreePath(resultsNode.getPath()));
+            classTree.expandPath(new TreePath(assignmentsNode.getPath()));
+
 
             if (nodeToSelectAfter != null) {
-                TreePath path = new TreePath(nodeToSelectAfter.getPath());
-                classTree.setSelectionPath(path);
-                classTree.scrollPathToVisible(path);
-                boolean canEdit = (controller != null && controller.canCurrentUserEdit());
-                editButton.setEnabled(canEdit);
-                exportButton.setEnabled(gradeTableModel.getRowCount() > 0);
-            } else {
-                classTree.setSelectionPath(new TreePath(resultsNode.getPath()));
-                selectedClassLabel.setText("Results & reviews");
-                gradeTableModel.setRowCount(0);
-                setEditingMode(false);
-                editButton.setEnabled(false);
-                exportButton.setEnabled(false);
-                markChangesPending(false);
+                TreePath pathToSelect = new TreePath(nodeToSelectAfter.getPath());
+                classTree.setSelectionPath(pathToSelect);
+                classTree.scrollPathToVisible(pathToSelect);
+                handleTreeNodeSelection(nodeToSelectAfter);
+            } else if (selectedUserObjectBefore instanceof String && "Assignments".equals(selectedUserObjectBefore)) {
+                nodeToSelectAfter = assignmentsNode;
+                TreePath pathToSelect = new TreePath(nodeToSelectAfter.getPath());
+                classTree.setSelectionPath(pathToSelect);
+                classTree.scrollPathToVisible(pathToSelect);
+                handleTreeNodeSelection(nodeToSelectAfter);
             }
-            System.out.println("EducationPanel: Class tree reloaded.");
+            else {
+                nodeToSelectAfter = resultsNode;
+                TreePath pathToSelect = new TreePath(nodeToSelectAfter.getPath());
+                classTree.setSelectionPath(pathToSelect);
+                handleTreeNodeSelection(nodeToSelectAfter);
+            }
+
+            if (controller != null) {
+                populateAssignmentClassComboBox(classes);
+            }
+
+            System.out.println("EducationPanel: Class tree reloaded and view potentially updated.");
         }
     }
 
     public void updateTableData(List<Student> students, List<AcademicRecord> records) {
         gradeTableModel.setRowCount(0);
         if (students == null || records == null || students.size() != records.size()) {
-            System.err.println("Error updating table: Mismatch/null student/record lists.");
+            System.err.println("Error updating grade table: Mismatch or null student/record lists.");
             setEditingMode(false);
-            if(editButton != null) editButton.setEnabled(false);
-            if(exportButton != null) exportButton.setEnabled(false);
+            markChangesPending(false);
+            editButton.setEnabled(false);
+            exportButton.setEnabled(false);
             return;
         }
 
@@ -558,17 +756,24 @@ public class EducationPanel extends JPanel {
             row.add(record.getConductRating());
             gradeTableModel.addRow(row);
         }
-        markChangesPending(false);
+
         setEditingMode(false);
-        boolean canEdit = (controller != null && controller.canCurrentUserEdit());
-        if(editButton != null) editButton.setEnabled(canEdit && gradeTableModel.getRowCount() > 0);
-        if(exportButton != null) exportButton.setEnabled(gradeTableModel.getRowCount() > 0);
+        markChangesPending(false);
+        boolean canEdit = (controller != null && controller.canCurrentUserEditGrades());
+        boolean hasData = gradeTableModel.getRowCount() > 0;
+        editButton.setEnabled(canEdit && hasData);
+        exportButton.setEnabled(hasData);
     }
 
     public void updateTableDataForStudent(Student student, List<AcademicRecord> records) {
         gradeTableModel.setRowCount(0);
-        if (student == null || records == null) return;
-        for (AcademicRecord record : records) {
+        if (student == null || records == null) {
+            System.err.println("Error updating student grade table: Null student or records.");
+            return;
+        }
+
+        if (!records.isEmpty()) {
+            AcademicRecord record = records.get(0);
             Vector<Object> row = new Vector<>();
             row.add(1);
             row.add(student.getFullName());
@@ -587,51 +792,80 @@ public class EducationPanel extends JPanel {
             row.add(record.calculateAvgOverallSubjects());
             row.add(record.getConductRating());
             gradeTableModel.addRow(row);
+        } else {
+            System.out.println("No academic records found for student: " + student.getFullName());
         }
+
         setEditingMode(false);
-        if(editButton != null) editButton.setVisible(false);
-        if(cancelEditButton != null) cancelEditButton.setVisible(false);
-        if(saveChangesButton != null) saveChangesButton.setVisible(false);
-        if(exportButton != null) exportButton.setVisible(false);
+        markChangesPending(false);
+        editButton.setVisible(false);
+        cancelButton.setVisible(false);
+        saveChangesButton.setVisible(false);
+        exportButton.setVisible(false);
     }
 
+    public void displayAssignments(List<Assignment> assignments) {
+        assignmentTableModel.setRowCount(0);
+        if (assignments != null) {
+            for (Assignment assignment : assignments) {
+                Vector<Object> row = new Vector<>();
+                row.add(assignment.getAssignmentId());
+                row.add(assignment.getTitle());
+                row.add(assignment.getDueDate() != null ? assignment.getDueDate().format(ASSIGNMENT_DATE_FORMATTER) : "");
+                row.add(assignment.getDescription());
+                assignmentTableModel.addRow(row);
+            }
+        }
+        updateAssignmentButtonStates();
+    }
+
+
     public void updateCalculatedValues(int rowIndex, AcademicRecord record) {
-        if (rowIndex >= 0 && rowIndex < gradeTableModel.getRowCount()) {
+        if (rowIndex >= 0 && rowIndex < gradeTableModel.getRowCount() && record != null) {
             try {
-                gradeTableModel.setValueAt(record.calculateAvgNaturalSciences(), rowIndex, getColumnIndex("TB KHTN"));
-                gradeTableModel.setValueAt(record.calculateAvgSocialSciences(), rowIndex, getColumnIndex("TB KHXH"));
-                gradeTableModel.setValueAt(record.calculateAvgOverallSubjects(), rowIndex, getColumnIndex("TB môn học"));
+                SwingUtilities.invokeLater(() -> {
+                    int khtnIndex = getColumnIndex("TB KHTN");
+                    int khxhIndex = getColumnIndex("TB KHXH");
+                    int tbMonHocIndex = getColumnIndex("TB môn học");
+
+                    if (khtnIndex != -1) {
+                        gradeTableModel.setValueAt(record.calculateAvgNaturalSciences(), rowIndex, khtnIndex);
+                    }
+                    if (khxhIndex != -1) {
+                        gradeTableModel.setValueAt(record.calculateAvgSocialSciences(), rowIndex, khxhIndex);
+                    }
+                    if (tbMonHocIndex != -1) {
+                        gradeTableModel.setValueAt(record.calculateAvgOverallSubjects(), rowIndex, tbMonHocIndex);
+                    }
+                });
             } catch(ArrayIndexOutOfBoundsException e) {
-                System.err.println("Error updating calculated values, column index likely invalid: " + e.getMessage());
+                System.err.println("Error updating calculated grade values, column index likely invalid: " + e.getMessage());
             }
         }
     }
 
     public void markChangesPending(boolean pending) {
         this.hasPendingChanges = pending;
-        if (saveChangesButton != null) {
-            saveChangesButton.setEnabled(isEditing && pending && controller != null && controller.canCurrentUserEdit());
-        }
+        setEditingMode(this.isEditing);
     }
 
     public void refreshTableCell(int rowIndex, String subjectKey){
         if(rowIndex >= 0 && rowIndex < gradeTableModel.getRowCount()){
             int columnIndex = getColumnIndex(subjectKey);
             if(columnIndex != -1){
-                System.out.println("Requesting repaint for cell: row=" + rowIndex + ", col=" + columnIndex);
+                System.out.println("Requesting repaint for grade cell: row=" + rowIndex + ", col=" + columnIndex);
                 gradeTableModel.fireTableCellUpdated(rowIndex, columnIndex);
             }
         }
     }
 
     public int getColumnIndex(String columnName) {
-        if (gradeTable == null) return -1;
+        if (gradeTable == null || columnName == null) return -1;
         for (int i = 0; i < gradeTable.getColumnCount(); i++) {
-            if (gradeTable.getColumnName(i).equals(columnName)) {
+            if (columnName.equals(gradeTable.getColumnName(i))) {
                 return i;
             }
         }
-        System.err.println("Warning: Column not found in gradeTable: " + columnName);
         return -1;
     }
 
@@ -640,43 +874,38 @@ public class EducationPanel extends JPanel {
     }
 
     private void showPlaceholderView(String message) {
-        rightPanel.removeAll();
-        JLabel placeholder = new JLabel("<html><center><i>" + message + "</i></center></html>", SwingConstants.CENTER);
-        placeholder.setForeground(Color.GRAY);
-        placeholder.setFont(placeholder.getFont().deriveFont(14f));
-        rightPanel.add(placeholder, BorderLayout.CENTER);
-        rightPanel.revalidate();
-        rightPanel.repaint();
+        if (placeholderLabel != null) {
+            placeholderLabel.setText("<html><center><i>" + message + "</i></center></html>");
+        }
+        if (rightPanelLayout != null && rightPanel != null) {
+            rightPanelLayout.show(rightPanel, PLACEHOLDER_CARD);
+        }
+        editButton.setEnabled(false);
+        exportButton.setEnabled(false);
+        addAssignmentButton.setEnabled(false);
+        editAssignmentButton.setEnabled(false);
+        deleteAssignmentButton.setEnabled(false);
+        setEditingMode(false);
+        markChangesPending(false);
     }
 
     private void showGradeTableView() {
-        rightPanel.removeAll();
-
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        buttonPanel.add(editButton);
-        buttonPanel.add(cancelEditButton);
-        buttonPanel.add(saveChangesButton);
-        buttonPanel.add(exportButton);
-
-        JPanel topOfRightPanel = new JPanel(new BorderLayout(10,0));
-        topOfRightPanel.add(selectedClassLabel, BorderLayout.CENTER);
-        topOfRightPanel.add(buttonPanel, BorderLayout.EAST);
-        topOfRightPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 5, 0));
-
-        rightPanel.add(topOfRightPanel, BorderLayout.NORTH);
-        rightPanel.add(gradeTableScrollPane, BorderLayout.CENTER);
-
-        rightPanel.revalidate();
-        rightPanel.repaint();
+        if (rightPanelLayout != null && rightPanel != null) {
+            rightPanelLayout.show(rightPanel, GRADE_PANEL_CARD);
+        }
     }
 
     private class EduClassTreeCellRenderer extends DefaultTreeCellRenderer {
-        private final Icon rootIcon;
-        private final Icon assignmentIcon;
+        private final Icon defaultClosedIcon = UIManager.getIcon("Tree.closedIcon");
+        private final Icon defaultOpenIcon = UIManager.getIcon("Tree.openIcon");
+        private final Icon defaultLeafIcon = UIManager.getIcon("Tree.leafIcon");
+        private final Icon specificResultsIcon;
+        private final Icon specificAssignmentIcon;
 
-        public EduClassTreeCellRenderer(Icon rootIcon, Icon assignmentIcon) {
-            this.rootIcon = rootIcon;
-            this.assignmentIcon = assignmentIcon;
+
+        public EduClassTreeCellRenderer(Icon resultsIcon, Icon assignmentIcon) {
+            this.specificResultsIcon = resultsIcon;
+            this.specificAssignmentIcon = assignmentIcon;
         }
 
         @Override
@@ -684,6 +913,7 @@ public class EducationPanel extends JPanel {
                                                       boolean sel, boolean expanded,
                                                       boolean leaf, int row, boolean hasFocus) {
             JLabel label = (JLabel) super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus);
+
             if (value instanceof DefaultMutableTreeNode) {
                 DefaultMutableTreeNode node = (DefaultMutableTreeNode) value;
                 Object userObject = node.getUserObject();
@@ -692,26 +922,19 @@ public class EducationPanel extends JPanel {
                     String nodeText = (String) userObject;
                     label.setText(nodeText);
                     if ("Results & reviews".equals(nodeText)) {
-                        if (this.rootIcon != null) {
-                            label.setIcon(this.rootIcon);
-                        } else {
-                            label.setIcon(UIManager.getIcon(expanded ? "Tree.openIcon" : "Tree.closedIcon"));
-                        }
+                        label.setIcon(specificResultsIcon != null ? specificResultsIcon : (expanded ? defaultOpenIcon : defaultClosedIcon));
                     } else if ("Assignments".equals(nodeText)) {
-                        if (this.assignmentIcon != null) {
-                            label.setIcon(this.assignmentIcon);
-                        } else {
-                            label.setIcon(UIManager.getIcon(expanded ? "Tree.openIcon" : "Tree.closedIcon"));
-                        }
+                        label.setIcon(specificAssignmentIcon != null ? specificAssignmentIcon : (expanded ? defaultOpenIcon : defaultClosedIcon));
                     } else {
-                        label.setIcon(UIManager.getIcon(expanded ? "Tree.openIcon" : "Tree.closedIcon"));
+                        label.setIcon(expanded ? defaultOpenIcon : defaultClosedIcon);
                     }
                 } else if (userObject instanceof EduClass) {
                     EduClass eduClass = (EduClass) userObject;
                     label.setText(eduClass.getClassName());
-                    label.setIcon(UIManager.getIcon("Tree.leafIcon"));
+                    label.setIcon(defaultLeafIcon);
                 } else {
                     label.setText(userObject == null ? "" : userObject.toString());
+                    label.setIcon(defaultLeafIcon);
                 }
             } else {
                 label.setText(value == null ? "" : value.toString());
@@ -722,32 +945,62 @@ public class EducationPanel extends JPanel {
 
     private void setEditingMode(boolean editing) {
         this.isEditing = editing;
+        boolean canEditGrades = (controller != null && controller.canCurrentUserEditGrades());
+        boolean hasGradeData = (gradeTableModel != null && gradeTableModel.getRowCount() > 0);
+        boolean hasAssignmentSelection = (assignmentTable != null && assignmentTable.getSelectedRow() != -1);
+        boolean canManageAssignments = (controller != null && controller.canCurrentUserManageAssignments());
+        EduClass selectedAssignmentClass = getSelectedAssignmentClass();
+        boolean assignmentClassSelected = (selectedAssignmentClass != null);
+
+
         if (editButton != null) {
             editButton.setVisible(!editing);
-            editButton.setEnabled(!editing && controller != null && controller.canCurrentUserEdit() && (gradeTableModel != null && gradeTableModel.getRowCount() > 0));
+            editButton.setEnabled(!editing && canEditGrades && hasGradeData);
         }
-        if (cancelEditButton != null) {
-            cancelEditButton.setVisible(editing);
+        if (cancelButton != null) {
+            cancelButton.setVisible(editing);
         }
         if (saveChangesButton != null) {
             saveChangesButton.setVisible(editing);
-            saveChangesButton.setEnabled(editing && hasPendingChanges && controller != null && controller.canCurrentUserEdit());
+            saveChangesButton.setEnabled(editing && canEditGrades && hasPendingChanges);
         }
+
+        if (assignmentClassComboBox != null) {
+            assignmentClassComboBox.setEnabled(!editing);
+        }
+        if (addAssignmentButton != null) {
+            addAssignmentButton.setEnabled(!editing && assignmentClassSelected && canManageAssignments);
+        }
+        if (editAssignmentButton != null) {
+            editAssignmentButton.setEnabled(!editing && assignmentClassSelected && hasAssignmentSelection && canManageAssignments);
+        }
+        if (deleteAssignmentButton != null) {
+            deleteAssignmentButton.setEnabled(!editing && assignmentClassSelected && hasAssignmentSelection && canManageAssignments);
+        }
+
         if (gradeTable != null) {
             gradeTable.repaint();
         }
-        System.out.println("Editing mode set to: " + editing);
+        System.out.println("Grade editing mode set to: " + editing);
     }
 
     public void updateSpecificCellValue(int rowIndex, String subjectKey, Object value) {
         int columnIndex = getColumnIndex(subjectKey);
         if (rowIndex >= 0 && rowIndex < gradeTableModel.getRowCount() && columnIndex != -1) {
             SwingUtilities.invokeLater(() -> {
-                System.out.println("Updating TableModel cell: row=" + rowIndex + ", col=" + columnIndex + ", value=" + value);
+                System.out.println("Updating Grade TableModel cell: row=" + rowIndex + ", col=" + columnIndex + ", key=" + subjectKey + ", value=" + value);
                 gradeTableModel.setValueAt(value, rowIndex, columnIndex);
             });
         } else {
-            System.err.println("Error updating specific cell value: Invalid row/column index or key not found. Row: " + rowIndex + ", Key: " + subjectKey);
+            System.err.println("Error updating specific grade cell value: Invalid row/column index or key not found. Row: " + rowIndex + ", Key: " + subjectKey);
         }
     }
+
+    public EduClass getSelectedAssignmentClass() {
+        if (assignmentClassComboBox != null) {
+            return (EduClass) assignmentClassComboBox.getSelectedItem();
+        }
+        return null;
+    }
+
 }

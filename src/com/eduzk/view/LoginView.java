@@ -12,22 +12,26 @@ import com.eduzk.view.dialogs.RegisterDialog;
 import java.net.URL;
 import com.formdev.flatlaf.extras.FlatSVGIcon;
 
-public class    LoginView extends JFrame {
+public class LoginView extends JFrame {
 
-    private final AuthController authController;
     private JTextField usernameField;
     private JPasswordField passwordField;
     private JButton loginButton;
     private JButton registerButton;
     private JLabel statusLabel;
     private JLabel logoLabel;
+    private AuthController authController;
 
     public LoginView(AuthController authController) {
+        if (authController == null) {
+            throw new IllegalArgumentException("AuthController cannot be null for LoginView");
+        }
         this.authController = authController;
         initComponents();
         setupLayout();
         setupActions();
         configureWindow();
+        styleComponents();
     }
 
     private void initComponents() {

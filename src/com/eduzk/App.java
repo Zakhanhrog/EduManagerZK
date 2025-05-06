@@ -80,7 +80,19 @@ public class App {
                         Thread.sleep(200);
 
                         publish("Initializing Authentication Controller...");
-                        AuthController authController = new AuthController(userDAO);
+
+
+                        AuthController authController = new AuthController(
+                                userDAO,
+                                teacherDAO,
+                                studentDAO,
+                                courseDAO,
+                                roomDAO,
+                                eduClassDAO,
+                                scheduleDAO,
+                                logService,
+                                academicRecordDAO,
+                                sharedIdGenerator);
                         authController.setTeacherDAO(teacherDAO);
                         authController.setStudentDAO(studentDAO);
                         authController.setCourseDAO(courseDAO);

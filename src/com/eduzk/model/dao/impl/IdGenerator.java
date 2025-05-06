@@ -21,6 +21,7 @@ public class IdGenerator {
     private static final String EDUCLASS_ID_KEY = "educlass";
     private static final String SCHEDULE_ID_KEY = "schedule";
     private static final String ACADEMIC_RECORD_ID_KEY = "academic_record";
+    private static final String ASSIGNMENT_ID_KEY = "assignment";
 
     public IdGenerator(String idFilePath) {
         this.idFilePath = idFilePath;
@@ -72,6 +73,7 @@ public class IdGenerator {
         nextIdMap.putIfAbsent(EDUCLASS_ID_KEY, 1);
         nextIdMap.putIfAbsent(SCHEDULE_ID_KEY, 1);
         nextIdMap.putIfAbsent(ACADEMIC_RECORD_ID_KEY, 1);
+        nextIdMap.putIfAbsent(ASSIGNMENT_ID_KEY, 1);
     }
 
 
@@ -131,6 +133,10 @@ public class IdGenerator {
 
     public int getNextScheduleId() {
         return getNextId(SCHEDULE_ID_KEY);
+    }
+
+    public int getNextAssignmentId() {
+        return getNextId(ASSIGNMENT_ID_KEY);
     }
 
     // Generic method to get the next ID for a given entity type (key)

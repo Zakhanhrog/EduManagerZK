@@ -2,6 +2,9 @@ package com.eduzk.controller;
 
 import java.io.IOException;
 import javax.swing.*;
+
+import com.eduzk.model.dao.impl.AssignmentDAOImpl;
+import com.eduzk.model.dao.impl.IdGenerator;
 import com.eduzk.model.dao.interfaces.*;
 import com.eduzk.model.entities.*;
 import com.eduzk.utils.UIUtils;
@@ -39,6 +42,8 @@ public class MainController {
     private LogController logController;
     private EducationController educationController;
     private final IAcademicRecordDAO recordDAO;
+    private final IAssignmentDAO assignmentDAO;
+    private final IdGenerator idGenerator;
 
     public MainController(User loggedInUser,
                           AuthController authController,
@@ -50,42 +55,93 @@ public class MainController {
                           IEduClassDAO eduClassDAO,
                           IScheduleDAO scheduleDAO,
                           LogService logService,
-                          IAcademicRecordDAO recordDAO)
+                          IAcademicRecordDAO recordDAO,
+                          IdGenerator idGenerator)
     {
         if (recordDAO == null) {
             throw new IllegalArgumentException("AcademicRecordDAO cannot be null in MainController");
         }
-        this.recordDAO = recordDAO;
 
+        if (idGenerator == null) { // <<< THÊM KIỂM TRA NULL CHO IdGenerator
+            throw new IllegalArgumentException("IdGenerator cannot be null in MainController");
+        }
         if (loggedInUser == null) {
             throw new IllegalArgumentException("LoggedInUser cannot be null in MainController");
         }
         if (authController == null) {
             throw new IllegalArgumentException("AuthController cannot be null in MainController");
         }
-
+        this.recordDAO = recordDAO;
+        this.idGenerator = idGenerator;
         this.loggedInUser = loggedInUser;
         this.authController = authController;
 
-        initializeControllers(userDAO, studentDAO, teacherDAO, courseDAO, roomDAO, eduClassDAO, scheduleDAO, logService, recordDAO);
+        try {
+            this.assignmentDAO = new AssignmentDAOImpl(this.idGenerator); // <<< KHỞI TẠO this.assignmentDAO
+        } catch (Exception e) {
+            System.err.println("!!! CRITICAL ERROR INITIALIZING AssignmentDAO !!!");
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null,
+                    "Failed to initialize Assignment Data Access Object.\nError: " + e.getMessage(),
+                    "Initialization Error",
+                    JOptionPane.ERROR_MESSAGE);
+            System.exit(1);
+            throw new RuntimeException("Failed to initialize AssignmentDAO", e);
+        }
+
+        // Khởi tạo EduClassController (cần làm trước khi gọi initializeControllers nếu EducationController cần nó)
+        EduClassController tempEduClassController = null; // Dùng biến tạm thời
+        try {
+            tempEduClassController = new EduClassController(eduClassDAO, courseDAO, teacherDAO, studentDAO, loggedInUser, logService);
+        } catch (Exception e) {
+            System.err.println("!!! CRITICAL ERROR INITIALIZING EduClassController !!!");
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null,
+                    "Failed to initialize EduClassController.\nError: " + e.getMessage(),
+                    "Initialization Error",
+                    JOptionPane.ERROR_MESSAGE);
+            System.exit(1);
+        }
+
+
+        // Gọi initializeControllers với ĐẦY ĐỦ tham số
+        initializeControllers(
+                userDAO, studentDAO, teacherDAO, courseDAO, roomDAO, eduClassDAO,
+                scheduleDAO, logService, recordDAO,
+                this.assignmentDAO,       // <<< Truyền this.assignmentDAO
+                tempEduClassController    // <<< Truyền biến eduClassController vừa tạo
+        );
     }
 
     private void initializeControllers(
             IUserDAO userDAO, IStudentDAO studentDAO, ITeacherDAO teacherDAO,
             ICourseDAO courseDAO, IRoomDAO roomDAO, IEduClassDAO eduClassDAO,
             IScheduleDAO scheduleDAO, LogService logService,
-            IAcademicRecordDAO recordDAO)
+            IAcademicRecordDAO recordDAO,
+            IAssignmentDAO assignmentDAO,
+            EduClassController eduClassController
+    )
     {
         try {
+            // Khởi tạo các controller khác
             studentController = new StudentController(studentDAO, eduClassDAO, userDAO, loggedInUser, logService);
             teacherController = new TeacherController(teacherDAO, userDAO, loggedInUser, logService);
             courseController = new CourseController(courseDAO, loggedInUser, logService);
             roomController = new RoomController(roomDAO, loggedInUser, logService);
-            eduClassController = new EduClassController(eduClassDAO, courseDAO, teacherDAO, studentDAO, loggedInUser, logService);
             scheduleController = new ScheduleController(scheduleDAO, eduClassDAO, teacherDAO, roomDAO, loggedInUser, logService);
             userController = new UserController(userDAO, loggedInUser, logService);
             logController = new LogController(logService, loggedInUser);
-            educationController = new EducationController(loggedInUser, recordDAO, eduClassDAO, studentDAO, logService, eduClassController);
+            educationController = new EducationController(loggedInUser, recordDAO, eduClassDAO, studentDAO, logService, eduClassController, assignmentDAO );
+
+            educationController = new EducationController(
+                    loggedInUser,
+                    recordDAO,
+                    eduClassDAO,
+                    studentDAO,
+                    logService,
+                    eduClassController,
+                    assignmentDAO
+            );
 
             System.out.println("Child Controllers initialized successfully.");
 
