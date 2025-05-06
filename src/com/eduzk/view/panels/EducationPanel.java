@@ -22,21 +22,17 @@ import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 import java.awt.*;
 import java.text.DecimalFormat;
-import java.util.Collections;
-import java.util.Comparator;
+import java.util.*;
 import java.util.List;
-import java.util.Vector;
 
 public class EducationPanel extends JPanel {
 
     private EducationController controller;
     private MainController mainController;
     private Role currentUserRole;
-
     private JSplitPane splitPane;
     private JPanel leftPanel;
     private JPanel rightPanel; // Will use CardLayout
-
     private JTree classTree;
     private DefaultTreeModel treeModel;
     private DefaultMutableTreeNode mainRootNode;
@@ -45,7 +41,6 @@ public class EducationPanel extends JPanel {
     private JScrollPane treeScrollPane;
     private Icon resultsRootIcon;
     private Icon assignmentIcon; // Icon for Assignment node in tree
-
     private JPanel gradePanel; // Panel to hold grade components within CardLayout
     private JTable gradeTable;
     private DefaultTableModel gradeTableModel;
@@ -59,7 +54,6 @@ public class EducationPanel extends JPanel {
     private boolean hasPendingChanges = false; // Grade changes pending flag
     private JPanel gradeButtonPanel;
     private JPanel topOfGradePanel;
-
     private JPanel assignmentManagementPanel; // Panel to hold assignment components within CardLayout
     private JComboBox<EduClass> assignmentClassComboBox;
     private JTable assignmentTable;
@@ -71,15 +65,12 @@ public class EducationPanel extends JPanel {
     private JPanel assignmentButtonPanel;
     private JPanel assignmentTopPanel;
     private JPanel comboPanel; // Panel for combobox label + combobox
-
     private JPanel placeholderPanel;
     private JLabel placeholderLabel;
-
     private CardLayout rightPanelLayout;
     private static final String GRADE_PANEL_CARD = "Grades";
     private static final String ASSIGNMENT_PANEL_CARD = "Assignments";
     private static final String PLACEHOLDER_CARD = "Placeholder";
-
     private static final DecimalFormat df = new DecimalFormat("#.00");
     private static final String[] SUBJECT_KEYS = {"Toán", "Văn", "Anh", "Lí", "Hoá", "Sinh", "Sử", "Địa", "GDCD", "Nghệ thuật"};
     private static final String[] EDITABLE_SUBJECT_KEYS = {"Toán", "Văn", "Anh", "Lí", "Hoá", "Sinh", "Sử", "Địa", "GDCD"};
@@ -88,6 +79,24 @@ public class EducationPanel extends JPanel {
     private static final String[] TABLE_COLUMNS = {"STT", "Tên HS", "Toán", "Văn", "Anh", "Lí", "Hoá", "Sinh", "Sử", "Địa", "GDCD", ART_KEY, "TB KHTN", "TB KHXH", "TB môn học", CONDUCT_KEY};
     private static final DateTimeFormatter ASSIGNMENT_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
+    private javax.swing.Timer assignmentStatusTimer;
+    private final int STATUS_COLUMN_INDEX = 4;
+    private List<Assignment> currentlyDisplayedAssignmentsInPanel;
+
+    private JPanel studentInfoPanel; // Panel để chứa các label thông tin
+    private JLabel studentNameLabel;
+    private JLabel studentIdLabel;
+    private JLabel studentDobLabel;
+    private JLabel studentGenderLabel;
+    private JLabel studentClassLabel; // Sẽ lấy từ EduClass nếu có
+    private JLabel studentPhoneLabel;
+    private JLabel studentEmailLabel;
+    private JLabel studentParentLabel;
+
+    private void initializeAssignmentStatusUpdater() {
+        assignmentStatusTimer = new javax.swing.Timer(60000, e -> checkAndUpdateAssignmentStatuses());
+        assignmentStatusTimer.setInitialDelay(10000);
+    }
 
     public EducationPanel() {
         super(new BorderLayout());
@@ -122,9 +131,33 @@ public class EducationPanel extends JPanel {
         saveChangesButton.setIcon(UIUtils.loadSVGIcon("/icons/save.svg", 20));
         exportButton = new JButton("Xuất Excel");
         exportButton.setIcon(UIUtils.loadSVGIcon("/icons/export.svg", 20));
-
         resultsRootIcon = UIUtils.loadSVGIcon("/icons/results.svg", 33);
         assignmentIcon = UIUtils.loadSVGIcon("/icons/assignment.svg", 33);
+        studentInfoPanel = new JPanel();
+        studentInfoPanel.setLayout(new BoxLayout(studentInfoPanel, BoxLayout.Y_AXIS)); // Hoặc GridLayout
+        studentInfoPanel.setBorder(BorderFactory.createTitledBorder("Thông tin cá nhân"));
+        studentInfoPanel.setVisible(false); // Ban đầu ẩn, chỉ hiển thị cho Student
+
+        studentNameLabel = new JLabel("Họ và tên: ");
+        studentIdLabel = new JLabel("Mã HS: ");
+        studentDobLabel = new JLabel("Ngày sinh: ");
+        studentGenderLabel = new JLabel("Giới tính: ");
+        studentClassLabel = new JLabel("Lớp: ");
+        studentPhoneLabel = new JLabel("Điện thoại: ");
+        studentEmailLabel = new JLabel("Email: ");
+        studentParentLabel = new JLabel("Phụ huynh: ");
+
+        JPanel infoGridPanel = new JPanel(new GridLayout(0, 2, 10, 5)); // 0 hàng, 2 cột, khoảng cách
+        infoGridPanel.add(new JLabel("<html><b>Họ và tên:</b></html>")); infoGridPanel.add(studentNameLabel);
+        infoGridPanel.add(new JLabel("<html><b>Mã HS:</b></html>")); infoGridPanel.add(studentIdLabel);
+        infoGridPanel.add(new JLabel("<html><b>Ngày sinh:</b></html>")); infoGridPanel.add(studentDobLabel);
+        infoGridPanel.add(new JLabel("<html><b>Giới tính:</b></html>")); infoGridPanel.add(studentGenderLabel);
+        infoGridPanel.add(new JLabel("<html><b>Lớp hiện tại:</b></html>")); infoGridPanel.add(studentClassLabel); // Sẽ cần lấy tên lớp
+        infoGridPanel.add(new JLabel("<html><b>Điện thoại:</b></html>")); infoGridPanel.add(studentPhoneLabel);
+        infoGridPanel.add(new JLabel("<html><b>Email:</b></html>")); infoGridPanel.add(studentEmailLabel);
+        infoGridPanel.add(new JLabel("<html><b>Phụ huynh:</b></html>")); infoGridPanel.add(studentParentLabel);
+        infoGridPanel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
+        studentInfoPanel.add(infoGridPanel);
 
         editButton.setEnabled(false);
         saveChangesButton.setVisible(false);
@@ -186,7 +219,10 @@ public class EducationPanel extends JPanel {
         assignmentClassComboBox = new JComboBox<>();
         assignmentClassComboBox.setPrototypeDisplayValue(new EduClass(0, "Longest Class Name Possible Here", null, null, 0, "", ""));
 
-        assignmentTableModel = new DefaultTableModel(new String[]{"ID", "Title", "Due Date", "Description"}, 0) {
+        assignmentTableModel = new DefaultTableModel(
+                new String[]{"ID", "Title", "Deadline", "Description", "Status"},
+                0
+        ) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
@@ -376,7 +412,11 @@ public class EducationPanel extends JPanel {
 
         gradePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         gradePanel.add(topOfGradePanel, BorderLayout.NORTH);
-        gradePanel.add(gradeTableScrollPane, BorderLayout.CENTER);
+        JPanel centerContentPanel = new JPanel(new BorderLayout(5, 10));
+        centerContentPanel.add(studentInfoPanel, BorderLayout.NORTH);
+        centerContentPanel.add(gradeTableScrollPane, BorderLayout.CENTER);
+
+        gradePanel.add(centerContentPanel, BorderLayout.CENTER);
 
         assignmentButtonPanel.add(addAssignmentButton);
         assignmentButtonPanel.add(editAssignmentButton);
@@ -642,11 +682,10 @@ public class EducationPanel extends JPanel {
         if (userObject instanceof String) {
             String nodeText = (String) userObject;
 
-            if (("Results".equals(nodeText) && currentUserRole == Role.STUDENT) ||
+            if (("Info & Results".equals(nodeText) && currentUserRole == Role.STUDENT) ||
                     ("Results & reviews".equals(nodeText) && (currentUserRole == Role.ADMIN || currentUserRole == Role.TEACHER)))
             {
                 if (currentUserRole == Role.STUDENT) {
-                    // STUDENT: Hiển thị bảng điểm cá nhân
                     rightPanelLayout.show(rightPanel, GRADE_PANEL_CARD);
                     if (controller != null) {
                         controller.loadDataForCurrentStudent(); // Tải điểm của học sinh
@@ -723,8 +762,21 @@ public class EducationPanel extends JPanel {
     private void updateAssignmentButtonStates() {
         EduClass selectedClass = getSelectedAssignmentClass();
         boolean classSelected = (selectedClass != null);
+        int selectedRowInView = assignmentTable.getSelectedRow();
         boolean assignmentSelected = (assignmentTable.getSelectedRow() != -1);
         boolean canManage = (controller != null && controller.canCurrentUserManageAssignments());
+        boolean isSelectedAssignmentOverdue = false;
+        if (assignmentSelected && controller != null) {
+            int modelRow = assignmentTable.convertRowIndexToModel(selectedRowInView);
+            // Đảm bảo modelRow hợp lệ trước khi truy cập
+            if (modelRow >= 0 && modelRow < assignmentTableModel.getRowCount()) {
+                int assignmentId = (int) assignmentTableModel.getValueAt(modelRow, 0); // Lấy ID từ cột 0
+                isSelectedAssignmentOverdue = controller.isAssignmentOverdue(assignmentId); // Gọi controller
+            } else {
+                System.err.println("updateAssignmentButtonStates: Invalid modelRow " + modelRow);
+                assignmentSelected = false; // Coi như không có gì được chọn nếu modelRow không hợp lệ
+            }
+        }
 
         addAssignmentButton.setEnabled(classSelected && canManage && !isEditing);
         editAssignmentButton.setEnabled(classSelected && assignmentSelected && canManage && !isEditing);
@@ -765,6 +817,7 @@ public class EducationPanel extends JPanel {
         } else if (userRole == Role.STUDENT) {
             reloadClassTree();
             handleTreeNodeSelection(null);
+            studentInfoPanel.setVisible(true);
             topOfGradePanel.setVisible(false);
             assignmentTopPanel.setVisible(false);
             gradePanel.setBorder(BorderFactory.createTitledBorder("Bảng điểm cá nhân"));
@@ -801,13 +854,13 @@ public class EducationPanel extends JPanel {
             mainRootNode.removeAllChildren(); // Xóa cả results và assignments cũ
 
             // Tạo node Results dựa trên vai trò
-            String resultsNodeText = (currentUserRole == Role.STUDENT) ? "Results" : "Results & reviews";
-            resultsNode = new DefaultMutableTreeNode(resultsNodeText); // Đặt tên node mới
-            mainRootNode.add(resultsNode); // Thêm node results mới
+            String resultsNodeText = (currentUserRole == Role.STUDENT) ? "Info & Results" : "Results & reviews";
+            resultsNode = new DefaultMutableTreeNode(resultsNodeText);
+            mainRootNode.add(resultsNode);
 
             // Tạo node Assignments (tên giữ nguyên)
             assignmentsNode = new DefaultMutableTreeNode("Assignments");
-            mainRootNode.add(assignmentsNode); // Thêm node assignments mới
+            mainRootNode.add(assignmentsNode);
 
             DefaultMutableTreeNode nodeToSelectAfter = null;
 
@@ -861,7 +914,6 @@ public class EducationPanel extends JPanel {
             exportButton.setEnabled(false);
             return;
         }
-
         for (int i = 0; i < students.size(); i++) {
             Student student = students.get(i);
             AcademicRecord record = records.get(i);
@@ -932,20 +984,35 @@ public class EducationPanel extends JPanel {
     }
 
     public void displayAssignments(List<Assignment> assignments) {
+        this.currentlyDisplayedAssignmentsInPanel = new ArrayList<>(assignments);
         assignmentTableModel.setRowCount(0);
         if (assignments != null) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
             for (Assignment assignment : assignments) {
                 Vector<Object> row = new Vector<>();
                 row.add(assignment.getAssignmentId());
                 row.add(assignment.getTitle());
-                row.add(assignment.getDueDate() != null ? assignment.getDueDate().format(ASSIGNMENT_DATE_FORMATTER) : "");
+                row.add(assignment.getDueDateTime() != null ? assignment.getDueDateTime().format(formatter) : "Không có");
                 row.add(assignment.getDescription());
+                String statusText;
+                if (assignment.getDueDateTime() == null) {
+                    statusText = "Còn hạn làm bài";
+                } else if (assignment.isOverdue()) {
+                    statusText = "Hết hạn làm bài";
+                } else {
+                    statusText = "Còn hạn làm bài";
+                }
+                row.add(statusText);
                 assignmentTableModel.addRow(row);
             }
         }
         updateAssignmentButtonStates();
+        if (assignmentStatusTimer != null && !assignmentStatusTimer.isRunning() && assignments != null && !assignments.isEmpty()) {
+            assignmentStatusTimer.start();
+        } else if (assignmentStatusTimer != null && assignmentStatusTimer.isRunning() && (assignments == null || assignments.isEmpty())) {
+            assignmentStatusTimer.stop(); // Dừng nếu không có bài tập
+        }
     }
-
 
     public void updateCalculatedValues(int rowIndex, AcademicRecord record) {
         if (rowIndex >= 0 && rowIndex < gradeTableModel.getRowCount() && record != null) {
@@ -1005,8 +1072,6 @@ public class EducationPanel extends JPanel {
         private final Icon defaultLeafIcon = UIManager.getIcon("Tree.leafIcon");
         private final Icon specificResultsIcon;
         private final Icon specificAssignmentIcon;
-
-
         public EduClassTreeCellRenderer(Icon resultsIcon, Icon assignmentIcon) {
             this.specificResultsIcon = resultsIcon;
             this.specificAssignmentIcon = assignmentIcon;
@@ -1026,7 +1091,7 @@ public class EducationPanel extends JPanel {
                     String nodeText = (String) userObject;
                     label.setText(nodeText);
 
-                    if ("Results".equals(nodeText) || "Results & reviews".equals(nodeText)) { // Kiểm tra cả hai tên
+                    if ("Info & Results".equals(nodeText) || "Results & reviews".equals(nodeText)) { // Kiểm tra cả hai tên
                         label.setIcon(specificResultsIcon != null ? specificResultsIcon : (expanded ? defaultOpenIcon : defaultClosedIcon));
                     } else if ("Assignments".equals(nodeText)) {
                         label.setIcon(specificAssignmentIcon != null ? specificAssignmentIcon : (expanded ? defaultOpenIcon : defaultClosedIcon));
@@ -1056,7 +1121,6 @@ public class EducationPanel extends JPanel {
         boolean canManageAssignments = (controller != null && controller.canCurrentUserManageAssignments());
         EduClass selectedAssignmentClass = getSelectedAssignmentClass();
         boolean assignmentClassSelected = (selectedAssignmentClass != null);
-
 
         if (editButton != null) {
             editButton.setVisible(!editing);
@@ -1112,6 +1176,90 @@ public class EducationPanel extends JPanel {
             return Math.abs(((Double)obj1) - ((Double)obj2)) < 0.001;
         }
         return obj1.equals(obj2);
+    }
+    public void updateStudentInfoDisplay(Student student, EduClass studentClass) {
+        if (student != null) {
+            studentNameLabel.setText(student.getFullName());
+            studentIdLabel.setText(String.valueOf(student.getStudentId()));
+            studentDobLabel.setText(student.getDateOfBirth() != null ? student.getDateOfBirth().toString() : "N/A");
+            studentGenderLabel.setText(student.getGender());
+            studentPhoneLabel.setText(student.getPhone() != null ? student.getPhone() : "N/A");
+            studentEmailLabel.setText(student.getEmail() != null ? student.getEmail() : "N/A");
+            studentParentLabel.setText(student.getParentName() != null ? student.getParentName() : "N/A");
+
+            if (studentClass != null) {
+                studentClassLabel.setText(studentClass.getClassName() + " (Năm học: " + studentClass.getAcademicYear() + ", HK: " + studentClass.getSemester() + ")");
+            } else {
+                studentClassLabel.setText("N/A");
+            }
+            studentInfoPanel.setVisible(true);
+        } else {
+            studentNameLabel.setText("");
+            studentIdLabel.setText("");
+            studentDobLabel.setText("");
+            studentGenderLabel.setText("");
+            studentClassLabel.setText("");
+            studentPhoneLabel.setText("");
+            studentEmailLabel.setText("");
+            studentParentLabel.setText("");
+            studentInfoPanel.setVisible(false);
+        }
+    }
+    private void checkAndUpdateAssignmentStatuses() {
+        if (currentlyDisplayedAssignmentsInPanel == null || assignmentTableModel.getRowCount() == 0) {
+            if(assignmentStatusTimer != null && assignmentStatusTimer.isRunning()){
+                assignmentStatusTimer.stop();
+            }
+            return;
+        }
+        boolean needsButtonUpdate = false;
+
+        for (int i = 0; i < assignmentTableModel.getRowCount(); i++) {
+            try {
+                int assignmentId = (int) assignmentTableModel.getValueAt(i, 0);
+                Assignment assignmentFromCache = findAssignmentInCache(assignmentId);
+
+                if (assignmentFromCache != null) {
+                    boolean isNowOverdue = assignmentFromCache.isOverdue();
+                    String currentStatusInTable = (String) assignmentTableModel.getValueAt(i, STATUS_COLUMN_INDEX);
+                    String newStatusText;
+
+                    if (assignmentFromCache.getDueDateTime() == null) {
+                        newStatusText = "Còn hạn làm bài";
+                    } else if (isNowOverdue) {
+                        newStatusText = "Hết hạn làm bài";
+                    } else {
+                        newStatusText = "Còn hạn làm bài";
+                    }
+
+                    if (!Objects.equals(currentStatusInTable, newStatusText)) {
+                        assignmentTableModel.setValueAt(newStatusText, i, STATUS_COLUMN_INDEX);
+                        int selectedViewRow = assignmentTable.getSelectedRow();
+                        if (selectedViewRow == i) {
+                            needsButtonUpdate = true;
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                System.err.println("Error in assignment status timer: " + ex.getMessage());
+                 assignmentStatusTimer.stop();
+            }
+        }
+
+        if (needsButtonUpdate) {
+            updateAssignmentButtonStates();
+        }
+    }
+
+    private Assignment findAssignmentInCache(int assignmentId) {
+        if (currentlyDisplayedAssignmentsInPanel != null) {
+            for (Assignment assignment : currentlyDisplayedAssignmentsInPanel) {
+                if (assignment.getAssignmentId() == assignmentId) {
+                    return assignment;
+                }
+            }
+        }
+        return null;
     }
 
 }

@@ -42,7 +42,7 @@ public class AssignmentDAOImpl extends BaseDAO<Assignment> implements IAssignmen
         try {
             return dataList.stream()
                     .filter(a -> a.getEduClassId() == classId)
-                    .sorted(Comparator.comparing(Assignment::getDueDate, Comparator.nullsLast(Comparator.naturalOrder())) // Sort by due date
+                    .sorted(Comparator.comparing(Assignment::getDueDateTime, Comparator.nullsLast(Comparator.naturalOrder())) // Sort by due date
                             .thenComparing(Assignment::getCreatedAt)) // Then by creation date
                     .collect(Collectors.toList());
         } finally {
@@ -103,7 +103,7 @@ public class AssignmentDAOImpl extends BaseDAO<Assignment> implements IAssignmen
                 existing.setEduClassId(assignment.getEduClassId());
                 existing.setTitle(assignment.getTitle());
                 existing.setDescription(assignment.getDescription());
-                existing.setDueDate(assignment.getDueDate());
+                existing.setDueDateTime(assignment.getDueDateTime());
                 existing.touch(); // Update the 'updatedAt' timestamp
                 saveData();
                 System.out.println("Updated assignment: ID=" + assignment.getAssignmentId());

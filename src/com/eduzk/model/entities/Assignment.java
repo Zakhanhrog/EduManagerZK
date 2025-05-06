@@ -5,6 +5,7 @@ import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Objects;
+import java.time.LocalDateTime;
 
 public class Assignment implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -13,7 +14,7 @@ public class Assignment implements Serializable {
     private int eduClassId; // Liên kết với lớp học
     private String title;
     private String description;
-    private LocalDate dueDate;
+    private LocalDateTime dueDateTime;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -23,12 +24,12 @@ public class Assignment implements Serializable {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public Assignment(int assignmentId, int eduClassId, String title, String description, LocalDate dueDate) {
+    public Assignment(int assignmentId, int eduClassId, String title, String description, LocalDateTime dueDateTime) {
         this.assignmentId = assignmentId;
         this.eduClassId = eduClassId;
         this.title = title;
         this.description = description;
-        this.dueDate = dueDate;
+        this.dueDateTime = dueDateTime;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
@@ -66,12 +67,11 @@ public class Assignment implements Serializable {
         this.description = description;
     }
 
-    public LocalDate getDueDate() {
-        return dueDate;
+    public LocalDateTime getDueDateTime() {
+        return dueDateTime;
     }
-
-    public void setDueDate(LocalDate dueDate) {
-        this.dueDate = dueDate;
+    public void setDueDateTime(LocalDateTime dueDateTime) {
+        this.dueDateTime = dueDateTime;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -93,6 +93,13 @@ public class Assignment implements Serializable {
         this.updatedAt = LocalDateTime.now();
     }
 
+    // Qua Han
+    public boolean isOverdue() {
+        if (this.dueDateTime == null) {
+            return false; // Không có hạn, không bao giờ quá hạn
+        }
+        return LocalDateTime.now().isAfter(this.dueDateTime);
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -113,7 +120,7 @@ public class Assignment implements Serializable {
                 "assignmentId=" + assignmentId +
                 ", eduClassId=" + eduClassId +
                 ", title='" + title + '\'' +
-                ", dueDate=" + dueDate +
+                ", dueDateTime=" + dueDateTime +
                 '}';
     }
 }

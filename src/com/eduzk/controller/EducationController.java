@@ -114,11 +114,10 @@ public class EducationController implements ClassListChangeListener {
             return;
         }
 
-        this.currentSelectedClassId = classId; // Store the selected class ID for grades
+        this.currentSelectedClassId = classId;
         System.out.println("EducationController: Loading grade data for class ID: " + classId);
 
         try {
-            // Fetch the selected class details
             EduClass selectedClass = classDAO.getById(classId);
             if (selectedClass == null) {
                 clearCurrentData();
@@ -138,15 +137,14 @@ public class EducationController implements ClassListChangeListener {
                     educationPanel.updateTableData(Collections.emptyList(), Collections.emptyList());
                 }
                 System.out.println("Class has no students enrolled: " + selectedClass.getClassName());
-                // Optionally show info message: UIUtils.showInfoMessage(educationPanel, "Info", "This class has no students enrolled.");
                 return;
             }
 
             // Fetch student details for the enrolled students
             this.currentDisplayedStudents = studentIds.stream()
-                    .map(studentDAO::getById) // Fetch each student by ID
-                    .filter(Objects::nonNull) // Filter out any null results (if student deleted)
-                    .sorted(Comparator.comparing(Student::getFullName, String.CASE_INSENSITIVE_ORDER)) // Sort by name
+                    .map(studentDAO::getById)
+                    .filter(Objects::nonNull)
+                    .sorted(Comparator.comparing(Student::getFullName, String.CASE_INSENSITIVE_ORDER))
                     .collect(Collectors.toList());
 
             // Fetch or create academic records for these students in this class
@@ -182,7 +180,6 @@ public class EducationController implements ClassListChangeListener {
         int studentId = currentUser.getStudentId();
         System.out.println("EducationController: Loading grade data for current student ID: " + studentId);
         try {
-            // Get the student object for the current user
             Student currentStudent = studentDAO.getById(studentId);
             if (currentStudent == null) {
                 System.err.println("Error: Student profile not found for current user ID: " + studentId);
@@ -191,16 +188,18 @@ public class EducationController implements ClassListChangeListener {
                 UIUtils.showErrorMessage(null, "Error", "Could not find your student profile."); // Show error (parent might be null)
                 return;
             }
-
-            // Fetch all academic records for this student across all classes
-            // Note: The UI currently might only display one row based on updateTableDataForStudent implementation.
-            // Adjust UI or this logic if student needs to see records from multiple classes.
+            EduClass studentPrimaryClass = null;
+            List<EduClass> studentClasses = classDAO.findByStudentId(studentId);
+            if (studentClasses != null && !studentClasses.isEmpty()) {
+                studentPrimaryClass = studentClasses.get(0);
+            }
             this.currentDisplayedRecords = recordDAO.findAllByStudentId(studentId);
             this.currentDisplayedStudents = List.of(currentStudent); // List contains only the current student
             this.currentSelectedClassId = -1; // No specific class selected in this context
 
             // Update the panel specifically for the student view
             if (educationPanel != null) {
+                educationPanel.updateStudentInfoDisplay(currentStudent, studentPrimaryClass);
                 educationPanel.updateTableDataForStudent(currentStudent, this.currentDisplayedRecords);
                 writeLog("Viewed Grades", "Student viewed their own grades.");
             }
@@ -710,12 +709,10 @@ public class EducationController implements ClassListChangeListener {
     }
 
     public void handleEditAssignment(EduClass selectedClass, int assignmentId) {
-        // Check permission
         if (!canCurrentUserManageAssignments()) {
             UIUtils.showErrorMessage(educationPanel, "Permission Denied", "You do not have permission to edit assignments.");
             return;
         }
-        // Ensure class context
         if (selectedClass == null) {
             UIUtils.showWarningMessage(educationPanel, "Error", "Cannot edit assignment without a selected class context.");
             return;
@@ -737,6 +734,13 @@ public class EducationController implements ClassListChangeListener {
                 UIUtils.showErrorMessage(educationPanel, "Error", "Selected assignment does not belong to the currently selected class ("+selectedClass.getClassName()+").");
                 // Refresh list for the *selected* class
                 loadAssignmentsForClass(selectedClass.getClassId());
+                return;
+            }
+            if (assignmentToEdit.isOverdue()) {
+                UIUtils.showWarningMessage(educationPanel, "Bài tập đã quá hạn",
+                        "Bài tập '" + assignmentToEdit.getTitle() + "' đã quá hạn nộp.\n" +
+                                "Bạn không thể chỉnh sửa. Chỉ có thể xem hoặc xóa.");
+                // Không mở dialog chỉnh sửa
                 return;
             }
 
@@ -888,5 +892,17 @@ public class EducationController implements ClassListChangeListener {
                 educationPanel.displayAssignments(Collections.emptyList());
             }
         }
+
+    }
+    public boolean isAssignmentOverdue(int assignmentId) {
+        try {
+            Assignment assignment = assignmentDAO.getById(assignmentId);
+            if (assignment != null) {
+                return assignment.isOverdue();
+            }
+        } catch (DataAccessException e) {
+            System.err.println("Error checking if assignment " + assignmentId + " is overdue: " + e.getMessage());
+        }
+        return true;
     }
 }
