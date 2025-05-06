@@ -896,4 +896,11 @@ public class EducationController implements ClassListChangeListener {
             }
         }
     }
+    public AcademicRecord getAcademicRecordAt(int rowIndex) {
+        if (currentDisplayedRecords != null && rowIndex >= 0 && rowIndex < currentDisplayedRecords.size()) {
+            return currentDisplayedRecords.get(rowIndex);
+        }
+        System.err.println("getAcademicRecordAt: Invalid rowIndex (" + rowIndex + ") or null/empty record list.");
+        return null; // Trả về null nếu không hợp lệ
+    }
 }

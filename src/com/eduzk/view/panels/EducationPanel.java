@@ -10,15 +10,10 @@ import com.eduzk.model.entities.ArtStatus;
 import com.eduzk.model.entities.ConductRating;
 import com.eduzk.utils.UIUtils;
 import com.eduzk.model.entities.Assignment;
-import com.eduzk.view.dialogs.AssignmentDialog;
 import javax.swing.table.DefaultTableCellRenderer;
 import java.time.format.DateTimeFormatter;
 import javax.swing.*;
-import javax.swing.border.TitledBorder;
 import javax.swing.event.TableModelEvent;
-import javax.swing.event.TableModelListener;
-import javax.swing.event.TreeSelectionEvent;
-import javax.swing.event.TreeSelectionListener;
 import javax.swing.table.*;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
@@ -26,13 +21,10 @@ import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.text.DecimalFormat;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.Vector;
 
 public class EducationPanel extends JPanel {
@@ -160,12 +152,15 @@ public class EducationPanel extends JPanel {
                 String colName = getColumnName(columnIndex);
                 if (ART_KEY.equals(colName)) return ArtStatus.class;
                 if (CONDUCT_KEY.equals(colName)) return ConductRating.class;
-                if (columnIndex <= 1) return String.class;
+                if (columnIndex == 0 || columnIndex == 1) {
+                    return String.class;
+                }
                 return Double.class;
             }
         };
 
         gradeTable = new JTable(gradeTableModel);
+        gradeTable.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE);
         gradeTable.setRowHeight(25);
         gradeTable.getTableHeader().setReorderingAllowed(false);
         gradeTable.setCellSelectionEnabled(true);
@@ -258,13 +253,44 @@ public class EducationPanel extends JPanel {
         DefaultTableCellRenderer rightNumberRenderer = new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                // Gọi phương thức cha để lấy label cơ bản
                 JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                label.setHorizontalAlignment(SwingConstants.RIGHT);
+                label.setHorizontalAlignment(SwingConstants.RIGHT); // Căn phải
+
+                Number numberToFormat = null; // Biến để lưu giá trị số sau khi xử lý
+
+                // Xử lý các kiểu dữ liệu khác nhau cho value
                 if (value instanceof Number) {
-                    label.setText(df.format(((Number) value).doubleValue()));
-                } else {
-                    label.setText("");
+                    // Nếu đã là Number, dùng luôn
+                    numberToFormat = (Number) value;
+                } else if (value instanceof String) {
+                    // Nếu là String, cố gắng chuyển đổi (parse) thành Double
+                    String stringValue = ((String) value).trim();
+                    if (!stringValue.isEmpty()) {
+                        try {
+                            // Thử parse thành Double
+                            numberToFormat = Double.parseDouble(stringValue);
+                        } catch (NumberFormatException e) {
+                            // Nếu parse lỗi, numberToFormat vẫn là null
+                            // Có thể log lỗi nếu muốn:
+                            // System.err.println("Renderer parse error: " + e.getMessage() + " for value: " + value);
+                        }
+                    }
+                    // Nếu stringValue rỗng, numberToFormat vẫn là null
                 }
+                // Các kiểu dữ liệu khác (hoặc null) sẽ khiến numberToFormat là null
+
+                // Định dạng và hiển thị
+                if (numberToFormat != null) {
+                    // Nếu có số hợp lệ, định dạng nó
+                    label.setText(df.format(numberToFormat.doubleValue()));
+                } else {
+                    // Nếu không có số hợp lệ (null, String rỗng, String lỗi, kiểu khác)
+                    // Hiển thị giá trị gốc dưới dạng String (hoặc rỗng nếu null)
+                    // Điều này ngăn ô bị trống một cách không cần thiết
+                    label.setText(value != null ? value.toString() : "");
+                }
+
                 return label;
             }
         };
@@ -395,24 +421,101 @@ public class EducationPanel extends JPanel {
         });
 
         gradeTableModel.addTableModelListener(e -> {
+            // Chỉ xử lý sự kiện UPDATE do người dùng chỉnh sửa gây ra
             if (e.getType() == TableModelEvent.UPDATE && isEditing) {
                 int row = e.getFirstRow();
                 int column = e.getColumn();
-                if (controller != null && row >= 0 && column >= 0) {
-                    String columnName = gradeTableModel.getColumnName(column);
-                    boolean isDataColumn = false;
-                    for(String key : EDITABLE_SUBJECT_KEYS) { if (key.equals(columnName)) {isDataColumn = true; break;} }
-                    if(!isDataColumn) isDataColumn = ART_KEY.equals(columnName) || CONDUCT_KEY.equals(columnName);
 
-                    if(isDataColumn) {
-                        Object newValue = gradeTableModel.getValueAt(row, column);
-                        System.out.println("Grade Table cell edited: row=" + row + ", col=" + column + ", name=" + columnName + ", value=" + newValue);
-                        controller.updateRecordInMemory(row, columnName, newValue);
-                        markChangesPending(true);
+                // Kiểm tra tính hợp lệ của chỉ số và controller
+                if (controller != null && row >= 0 && column >= 0 && row < gradeTableModel.getRowCount()) {
+                    String columnName = gradeTableModel.getColumnName(column);
+
+                    // Xác định xem cột có phải là cột dữ liệu có thể chỉnh sửa không
+                    boolean isEditableDataColumn = false;
+                    for (String key : EDITABLE_SUBJECT_KEYS) {
+                        if (key.equals(columnName)) {
+                            isEditableDataColumn = true;
+                            break;
+                        }
+                    }
+                    if (!isEditableDataColumn) {
+                        isEditableDataColumn = ART_KEY.equals(columnName) || CONDUCT_KEY.equals(columnName);
+                    }
+
+                    // Nếu là cột dữ liệu có thể chỉnh sửa
+                    if (isEditableDataColumn) {
+                        // Lấy giá trị MỚI NHẤT từ DefaultTableModel (vì setValueAt của nó vừa chạy)
+                        // Giá trị này đã được trình soạn thảo ô (editor) xử lý.
+                        Object newValueFromEditor = gradeTableModel.getValueAt(row, column);
+
+                        System.out.println("Grade Table cell update event: row=" + row + ", col=" + column + ", name=" + columnName + ", value from editor=" + newValueFromEditor);
+
+                        // Cập nhật dữ liệu thực tế trong controller
+                        controller.updateRecordInMemory(row, columnName, newValueFromEditor);
+                        AcademicRecord updatedRecord = controller.getAcademicRecordAt(row);
+
+                        // Nếu cập nhật trong controller thành công
+                        if (updatedRecord != null) {
+                            markChangesPending(true); // Đánh dấu có thay đổi chưa lưu
+
+                            // QUAN TRỌNG: Cập nhật các giá trị tính toán trong TableModel VÀ thông báo cho Table
+                            try {
+                                int khtnIndex = getColumnIndex("TB KHTN");
+                                int khxhIndex = getColumnIndex("TB KHXH");
+                                int tbMonHocIndex = getColumnIndex("TB môn học");
+
+                                // Lấy cấu trúc dữ liệu nội bộ của DefaultTableModel (hơi không đẹp nhưng cần thiết)
+                                Vector dataVector = gradeTableModel.getDataVector();
+                                if (row < dataVector.size()) {
+                                    Vector rowVector = (Vector) dataVector.elementAt(row);
+
+                                    // Cập nhật giá trị KHTN trong model và thông báo
+                                    if (khtnIndex != -1 && khtnIndex < rowVector.size()) {
+                                        Double avgKHTN = updatedRecord.calculateAvgNaturalSciences();
+                                        // Chỉ cập nhật nếu giá trị khác để tránh vòng lặp không cần thiết (mặc dù listener check type=UPDATE)
+                                        if (!areEqual(rowVector.elementAt(khtnIndex), avgKHTN)) {
+                                            rowVector.setElementAt(avgKHTN, khtnIndex);
+                                            gradeTableModel.fireTableCellUpdated(row, khtnIndex); // Thông báo cho ô KHTN
+                                        }
+                                    }
+
+                                    // Cập nhật giá trị KHXH trong model và thông báo
+                                    if (khxhIndex != -1 && khxhIndex < rowVector.size()) {
+                                        Double avgKHXH = updatedRecord.calculateAvgSocialSciences();
+                                        if (!areEqual(rowVector.elementAt(khxhIndex), avgKHXH)) {
+                                            rowVector.setElementAt(avgKHXH, khxhIndex);
+                                            gradeTableModel.fireTableCellUpdated(row, khxhIndex); // Thông báo cho ô KHXH
+                                        }
+                                    }
+
+                                    // Cập nhật giá trị TB Môn học trong model và thông báo
+                                    if (tbMonHocIndex != -1 && tbMonHocIndex < rowVector.size()) {
+                                        Double avgOverall = updatedRecord.calculateAvgOverallSubjects();
+                                        if (!areEqual(rowVector.elementAt(tbMonHocIndex), avgOverall)) {
+                                            rowVector.setElementAt(avgOverall, tbMonHocIndex);
+                                            gradeTableModel.fireTableCellUpdated(row, tbMonHocIndex); // Thông báo cho ô TB Môn học
+                                        }
+                                    }
+                                } else {
+                                    System.err.println("Row index out of bounds for dataVector: " + row);
+                                }
+
+                            } catch (Exception calcEx) {
+                                System.err.println("Error updating calculated grade cells visually in listener: " + calcEx.getMessage());
+                                calcEx.printStackTrace(); // In stack trace để debug
+                            }
+
+                        } else {
+                            // Xử lý trường hợp controller không cập nhật được (ví dụ: dữ liệu không hợp lệ)
+                            System.err.println("controller.updateRecordInMemory failed for row " + row + ", column " + columnName + ". Value: " + newValueFromEditor);
+                            // Optional: Có thể hiển thị lỗi cho người dùng hoặc hoàn tác thay đổi trong table model
+                            // Ví dụ: tải lại dữ liệu gốc cho ô đó nếu có thể
+                        }
                     }
                 }
             }
         });
+
 
         editButton.addActionListener(e -> {
             setEditingMode(true);
@@ -823,7 +926,6 @@ public class EducationPanel extends JPanel {
     public void updateCalculatedValues(int rowIndex, AcademicRecord record) {
         if (rowIndex >= 0 && rowIndex < gradeTableModel.getRowCount() && record != null) {
             try {
-                SwingUtilities.invokeLater(() -> {
                     int khtnIndex = getColumnIndex("TB KHTN");
                     int khxhIndex = getColumnIndex("TB KHXH");
                     int tbMonHocIndex = getColumnIndex("TB môn học");
@@ -837,7 +939,6 @@ public class EducationPanel extends JPanel {
                     if (tbMonHocIndex != -1) {
                         gradeTableModel.setValueAt(record.calculateAvgOverallSubjects(), rowIndex, tbMonHocIndex);
                     }
-                });
             } catch(ArrayIndexOutOfBoundsException e) {
                 System.err.println("Error updating calculated grade values, column index likely invalid: " + e.getMessage());
             }
@@ -987,10 +1088,8 @@ public class EducationPanel extends JPanel {
     public void updateSpecificCellValue(int rowIndex, String subjectKey, Object value) {
         int columnIndex = getColumnIndex(subjectKey);
         if (rowIndex >= 0 && rowIndex < gradeTableModel.getRowCount() && columnIndex != -1) {
-            SwingUtilities.invokeLater(() -> {
                 System.out.println("Updating Grade TableModel cell: row=" + rowIndex + ", col=" + columnIndex + ", key=" + subjectKey + ", value=" + value);
                 gradeTableModel.setValueAt(value, rowIndex, columnIndex);
-            });
         } else {
             System.err.println("Error updating specific grade cell value: Invalid row/column index or key not found. Row: " + rowIndex + ", Key: " + subjectKey);
         }
@@ -1001,6 +1100,16 @@ public class EducationPanel extends JPanel {
             return (EduClass) assignmentClassComboBox.getSelectedItem();
         }
         return null;
+    }
+    private boolean areEqual(Object obj1, Object obj2) {
+        if (obj1 == null && obj2 == null) return true;
+        if (obj1 == null || obj2 == null) return false;
+        // Thêm các kiểu so sánh khác nếu cần (ví dụ: Enum)
+        if (obj1 instanceof Double && obj2 instanceof Double) {
+            // So sánh Double với sai số nhỏ để tránh vấn đề dấu phẩy động
+            return Math.abs(((Double)obj1) - ((Double)obj2)) < 0.001;
+        }
+        return obj1.equals(obj2);
     }
 
 }

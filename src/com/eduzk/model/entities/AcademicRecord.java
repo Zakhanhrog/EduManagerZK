@@ -10,24 +10,13 @@ import java.util.Objects;
 public class AcademicRecord implements Serializable {
     private static final long serialVersionUID = 3L; // Thay đổi serialVersionUID
 
-    private int recordId; // ID tự sinh cho bản ghi này (quan trọng)
+    private int recordId;
     private int studentId;
     private int classId;
-    // private String term; // Ví dụ: "HK1", "HK2", "CaNam" - nếu cần chia theo kỳ
-    // private int academicYearStart; // Ví dụ: 2024 - nếu cần chia theo năm
-
-    // Lưu điểm các môn - dùng Map<String, Double> linh hoạt hơn
-    // Key là mã môn hoặc tên môn (cần thống nhất)
     private Map<String, Double> subjectGrades;
 
     private ArtStatus artStatus;
     private ConductRating conductRating;
-
-    // Các trường tính toán (có thể không cần lưu, tính khi cần)
-    // private double avgNaturalSciences;
-    // private double avgSocialSciences;
-    // private double avgOverallSubjects;
-
     public AcademicRecord() {
         subjectGrades = new HashMap<>();
         // Khởi tạo giá trị mặc định nếu cần
