@@ -124,6 +124,7 @@ public class MainController {
     {
         try {
             // Khởi tạo các controller khác
+            this.eduClassController = eduClassController;
             studentController = new StudentController(studentDAO, eduClassDAO, userDAO, loggedInUser, logService);
             teacherController = new TeacherController(teacherDAO, userDAO, loggedInUser, logService);
             courseController = new CourseController(courseDAO, loggedInUser, logService);
@@ -131,8 +132,6 @@ public class MainController {
             scheduleController = new ScheduleController(scheduleDAO, eduClassDAO, teacherDAO, roomDAO, loggedInUser, logService);
             userController = new UserController(userDAO, loggedInUser, logService);
             logController = new LogController(logService, loggedInUser);
-            educationController = new EducationController(loggedInUser, recordDAO, eduClassDAO, studentDAO, logService, eduClassController, assignmentDAO );
-
             educationController = new EducationController(
                     loggedInUser,
                     recordDAO,

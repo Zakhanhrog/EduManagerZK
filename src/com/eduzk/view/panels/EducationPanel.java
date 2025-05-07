@@ -10,7 +10,6 @@
     import com.eduzk.model.entities.ConductRating;
     import com.eduzk.utils.UIUtils;
     import com.eduzk.model.entities.Assignment;
-    import javax.swing.border.TitledBorder;
     import javax.swing.table.DefaultTableCellRenderer;
     import java.time.format.DateTimeFormatter;
     import javax.swing.*;
@@ -153,17 +152,17 @@
             achievementListTableScrollPane = new JScrollPane(achievementListTable);
             adminTeacherAchievementPanel = new JPanel(new BorderLayout());
             adminTeacherAchievementPanel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
-            adminTeacherAchievementPanel.add(new JLabel("Danh sách học lực Học sinh Toàn trường/Khối", SwingConstants.CENTER), BorderLayout.NORTH); // Tiêu đề cho panel
+            adminTeacherAchievementPanel.add(new JLabel("Danh sách học lực học sinh", SwingConstants.CENTER), BorderLayout.NORTH); // Tiêu đề cho panel
             adminTeacherAchievementPanel.add(achievementListTableScrollPane, BorderLayout.CENTER);
 
             achievementTitleLabel = new JLabel("Học lực: ");
-            achievementTitleLabel.setFont(achievementTitleLabel.getFont().deriveFont(Font.BOLD | Font.ITALIC)); // Làm nổi bật
-            achievementTitleLabel.setBorder(BorderFactory.createEmptyBorder(10, 5, 5, 5)); // Thêm khoảng cách trên và dưới
+            achievementTitleLabel.setFont(achievementTitleLabel.getFont().deriveFont(Font.BOLD | Font.ITALIC));
+            achievementTitleLabel.setBorder(BorderFactory.createEmptyBorder(10, 5, 5, 5));
             achievementTitleLabel.setVisible(false);
 
             achievementDisplayPanel = new JPanel(new BorderLayout());
-            achievementDisplayPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20)); // Padding
-            achievementTitleLabel.setHorizontalAlignment(SwingConstants.CENTER); // Căn giữa text của label
+            achievementDisplayPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+            achievementTitleLabel.setHorizontalAlignment(SwingConstants.CENTER);
             achievementDisplayPanel.add(achievementTitleLabel, BorderLayout.CENTER);
             achievementTreeIcon = UIUtils.loadSVGIcon("/icons/achievement.svg", 33);
 
@@ -181,7 +180,7 @@
 
             studentInfoPanel = new JPanel();
             studentInfoPanel.setLayout(new BorderLayout());
-            studentInfoPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0)); // Khoảng cách 10px ở trên
+            studentInfoPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
             studentInfoPanel.setVisible(false);
 
             studentNameLabel = new JLabel("Họ và tên: ");

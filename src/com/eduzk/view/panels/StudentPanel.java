@@ -140,48 +140,41 @@ public class StudentPanel extends JPanel {
         });
 
         deleteButton.addActionListener(e -> {
-            // Lấy tất cả các hàng đang được chọn trên VIEW
             int[] selectedViewRows = studentTable.getSelectedRows();
 
-            if (selectedViewRows.length == 0) { // Không có hàng nào được chọn
+            if (selectedViewRows.length == 0) {
                 UIUtils.showWarningMessage(this, "Selection Required", "Please select one or more students to delete.");
                 return;
             }
 
-            // Chuyển đổi chỉ số hàng từ VIEW sang MODEL (quan trọng khi có sắp xếp/lọc)
-            // và lấy danh sách ID cần xóa
             List<Integer> idsToDelete = new ArrayList<>();
-            List<String> namesToDelete = new ArrayList<>(); // Để hiển thị trong thông báo xác nhận
+            List<String> namesToDelete = new ArrayList<>();
             for (int viewRow : selectedViewRows) {
                 int modelRow = studentTable.convertRowIndexToModel(viewRow);
-                if (modelRow >= 0) { // Đảm bảo hàng vẫn tồn tại trong model
-                    idsToDelete.add((Integer) tableModel.getValueAt(modelRow, 0)); // Giả sử cột 0 là ID (Integer)
-                    namesToDelete.add((String) tableModel.getValueAt(modelRow, 1)); // Giả sử cột 1 là Name (String)
+                if (modelRow >= 0) {
+                    idsToDelete.add((Integer) tableModel.getValueAt(modelRow, 0));
+                    namesToDelete.add((String) tableModel.getValueAt(modelRow, 1));
                 }
             }
 
             if (idsToDelete.isEmpty()) {
-                // Có thể xảy ra nếu các hàng được chọn đã bị xóa bởi thao tác khác
                 UIUtils.showWarningMessage(this, "Error", "Could not find selected students in the data model.");
                 return;
             }
 
-            // Tạo thông điệp xác nhận
             String confirmationMessage;
             if (idsToDelete.size() == 1) {
                 confirmationMessage = "Are you sure you want to delete student '" + namesToDelete.get(0) + "' (ID: " + idsToDelete.get(0) + ")?";
             } else {
                 confirmationMessage = "Are you sure you want to delete these " + idsToDelete.size() + " students?\n"
-                        + "(IDs: " + idsToDelete.toString() + ")"; // Hiển thị danh sách ID
+                        + "(IDs: " + idsToDelete.toString() + ")";
             }
 
             // Hiển thị hộp thoại xác nhận
             if (UIUtils.showConfirmDialog(this, "Confirm Deletion", confirmationMessage)) {
                 if (controller != null) {
-                    // Gọi phương thức xóa hàng loạt mới trong Controller
                     System.out.println("Requesting deletion for student IDs: " + idsToDelete);
-                    controller.deleteStudents(idsToDelete); // <-- Gọi hàm xóa mới
-                    // Refresh sẽ được gọi trong controller nếu xóa thành công
+                    controller.deleteStudents(idsToDelete);
                 } else {
                     UIUtils.showErrorMessage(this, "Error", "Student Controller not available.");
                 }
@@ -189,7 +182,7 @@ public class StudentPanel extends JPanel {
         });
 
         searchButton.addActionListener(e -> performSearch());
-        searchField.addActionListener(e -> performSearch()); // Allow Enter key in search field
+        searchField.addActionListener(e -> performSearch());
         // --- 4. THÊM ACTIONLISTENER CHO REFRESH BUTTON ---
         refreshButton.addActionListener(e -> {
             System.out.println("StudentPanel: Refresh button clicked.");
