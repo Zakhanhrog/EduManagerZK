@@ -10,7 +10,6 @@
     import com.eduzk.model.entities.ConductRating;
     import com.eduzk.utils.UIUtils;
     import com.eduzk.model.entities.Assignment;
-
     import javax.swing.border.TitledBorder;
     import javax.swing.table.DefaultTableCellRenderer;
     import java.time.format.DateTimeFormatter;
@@ -95,12 +94,18 @@
         private JLabel studentPhoneLabel;
         private JLabel studentEmailLabel;
         private JLabel studentParentLabel;
+        private JTable achievementListTable;
+        private DefaultTableModel achievementListTableModel;
+        private JScrollPane achievementListTableScrollPane;
+        private JPanel adminTeacherAchievementPanel;
         private TableColumn sttColumnHolder;
         private TableColumn studentNameColumnHolder;
         private final int STT_ORIGINAL_INDEX = 0;
         private final int STUDENT_NAME_ORIGINAL_INDEX = 1;
         private JLabel achievementTitleLabel;
         private Icon achievementTreeIcon;
+        private Icon eduClassNodeIcon;
+        private static final String ADMIN_TEACHER_ACHIEVEMENT_CARD = "AdminTeacherAchievements";
 
         private void initializeAssignmentStatusUpdater() {
             assignmentStatusTimer = new javax.swing.Timer(60000, e -> checkAndUpdateAssignmentStatuses());
@@ -133,7 +138,25 @@
         }
 
         private void initComponents() {
-            achievementTitleLabel = new JLabel("Danh hiệu: ");
+            eduClassNodeIcon = UIUtils.loadSVGIcon("/icons/class_node.svg", 25);
+            achievementListTableModel = new DefaultTableModel(
+                    new String[]{"STT", "Tên Lớp", "Tên Học Sinh", "Học lực"}, 0) {
+                @Override public boolean isCellEditable(int row, int column) { return false; }
+            };
+            achievementListTable = new JTable(achievementListTableModel);
+            achievementListTable.setRowHeight(25);
+            achievementListTable.getTableHeader().setReorderingAllowed(false);
+            JTableHeader achListHeader = achievementListTable.getTableHeader();
+            if (achListHeader != null) {
+                achListHeader.setFont(achListHeader.getFont().deriveFont(Font.BOLD));
+            }
+            achievementListTableScrollPane = new JScrollPane(achievementListTable);
+            adminTeacherAchievementPanel = new JPanel(new BorderLayout());
+            adminTeacherAchievementPanel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
+            adminTeacherAchievementPanel.add(new JLabel("Danh sách học lực Học sinh Toàn trường/Khối", SwingConstants.CENTER), BorderLayout.NORTH); // Tiêu đề cho panel
+            adminTeacherAchievementPanel.add(achievementListTableScrollPane, BorderLayout.CENTER);
+
+            achievementTitleLabel = new JLabel("Học lực: ");
             achievementTitleLabel.setFont(achievementTitleLabel.getFont().deriveFont(Font.BOLD | Font.ITALIC)); // Làm nổi bật
             achievementTitleLabel.setBorder(BorderFactory.createEmptyBorder(10, 5, 5, 5)); // Thêm khoảng cách trên và dưới
             achievementTitleLabel.setVisible(false);
@@ -147,6 +170,7 @@
             editButton = new JButton("Chỉnh Sửa");
             editButton.setIcon(UIUtils.loadSVGIcon("/icons/edit.svg", 20));
             cancelButton = new JButton("Hủy Bỏ");
+            cancelButton.setIcon(UIUtils.loadSVGIcon("/icons/cancel.svg", 20));
             saveChangesButton = new JButton("Lưu Thay Đổi");
             saveChangesButton.setIcon(UIUtils.loadSVGIcon("/icons/save.svg", 20));
             exportButton = new JButton("Xuất Excel");
@@ -317,7 +341,7 @@
                 @Override
                 public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                     JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                    label.setHorizontalAlignment(SwingConstants.RIGHT); // Căn phải
+                    label.setHorizontalAlignment(SwingConstants.RIGHT);
 
                     Number numberToFormat = null;
 
@@ -470,6 +494,7 @@
             rightPanel.add(gradePanel, GRADE_PANEL_CARD);
             rightPanel.add(assignmentManagementPanel, ASSIGNMENT_PANEL_CARD);
             rightPanel.add(achievementDisplayPanel, ACHIEVEMENT_CARD);
+            rightPanel.add(adminTeacherAchievementPanel, ADMIN_TEACHER_ACHIEVEMENT_CARD);
 
             splitPane.setLeftComponent(leftPanel);
             splitPane.setRightComponent(rightPanel);
@@ -686,22 +711,33 @@
             });
         }
 
+        // Trong lớp com.eduzk.view.panels.EducationPanel
+
         private void handleTreeNodeSelection(DefaultMutableTreeNode selectedNode) {
             if (selectedNode == null) {
-                showPlaceholderView("Please select an item from the left.");
-                return;
+                if (currentUserRole == Role.STUDENT && resultsNode != null) {
+                    System.out.println(">>> handleTreeNodeSelection: Student role, selectedNode is null, defaulting to resultsNode.");
+                    selectedNode = resultsNode;
+                } else if ((currentUserRole == Role.ADMIN || currentUserRole == Role.TEACHER) && resultsNode != null) {
+                    System.out.println(">>> handleTreeNodeSelection: Admin/Teacher role, selectedNode is null, defaulting to resultsNode.");
+                    selectedNode = resultsNode;
+                } else {
+                    showPlaceholderView("Please select an item from the left.");
+                    return;
+                }
             }
 
             Object userObject = selectedNode.getUserObject();
+            DefaultMutableTreeNode parentNode = (DefaultMutableTreeNode) selectedNode.getParent();
+
+            System.out.println(">>> handleTreeNodeSelection - User object: " + (userObject != null ? userObject.toString() : "null") +
+                    ", Parent: " + (parentNode != null && parentNode.getUserObject() != null ? parentNode.getUserObject().toString() : "null") +
+                    ", Role: " + currentUserRole);
 
             if (isEditing && hasPendingChanges) {
-                int choice = JOptionPane.showConfirmDialog(
-                        this,
-                        "You have unsaved changes in the grade editor. Discard changes and continue?",
-                        "Unsaved Changes",
-                        JOptionPane.YES_NO_OPTION,
-                        JOptionPane.WARNING_MESSAGE);
-
+                int choice = JOptionPane.showConfirmDialog(this,
+                        "You have unsaved changes. Discard them?", "Unsaved Changes",
+                        JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
                 if (choice == JOptionPane.NO_OPTION) {
                     return;
                 } else {
@@ -715,77 +751,95 @@
 
             if (userObject instanceof String) {
                 String nodeText = (String) userObject;
+                System.out.println(">>> handleTreeNodeSelection - String node selected: " + nodeText);
 
                 if (("Info & Results".equals(nodeText) && currentUserRole == Role.STUDENT) ||
-                        ("Results & reviews".equals(nodeText) && (currentUserRole == Role.ADMIN || currentUserRole == Role.TEACHER)))
-                {
+                        ("Results & reviews".equals(nodeText) && (currentUserRole == Role.ADMIN || currentUserRole == Role.TEACHER))) {
                     if (currentUserRole == Role.STUDENT) {
                         rightPanelLayout.show(rightPanel, GRADE_PANEL_CARD);
-                        if (controller != null) {
-                            controller.loadDataForCurrentStudent(); // Tải điểm của học sinh
-                        }
-                        editButton.setEnabled(false); // Học sinh không được sửa
-                        exportButton.setEnabled(false); // Học sinh không được xuất (trừ khi có yêu cầu khác)
+                        if (controller != null) controller.loadDataForCurrentStudent();
+                        editButton.setEnabled(false); exportButton.setEnabled(false);
                     } else {
-                        // ADMIN/TEACHER: Hiển thị placeholder khi chọn node gốc "Results & reviews"
                         showPlaceholderView("Select a class under 'Results & reviews' to view grades.");
                         if (controller != null) controller.clearSelectedClass();
-                        editButton.setEnabled(false);
-                        exportButton.setEnabled(false);
+                        editButton.setEnabled(false); exportButton.setEnabled(false);
                     }
-                } else if ("Academic Achievements".equals(nodeText) && currentUserRole == Role.STUDENT) {
-                    System.out.println(">>> handleTreeNodeSelection - Student view: Academic Achievements selected.");
-                    rightPanelLayout.show(rightPanel, ACHIEVEMENT_CARD); // Hiển thị panel danh hiệu
-                    // Dữ liệu danh hiệu đã được tải khi chọn "Info & Results"
-                    // và được cập nhật vào achievementTitleLabel bởi updateAchievementTitleDisplay.
-                    // Không cần gọi controller lại ở đây trừ khi bạn muốn tải lại.
-                    // Đảm bảo achievementTitleLabel đã được cập nhật text.
-                    if (controller != null && achievementTitleLabel.getText().contains("(Chưa có dữ liệu)")) {
-                        // Có thể gọi lại loadData để đảm bảo danh hiệu được tính và cập nhật nếu trước đó chưa có
-                        System.out.println(">>> handleTreeNodeSelection - Recalculating/reloading achievement title for student.");
-                        controller.loadDataForCurrentStudent(); // Gọi lại để chắc chắn
+                } else if (("Academic Achievements".equals(nodeText) || "Danh hiệu học tập".equals(nodeText))) {
+                    if (currentUserRole == Role.STUDENT) {
+                        rightPanelLayout.show(rightPanel, ACHIEVEMENT_CARD);
+                        if (controller != null && achievementTitleLabel != null &&
+                                (achievementTitleLabel.getText().contains("(Chưa có dữ liệu)") || achievementTitleLabel.getText().contains("N/A") || achievementTitleLabel.getText().trim().equals("Danh hiệu:"))) {
+                            controller.loadDataForCurrentStudent();
+                        }
+                    } else if (currentUserRole == Role.ADMIN || currentUserRole == Role.TEACHER) {
+                        showPlaceholderView("Select a class under 'Academic Achievements' to view student titles for that class.");
+                        if (achievementListTableModel != null) achievementListTableModel.setRowCount(0);
                     }
                 } else if ("Assignments".equals(nodeText)) {
-                    // Xử lý khi chọn node Assignments cho TẤT CẢ vai trò có thể thấy nó
+                    System.out.println(">>> handleTreeNodeSelection - Assignments node selected.");
                     rightPanelLayout.show(rightPanel, ASSIGNMENT_PANEL_CARD);
                     if (controller != null) {
                         if (currentUserRole == Role.ADMIN || currentUserRole == Role.TEACHER) {
-                            // Load combobox và danh sách bài tập cho lớp đầu tiên (nếu có)
                             List<EduClass> classes = controller.getClassesForCurrentUser();
-                            populateAssignmentClassComboBox(classes); // Đã có sẵn
+                            populateAssignmentClassComboBox(classes);
                             if (assignmentClassComboBox.getItemCount() > 0) {
-                                assignmentClassComboBox.setSelectedIndex(0); // Tự động trigger loadAssignmentsForClass
+                                assignmentClassComboBox.setSelectedIndex(0);
                             } else {
                                 displayAssignments(Collections.emptyList());
                             }
-                            updateAssignmentButtonStates(); // Cập nhật nút cho Admin/Teacher
+                            updateAssignmentButtonStates();
                         } else if (currentUserRole == Role.STUDENT) {
-                            // STUDENT: Load bài tập cho lớp của học sinh
-                            assignmentClassComboBox.setVisible(false); // Ẩn combobox chọn lớp
-                            assignmentButtonPanel.setVisible(false); // Ẩn nút thêm/sửa/xóa
-                            comboPanel.setVisible(false); // Ẩn label và combobox panel
-                            assignmentTopPanel.setVisible(false); //Ẩn toàn bộ phần top của assignment panel
-
-                            // Yêu cầu controller tải bài tập cho học sinh hiện tại
-                            controller.loadAssignmentsForStudent(); // <<< Cần tạo phương thức này trong Controller
+                            assignmentClassComboBox.setVisible(false);
+                            assignmentButtonPanel.setVisible(false);
+                            comboPanel.setVisible(false);
+                            assignmentTopPanel.setVisible(false);
+                            controller.loadAssignmentsForStudent();
                         }
                     }
+                } else {
+                    System.out.println(">>> handleTreeNodeSelection - Unknown String node: " + nodeText);
+                    showPlaceholderView("The selected item is not recognized.");
                 }
+
             } else if (userObject instanceof EduClass) {
-                rightPanelLayout.show(rightPanel, GRADE_PANEL_CARD);
                 EduClass selectedClass = (EduClass) userObject;
-                selectedClassLabel.setText("Grades for Class: " + selectedClass.getClassName());
-                if (controller != null) {
-                    controller.loadDataForClass(selectedClass.getClassId());
-                    boolean canEditGrades = controller.canCurrentUserEditGrades();
-                    boolean hasData = gradeTableModel.getRowCount() > 0;
-                    editButton.setEnabled(canEditGrades && hasData);
-                    exportButton.setEnabled(hasData);
+                System.out.println(">>> handleTreeNodeSelection - EduClass node selected: " + selectedClass.getClassName());
+
+                if (parentNode == resultsNode) {
+                    if (currentUserRole == Role.ADMIN || currentUserRole == Role.TEACHER) {
+                        rightPanelLayout.show(rightPanel, GRADE_PANEL_CARD);
+                        selectedClassLabel.setText("Grades for Class: " + selectedClass.getClassName());
+                        if (controller != null) {
+                            controller.loadDataForClass(selectedClass.getClassId());
+                            boolean canEditGrades = controller.canCurrentUserEditGrades();
+                            boolean hasData = gradeTableModel.getRowCount() > 0;
+                            editButton.setEnabled(canEditGrades && hasData);
+                            exportButton.setEnabled(hasData);
+                        }
+                    } else {
+                        showPlaceholderView("Access denied to this class view.");
+                    }
+                } else if (parentNode == achievementNode && (currentUserRole == Role.ADMIN || currentUserRole == Role.TEACHER)) {
+                    System.out.println(">>> handleTreeNodeSelection - Admin/Teacher: Class for ACHIEVEMENTS selected: " + selectedClass.getClassName());
+                    rightPanelLayout.show(rightPanel, ADMIN_TEACHER_ACHIEVEMENT_CARD);
+                    if (controller != null) {
+                        controller.loadAchievementsForClass(selectedClass.getClassId());
+                    }
+                } else {
+                    System.out.println(">>> handleTreeNodeSelection - EduClass node selected under unexpected parent or for wrong role. Parent: " +
+                            (parentNode != null && parentNode.getUserObject() != null ? parentNode.getUserObject().toString() : "unknown_parent"));
+                    showPlaceholderView("Cannot display details for this class in the current context.");
                 }
+            } else if (selectedNode == mainRootNode) {
+                System.out.println(">>> handleTreeNodeSelection - Main root node selected.");
+                showPlaceholderView("Please select a specific section from the navigation tree.");
             } else {
-                showPlaceholderView("Selection not recognized.");
+                System.out.println(">>> handleTreeNodeSelection - Unrecognized node type or userObject. UserObject class: " +
+                        (userObject != null ? userObject.getClass().getName() : "null"));
+                showPlaceholderView("Selection not recognized or no specific view available.");
             }
         }
+
 
         private void populateAssignmentClassComboBox(List<EduClass> classes) {
             Object selectedItem = assignmentClassComboBox.getSelectedItem();
@@ -1023,7 +1077,6 @@
             addAssignmentButton.setEnabled(false);
             editAssignmentButton.setEnabled(false);
             deleteAssignmentButton.setEnabled(false);
-            // --- Kết thúc B5 ---
 
             // --- B6: Cập nhật giao diện ---
             centerContentPanel.revalidate();
@@ -1032,96 +1085,126 @@
             gradePanel.repaint();
             this.revalidate();
             this.repaint();
-            // --- Kết thúc B6 ---
-        } // <-- Kết thúc phương thức configureControlsForRole
-
+        }
 
         public void reloadClassTree() {
-            if (controller != null && treeModel != null && resultsNode != null && classTree != null) {
-                System.out.println("EducationPanel: Reloading class tree.");
+            if (controller == null || treeModel == null || mainRootNode == null || classTree == null || currentUserRole == null) {
+                System.err.println("reloadClassTree: Essential components or currentUserRole is null. Aborting tree reload.");
+                return;
+            }
 
-                TreePath selectedPathBefore = classTree.getSelectionPath();
-                Object selectedUserObjectBefore = null;
-                if (selectedPathBefore != null && selectedPathBefore.getLastPathComponent() instanceof DefaultMutableTreeNode) {
-                    selectedUserObjectBefore = ((DefaultMutableTreeNode) selectedPathBefore.getLastPathComponent()).getUserObject();
+            System.out.println("EducationPanel: Reloading class tree for role: " + currentUserRole);
+            TreePath selectedPathBefore = classTree.getSelectionPath();
+            Object selectedUserObjectBefore = null;
+            DefaultMutableTreeNode parentOfSelectedBefore = null;
+            if (selectedPathBefore != null && selectedPathBefore.getLastPathComponent() instanceof DefaultMutableTreeNode) {
+                DefaultMutableTreeNode lastSelectedNode = (DefaultMutableTreeNode) selectedPathBefore.getLastPathComponent();
+                selectedUserObjectBefore = lastSelectedNode.getUserObject();
+                if (lastSelectedNode.getParent() instanceof DefaultMutableTreeNode) {
+                    parentOfSelectedBefore = (DefaultMutableTreeNode) lastSelectedNode.getParent();
                 }
-                DefaultMutableTreeNode nodeToRestoreSelectionTo = null;
-                mainRootNode.removeAllChildren(); // Xóa cả results và assignments cũ
+            }
 
-                // Tạo node Results dựa trên vai trò
-                String resultsNodeText = (currentUserRole == Role.STUDENT) ? "Info & Results" : "Results & reviews";
-                resultsNode = new DefaultMutableTreeNode(resultsNodeText);
-                mainRootNode.add(resultsNode);
+            DefaultMutableTreeNode nodeToRestoreSelectionTo = null;
 
-                if (currentUserRole == Role.STUDENT) {
-                    achievementNode = new DefaultMutableTreeNode("Academic Achievements"); // Hoặc "Danh hiệu học tập"
-                    mainRootNode.add(achievementNode); // Thêm trực tiếp vào mainRootNode
-                } else {
-                    achievementNode = null; // Đặt là null nếu không phải student để tránh lỗi
-                }
+            mainRootNode.removeAllChildren();
+            String resultsNodeText = (currentUserRole == Role.STUDENT) ? "Info & Results" : "Results & reviews";
+            resultsNode = new DefaultMutableTreeNode(resultsNodeText);
+            mainRootNode.add(resultsNode);
+            achievementNode = new DefaultMutableTreeNode("Academic Achievements");
+            mainRootNode.add(achievementNode);
+            assignmentsNode = new DefaultMutableTreeNode("Assignments");
+            mainRootNode.add(assignmentsNode);
 
-                // Tạo node Assignments (tên giữ nguyên)
-                assignmentsNode = new DefaultMutableTreeNode("Assignments");
-                mainRootNode.add(assignmentsNode);
+            List<EduClass> classesForTree = null;
 
-                // Chỉ thêm các lớp con cho Admin/Teacher
-                if (currentUserRole == Role.ADMIN || currentUserRole == Role.TEACHER) {
-                    List<EduClass> classes = controller.getClassesForCurrentUser();
-                    if (classes != null) {
-                        classes.sort(Comparator.comparing(EduClass::getClassName, String.CASE_INSENSITIVE_ORDER));
-                        for (EduClass eduClass : classes) {
-                            DefaultMutableTreeNode classNode = new DefaultMutableTreeNode(eduClass);
-                            resultsNode.add(classNode);
-                            if (selectedUserObjectBefore instanceof EduClass && eduClass.getClassId() == ((EduClass) selectedUserObjectBefore).getClassId()) {
-                                nodeToRestoreSelectionTo = classNode;
+            if (currentUserRole == Role.ADMIN || currentUserRole == Role.TEACHER) {
+                classesForTree = controller.getClassesForCurrentUser();
+                if (classesForTree != null) {
+                    classesForTree.sort(Comparator.comparing(EduClass::getClassName, String.CASE_INSENSITIVE_ORDER));
+                    for (EduClass eduClass : classesForTree) {
+                        DefaultMutableTreeNode classNodeForResults = new DefaultMutableTreeNode(eduClass);
+                        resultsNode.add(classNodeForResults);
+
+                        DefaultMutableTreeNode classNodeForAchievements = new DefaultMutableTreeNode(eduClass);
+                        achievementNode.add(classNodeForAchievements);
+
+                        if (selectedUserObjectBefore instanceof EduClass && eduClass.getClassId() == ((EduClass) selectedUserObjectBefore).getClassId()) {
+                            if (parentOfSelectedBefore == resultsNode) {
+                                nodeToRestoreSelectionTo = classNodeForResults;
+                            } else if (parentOfSelectedBefore == achievementNode) {
+                                nodeToRestoreSelectionTo = classNodeForAchievements;
+                            } else {
+                                nodeToRestoreSelectionTo = classNodeForResults;
                             }
                         }
                     }
-                    if (controller != null) {
-                        populateAssignmentClassComboBox(classes);
+                }
+
+                if (controller != null) {
+                    populateAssignmentClassComboBox(classesForTree);
+                }
+
+                if (nodeToRestoreSelectionTo == null) {
+                    if (selectedUserObjectBefore instanceof String) {
+                        String prevSelectedText = (String) selectedUserObjectBefore;
+                        if ("Assignments".equals(prevSelectedText)) nodeToRestoreSelectionTo = assignmentsNode;
+                        else if ("Academic Achievements".equals(prevSelectedText)) nodeToRestoreSelectionTo = achievementNode;
+                        else nodeToRestoreSelectionTo = resultsNode;
+                    } else {
+                        nodeToRestoreSelectionTo = resultsNode;
+                    }
+                }
+
+            } else {
+                populateAssignmentClassComboBox(Collections.emptyList());
+                if (selectedUserObjectBefore instanceof String) {
+                    String prevSelectedText = (String) selectedUserObjectBefore;
+                    if ("Assignments".equals(prevSelectedText)) {
+                        nodeToRestoreSelectionTo = assignmentsNode;
+                    } else if ("Academic Achievements".equals(prevSelectedText)) {
+                        nodeToRestoreSelectionTo = achievementNode;
+                    } else {
+                        nodeToRestoreSelectionTo = resultsNode;
                     }
                 } else {
-                    populateAssignmentClassComboBox(Collections.emptyList()); // Xóa combobox
+                    nodeToRestoreSelectionTo = resultsNode;
                 }
-
-                treeModel.reload(mainRootNode);
-                classTree.expandPath(new TreePath(resultsNode.getPath()));
-                classTree.expandPath(new TreePath(assignmentsNode.getPath()));
-
-                final DefaultMutableTreeNode nodeToSelectFinal;
-
-                if (nodeToRestoreSelectionTo != null) {
-                    nodeToSelectFinal = nodeToRestoreSelectionTo;
-                } else if (currentUserRole == Role.STUDENT) {
-                    // Nếu là student và không có lựa chọn nào trước đó để khôi phục,
-                    // mặc định chọn "Info & Results"
-                    nodeToSelectFinal = resultsNode;
-                } else if (resultsNode.getChildCount() == 0 && (currentUserRole == Role.ADMIN || currentUserRole == Role.TEACHER)) {
-                    // Admin/Teacher không có lớp con nào, chọn node "Results & reviews"
-                    nodeToSelectFinal = resultsNode;
-                } else {
-                    // Trường hợp mặc định khác (ví dụ Admin/Teacher có lớp nhưng không có lựa chọn trước đó)
-                    nodeToSelectFinal = resultsNode; // Hoặc null nếu muốn placeholder hiển thị
-                }
-
-                if (nodeToSelectFinal != null) {
-                    final TreePath pathToSelectFinal = new TreePath(nodeToSelectFinal.getPath());
-                    // Đặt việc chọn node và gọi handler vào invokeLater để đảm bảo JTree đã cập nhật xong
-                    SwingUtilities.invokeLater(() -> {
-                        classTree.setSelectionPath(pathToSelectFinal);
-                        classTree.scrollPathToVisible(pathToSelectFinal);
-                        // Gọi handleTreeNodeSelection với node thực sự đang được chọn
-                        // hoặc nodeForHandler nếu getLastSelectedPathComponent trả về null
-                        DefaultMutableTreeNode currentSelectionOnTree = (DefaultMutableTreeNode) classTree.getLastSelectedPathComponent();
-                        handleTreeNodeSelection(currentSelectionOnTree != null ? currentSelectionOnTree : nodeToSelectFinal);
-                    });
-                } else {
-                    // Nếu không có node nào để chọn, có thể hiển thị placeholder
-                    SwingUtilities.invokeLater(() -> handleTreeNodeSelection(null));
-                }
-                System.out.println("EducationPanel: Class tree reloaded and view potentially updated.");
             }
+
+            treeModel.nodeStructureChanged(mainRootNode);
+
+            classTree.expandPath(new TreePath(resultsNode.getPath()));
+            if (achievementNode != null && achievementNode.getParent() == mainRootNode) {
+                classTree.expandPath(new TreePath(achievementNode.getPath()));
+            }
+            classTree.expandPath(new TreePath(assignmentsNode.getPath()));
+
+            final DefaultMutableTreeNode finalNodeToSelectForInvokeLater;
+
+            if (nodeToRestoreSelectionTo != null) {
+                finalNodeToSelectForInvokeLater = nodeToRestoreSelectionTo;
+            } else {
+                finalNodeToSelectForInvokeLater = resultsNode;
+                System.out.println("reloadClassTree: nodeToRestoreSelectionTo was null, defaulting finalNodeToSelectForInvokeLater to resultsNode.");
+            }
+
+            if (finalNodeToSelectForInvokeLater != null) {
+                final TreePath pathToSelectFinal = new TreePath(finalNodeToSelectForInvokeLater.getPath());
+                SwingUtilities.invokeLater(() -> {
+                    classTree.setSelectionPath(pathToSelectFinal);
+                    classTree.scrollPathToVisible(pathToSelectFinal);
+
+                    DefaultMutableTreeNode currentSelectionOnTree = (DefaultMutableTreeNode) classTree.getLastSelectedPathComponent();
+                    handleTreeNodeSelection(currentSelectionOnTree != null ? currentSelectionOnTree : finalNodeToSelectForInvokeLater);
+                });
+            } else {
+                SwingUtilities.invokeLater(() -> handleTreeNodeSelection(null));
+            }
+
+            System.out.println("EducationPanel: Class tree reloaded and selection update queued.");
         }
+
 
         public void updateTableData(List<Student> students, List<AcademicRecord> records) {
             gradeTableModel.setRowCount(0);
@@ -1318,7 +1401,7 @@
 
                         if ("Info & Results".equals(nodeText) || "Results & reviews".equals(nodeText)) { // Kiểm tra cả hai tên
                             label.setIcon(specificResultsIcon != null ? specificResultsIcon : (expanded ? defaultOpenIcon : defaultClosedIcon));
-                        } else if (("Academic Achievements".equals(nodeText) || "Danh hiệu học tập".equals(nodeText)) && achievementTreeIcon != null) { // Kiểm tra cả hai tên có thể có
+                        } else if (("Academic Achievements".equals(nodeText) || "Học lực học tập".equals(nodeText)) && achievementTreeIcon != null) { // Kiểm tra cả hai tên có thể có
                             label.setIcon(achievementTreeIcon);
                         } else if ("Assignments".equals(nodeText)) {
                             label.setIcon(specificAssignmentIcon != null ? specificAssignmentIcon : (expanded ? defaultOpenIcon : defaultClosedIcon));
@@ -1328,7 +1411,11 @@
                     } else if (userObject instanceof EduClass) {
                         EduClass eduClass = (EduClass) userObject;
                         label.setText(eduClass.getClassName());
-                        label.setIcon(defaultLeafIcon);
+                        if (eduClassNodeIcon != null) {
+                            label.setIcon(eduClassNodeIcon);
+                        } else {
+                            label.setIcon(getDefaultLeafIcon());
+                        }
                     } else {
                         label.setText(userObject == null ? "" : userObject.toString());
                         label.setIcon(defaultLeafIcon);
@@ -1496,11 +1583,11 @@
             TableColumnModel cm = gradeTable.getColumnModel();
             for (int i = 0; i < cm.getColumnCount(); i++) {
                 TableColumn column = cm.getColumn(i);
-                if (column != null && columnName.equals(column.getHeaderValue())) { // So sánh HeaderValue
-                    return i; // Trả về view index
+                if (column != null && columnName.equals(column.getHeaderValue())) {
+                    return i;
                 }
             }
-            return -1; // Không tìm thấy cột trong TableColumnModel hiện tại
+            return -1;
         }
         public void updateAchievementTitleDisplay(String title) {
             System.out.println(">>> EducationPanel.updateAchievementTitleDisplay called with title: [" + title + "]");
@@ -1518,9 +1605,22 @@
                 System.out.println(">>> achievementTitleLabel visibility set to: " + shouldBeVisible);
             }
 
-            // Đảm bảo revalidate và repaint
             revalidate();
             repaint();
+        }
+        public void displayAllStudentAchievements(List<Object[]> achievementData) {
+            achievementListTableModel.setRowCount(0);
+            if (achievementData != null) {
+                for (Object[] rowData : achievementData) {
+                    achievementListTableModel.addRow(rowData);
+                }
+            }
+            if (achievementListTable.getColumnCount() >= 4) {
+                achievementListTable.getColumnModel().getColumn(0).setPreferredWidth(50);
+                achievementListTable.getColumnModel().getColumn(1).setPreferredWidth(150);
+                achievementListTable.getColumnModel().getColumn(2).setPreferredWidth(200);
+                achievementListTable.getColumnModel().getColumn(3).setPreferredWidth(300);
+            }
         }
 
     }

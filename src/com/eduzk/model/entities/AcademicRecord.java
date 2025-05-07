@@ -116,7 +116,7 @@ public class AcademicRecord implements Serializable {
         for (String subject : subjectsToCheck) {
             Double score = this.getGrade(subject);
             if (score == null || score < MIN_SCORE_REQUIRED) {
-                return "Danh hiệu: \"Không đủ điều kiện xét\"";
+                return "\"Không đủ điều kiện xét\"";
             }
         }
 
@@ -132,14 +132,13 @@ public class AcademicRecord implements Serializable {
         if (conduct == null || mathScore == null || literatureScore == null || englishScore == null) {
             part1Title = "Chưa đủ thông tin xếp loại";
         } else {
-            // Sử dụng trực tiếp các hằng số Enum để so sánh, không cần ordinal()
-            if (overallAvg >= 9.00 && mathScore > 9.00 && literatureScore > 9.00 && englishScore > 9.00 &&
-                    conduct == ConductRating.EXCELLENT) { // So sánh trực tiếp với EXCELLENT
+            if (overallAvg >= 9.00 && mathScore >= 9.00 && literatureScore >= 9.00 && englishScore >= 9.00 &&
+                    conduct == ConductRating.EXCELLENT) {
                 part1Title = "HS Xuất sắc";
-            } else if (overallAvg >= 8.00 && mathScore > 8.00 && literatureScore > 8.00 && englishScore > 8.00 &&
-                    (conduct == ConductRating.EXCELLENT || conduct == ConductRating.GOOD)) { // Hạnh kiểm Tốt hoặc Xuất sắc
+            } else if (overallAvg >= 8.00 && mathScore >= 8.00 && literatureScore >= 8.00 && englishScore >= 8.00 &&
+                    (conduct == ConductRating.EXCELLENT || conduct == ConductRating.GOOD)) {
                 part1Title = "HS Giỏi";
-            } else if (overallAvg >= 6.50 && mathScore > 6.5 && literatureScore > 6.5 && englishScore > 6.5 &&
+            } else if (overallAvg >= 6.50 && mathScore >= 6.5 && literatureScore >= 6.5 && englishScore >= 6.5 &&
                     (conduct == ConductRating.EXCELLENT || conduct == ConductRating.GOOD || conduct == ConductRating.FAIR)) { // Hạnh kiểm Khá trở lên
                 part1Title = "HS Khá";
             } else if (overallAvg < 6.50 &&
@@ -150,7 +149,7 @@ public class AcademicRecord implements Serializable {
             }
         }
 
-        // --- Tính toán Phần 2 (Giữ nguyên) ---
+        // --- Tính toán Phần 2 ---
         List<String> part2Titles = new ArrayList<>();
         double avgKHTN = this.calculateAvgNaturalSciences();
         double avgKHXH = this.calculateAvgSocialSciences();
@@ -167,14 +166,14 @@ public class AcademicRecord implements Serializable {
             part2Titles.add("Bán chuyên KHXH");
         }
 
-        // --- Kết hợp kết quả (Giữ nguyên định dạng) ---
-        StringBuilder finalTitle = new StringBuilder("Danh hiệu: ");
+        // --- Kết hợp kết quả ---
+        StringBuilder finalTitle = new StringBuilder("");
         boolean hasPart1 = false;
         boolean hasPart2 = !part2Titles.isEmpty();
 
         if (part1Title != null && !part1Title.trim().isEmpty()) {
             if (!part1Title.equalsIgnoreCase("Chưa đủ thông tin xếp loại") &&
-                    !part1Title.equalsIgnoreCase("Đạt chương trình học tập") && // Giả sử đây không phải danh hiệu nổi bật
+                    !part1Title.equalsIgnoreCase("Đạt chương trình học tập") &&
                     !part1Title.equalsIgnoreCase("Không đủ điều kiện xét") &&
                     !part1Title.equalsIgnoreCase("Chưa xếp loại")) {
                 finalTitle.append("\"").append(part1Title.trim()).append("\"");
@@ -189,7 +188,7 @@ public class AcademicRecord implements Serializable {
         if (hasPart2) {
             if (hasPart1) {
                 finalTitle.append(" , ");
-            } else if (finalTitle.length() > "Danh hiệu: ".length()) {
+            } else if (finalTitle.length() > "Học lực: ".length()) {
                 finalTitle.append(" , ");
             }
             finalTitle.append("\"").append(String.join(", ", part2Titles)).append("\"");
@@ -197,10 +196,10 @@ public class AcademicRecord implements Serializable {
 
         if (!hasPart1 && !hasPart2) {
             String currentBuiltTitle = finalTitle.toString();
-            if (currentBuiltTitle.equals("Danh hiệu: \"Chưa xếp loại\"") ||
-                    currentBuiltTitle.equals("Danh hiệu: Đạt chương trình học tập") || // Nếu bạn muốn thay thế cả cái này
-                    currentBuiltTitle.equals("Danh hiệu: ")) { // Trường hợp part1Title là null/empty ban đầu
-                return "Danh hiệu: (Không có danh hiệu nổi bật)";
+            if (currentBuiltTitle.equals("\"Chưa xếp loại\"") ||
+                    currentBuiltTitle.equals("Đạt chương trình học tập") ||
+                    currentBuiltTitle.equals("")) {
+                return "(Không có học lực nổi bật)";
             }
         }
 
@@ -212,17 +211,14 @@ public class AcademicRecord implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         AcademicRecord that = (AcademicRecord) o;
-        // ID là duy nhất HOẶC kết hợp studentId và classId (và term/year nếu có)
         if (recordId > 0 && that.recordId > 0) {
             return recordId == that.recordId;
         }
-        // Nếu ID chưa có (chưa lưu), so sánh theo student và class
         return studentId == that.studentId && classId == that.classId;
     }
 
     @Override
     public int hashCode() {
-        // Nếu ID > 0, dùng ID. Nếu không, dùng studentId và classId
         return Objects.hash(recordId > 0 ? recordId : Objects.hash(studentId, classId));
     }
 
@@ -232,7 +228,7 @@ public class AcademicRecord implements Serializable {
                 "recordId=" + recordId +
                 ", studentId=" + studentId +
                 ", classId=" + classId +
-                ", grades=" + subjectGrades.size() + // Chỉ hiện số lượng điểm
+                ", grades=" + subjectGrades.size() +
                 ", art=" + artStatus +
                 ", conduct=" + conductRating +
                 '}';

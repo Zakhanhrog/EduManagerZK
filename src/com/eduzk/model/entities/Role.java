@@ -4,7 +4,6 @@ public enum Role {
     ADMIN("Administrator"),
     TEACHER("Teacher"),
     STUDENT("Student");
-    // Add STUDENT("Student"), PARENT("Parent") if needed later
 
     private final String displayName;
 
@@ -18,6 +17,6 @@ public enum Role {
 
     @Override
     public String toString() {
-        return displayName; // For display in UI components like ComboBoxes
+        return displayName;
     }
 }

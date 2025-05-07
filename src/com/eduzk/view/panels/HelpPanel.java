@@ -26,7 +26,7 @@ public class HelpPanel extends JPanel {
     }
     private void loadImageBackground() {
         try {
-            URL imgUrl = getClass().getResource("/images/logo_background_blurred.png"); // Đường dẫn tới ảnh đã xử lý
+            URL imgUrl = getClass().getResource("/images/logo_background_blurred.png");
             if (imgUrl != null) {
                 backgroundImage = ImageIO.read(imgUrl);
                 System.out.println("HelpPanel: Background image loaded successfully.");

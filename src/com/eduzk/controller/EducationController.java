@@ -245,12 +245,12 @@ public class EducationController implements ClassListChangeListener {
                 if (recordToDisplayAchievement != null) {
                     try {
                         achievementTitle = recordToDisplayAchievement.getAchievementTitle();
-                        if (!achievementTitle.startsWith("Danh hiệu:")) {
-                            achievementTitle = "Danh hiệu: " + achievementTitle;
+                        if (!achievementTitle.startsWith("Học lực:")) {
+                            achievementTitle = "Học lực: " + achievementTitle;
                         }
                     } catch (Exception calcEx) {
                         System.err.println("Error calculating achievement title: " + calcEx.getMessage());
-                        achievementTitle = "Danh hiệu: Lỗi tính toán";
+                        achievementTitle = "Học lực: Lỗi tính toán";
                     }
                 }
                 educationPanel.updateAchievementTitleDisplay(achievementTitle);
@@ -302,17 +302,16 @@ public class EducationController implements ClassListChangeListener {
         }
         // Validate row index
         if (rowIndex < 0 || currentDisplayedRecords == null || rowIndex >= currentDisplayedRecords.size()) {
-            System.err.println("Invalid row     index for grade update: " + rowIndex);
+            System.err.println("Invalid row index for grade update: " + rowIndex);
             return;
         }
 
         AcademicRecord record = currentDisplayedRecords.get(rowIndex);
         Object oldValue = null;
         boolean changed = false;
-        Object validatedValue = value; // Store the value after potential validation/parsing
+        Object validatedValue = value;
 
         try {
-            // Handle different types of updates (Conduct, Art, Grade)
             if ("Hạnh kiểm".equals(subjectKey)) {
                 oldValue = record.getConductRating();
                 if (value instanceof ConductRating) {
@@ -685,13 +684,6 @@ public class EducationController implements ClassListChangeListener {
         clearCurrentData();
     }
 
-
-    // --- New Methods for Assignment Management ---
-
-    /**
-     * Loads assignments for a specific class ID and tells the panel to display them.
-     * @param classId The ID of the class whose assignments are to be loaded.
-     */
     public void loadAssignmentsForClass(int classId) {
         // Basic validation or role check if needed (e.g., students might not see this)
         if (currentUser.getRole() == Role.STUDENT) {
@@ -719,11 +711,6 @@ public class EducationController implements ClassListChangeListener {
         }
     }
 
-    /**
-     * Handles the request to add a new assignment for a given class.
-     * Opens the AssignmentDialog.
-     * @param selectedClass The EduClass object for which the assignment is being added.
-     */
     public void handleAddAssignment(EduClass selectedClass) {
         // Check permission
         if (!canCurrentUserManageAssignments()) {
@@ -964,5 +951,72 @@ public class EducationController implements ClassListChangeListener {
         }
         return true;
     }
+    public void loadAchievementsForClass(int classId) {
+        System.out.println("Controller: Loading achievements for class ID: " + classId);
+        if (educationPanel == null || (currentUser.getRole() != Role.ADMIN && currentUser.getRole() != Role.TEACHER)) {
+            return;
+        }
+
+        List<Object[]> achievementDisplayData = new ArrayList<>();
+        int stt = 1;
+
+        try {
+            EduClass selectedClass = classDAO.getById(classId);
+            if (selectedClass == null || selectedClass.getStudentIds() == null || selectedClass.getStudentIds().isEmpty()) {
+                System.out.println("No students in class " + classId + " to load achievements for.");
+                educationPanel.displayAllStudentAchievements(achievementDisplayData); // Hiển thị bảng rỗng
+                return;
+            }
+
+            List<Student> studentsInClass = selectedClass.getStudentIds().stream()
+                    .map(studentDAO::getById)
+                    .filter(Objects::nonNull)
+                    .sorted(Comparator.comparing(Student::getFullName))
+                    .collect(Collectors.toList());
+
+            for (Student student : studentsInClass) {
+                Optional<AcademicRecord> recordOpt = recordDAO.findByStudentAndClass(student.getStudentId(), classId);
+                String achievement = "(Chưa có dữ liệu để xét)";
+                if (recordOpt.isPresent()) {
+                    AcademicRecord actualRecord = recordOpt.get();
+                    boolean hasAnyGrade = false;
+                    String[] subjectsToCheckForData = {"Toán", "Văn", "Anh", "Lí", "Hoá", "Sinh", "Sử", "Địa", "GDCD"};
+                    for (String subject : subjectsToCheckForData) {
+                        if (actualRecord.getGrade(subject) != null) {
+                            hasAnyGrade = true;
+                            break;
+                        }
+                    }
+                    if (hasAnyGrade) {
+                        try {
+                            achievement = actualRecord.getAchievementTitle();
+                        } catch (Exception e) {
+                            System.err.println("Error calculating achievement for student " + student.getStudentId() + " in class " + classId + ": " + e.getMessage());
+                            achievement = "Lỗi tính danh hiệu";
+                        }
+                    } else {
+                        achievement = "Chưa nhập điểm";
+                    }
+                }
+
+                achievementDisplayData.add(new Object[]{
+                        stt++,
+                        selectedClass.getClassName(), // Tên lớp hiện tại
+                        student.getFullName(),
+                        achievement
+                });
+            }
+            educationPanel.displayAllStudentAchievements(achievementDisplayData);
+            writeLog("Viewed Class Achievements", "Viewed achievements for class: " + selectedClass.getClassName());
+
+        } catch (DataAccessException e) {
+            System.err.println("Error loading data for class achievements (Class ID: " + classId + "): " + e.getMessage());
+            UIUtils.showErrorMessage(educationPanel, "Data Load Error", "Failed to load student achievement data for class.");
+            educationPanel.displayAllStudentAchievements(new ArrayList<>());
+        }
+    }
+
+
+
 
 }

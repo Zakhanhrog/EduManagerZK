@@ -5,138 +5,231 @@
     <title>EduZakhanh Help</title>
     <style>
         body {
-            font-family: sans-serif;
-            margin: 10px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            margin: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
         h1 {
-            font-size: 1.6em;
+            font-size: 2em;
             text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
         }
         h2 {
+            font-size: 1.6em;
+            color: #3498db;
+            margin-top: 1.5em;
+            margin-bottom: 0.8em;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        h3 {
             font-size: 1.3em;
+            color: #2980b9;
             margin-top: 1em;
             margin-bottom: 0.5em;
         }
-        h3 {
-            font-size: 1.1em;
-            margin-top: 0.8em;
-            margin-bottom: 0.4em;
-        }
-        p {
-            margin-bottom: 0.6em;
+        p, li {
+            margin-bottom: 0.8em;
+            text-align: justify;
         }
         ul {
             margin-left: 20px;
-            margin-bottom: 0.6em;
+            padding-left: 10px;
         }
-        li {
-            margin-bottom: 0.3em;
+        code, b {
+            background-color: #ecf0f1;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: "Courier New", Courier, monospace;
+            color: #c0392b;
+        }
+        b {
+            color: #2980b9; /* Màu khác cho chữ đậm */
         }
         hr {
-            margin: 1em 0;
+            border: 0;
+            height: 1px;
+            background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0));
+            margin: 1.5em 0;
         }
         a {
-            color: blue;
+            color: #3498db;
+            text-decoration: none;
+        }
+        a:hover {
             text-decoration: underline;
         }
-
+        .note {
+            background-color: #e8f6fd;
+            border-left: 5px solid #3498db;
+            padding: 10px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
 
-<h1>EduZakhanh - Help & Information</h1>
+<div class="container">
+    <h1>EduZakhanh - Help & Information</h1>
 
-<h2>Welcome</h2>
-<p>
-    Welcome to the EduZakhanh Educational Management System! This guide provides information on navigating and using the application's features.
-</p>
+    <h2>Welcome</h2>
+    <p>
+        Welcome to the EduZakhanh Educational Management System! This guide provides information on navigating and using the application's features.
+    </p>
 
-<hr>
+    <hr>
 
-<h2>General Navigation</h2>
-<ul>
-    <li>Use the <b>tabs</b> at the top (e.g., <b>Schedule</b>, <b>Classes</b>, <b>Students</b>) to access different management sections.</li>
-    <li>Data is primarily displayed in tables. Click on a <b>column header</b> to sort the data by that column. Click again to reverse the sort order.</li>
-    <li>Action buttons like <b>Add</b>, <b>Edit</b>, and <b>Delete</b> are typically located near the tables or data they affect.</li>
-    <li>Use the main menu bar (<b>Main</b>, <b>Export</b>, <b>View</b>, <b>Help</b>) for application-level actions like logging out, exporting data, changing themes, and accessing this help information.</li>
-</ul>
+    <h2>General Navigation</h2>
+    <ul>
+        <li>Use the <b>tabs</b> at the top (e.g., <b>My Schedule</b>, <b>Classes</b>, <b>Learning Results</b> for Students; <b>Schedule</b>, <b>Classes</b>, <b>Education</b> for Teachers/Admins) to access different sections.</li>
+        <li>Data is primarily displayed in tables. Click on a <b>column header</b> to sort the data by that column. Click again to reverse the sort order.</li>
+        <li>Action buttons like <b>Add</b>, <b>Edit</b>, and <b>Delete</b> are typically located near the tables or data they affect, and are available based on your user role.</li>
+        <li>Use the main menu bar (<b>Main</b>, <b>Export</b>, <b>View</b>, <b>Version</b>) for application-level actions like logging out, exporting data, changing themes, and accessing this help information.</li>
+    </ul>
 
-<hr>
+    <hr>
 
-<h2>User Roles and Permissions</h2>
-<p>The features and data you can access depend on your assigned role:</p>
-<ul>
-    <li><b>Administrator:</b> Has full access to all sections, including managing user accounts and viewing system logs.</li>
-    <li><b>Teacher:</b> Can view their schedule, manage students within their assigned classes, and view course information.</li>
-    <li><b>Student:</b> Can view their personal schedule, enrolled classes, and general course information.</li>
-</ul>
+    <h2>User Roles and Permissions</h2>
+    <p>The features and data you can access depend on your assigned role:</p>
+    <ul>
+        <li><b>Administrator:</b> Has full access to all sections, including managing user accounts (Accounts), teacher profiles (Teachers), room information (Rooms), system logs (Logs), and all educational data.</li>
+        <li><b>Teacher:</b> Can manage class schedules (Schedule), class information and student enrollment (Classes), student profiles (Students), course information (Courses), and has full access to manage grades, assignments, and view academic achievements for all students (Education tab). Teachers <b>cannot</b> access Accounts, Logs, Teacher management, or Room management.</li>
+        <li><b>Student:</b> Can view their personal schedule (My Schedule), enrolled classes (My Classes), course information (Courses), and their learning results including grades and academic achievements (Learning Results tab).</li>
+    </ul>
 
-<hr>
+    <hr>
 
-<h2>Core Features by Section</h2>
+    <h2>Core Features by Section</h2>
 
-<h3>Administrator View</h3>
-<ul>
-    <li><b>Schedule:</b> View, add, edit, and delete class schedules. Use the date pickers and 'Load Schedule' button to view specific time ranges. Be mindful of potential conflicts (time/teacher/room).</li>
-    <li><b>Classes:</b> Manage educational classes. Assign courses and teachers. Add or remove students from class rosters (enrollment). Set maximum class capacity.</li>
-    <li><b>Students:</b> Manage student profiles (add, edit, delete). Ensure student phone numbers are correct, as they are used for account registration.</li>
-    <li><b>Teachers:</b> Manage teacher profiles. Teacher IDs (provided during creation or editing) are needed for teacher account registration.</li>
-    <li><b>Courses:</b> Define and manage the courses offered by the institution.</li>
-    <li><b>Rooms:</b> Manage physical or virtual rooms, including capacity and type.</li>
-    <li><b>Accounts:</b> View user accounts (Teachers, Students). Can reset passwords for users.</li>
-    <li><b>Logs:</b> Review a chronological list of significant actions performed within the system (updates automatically).</li>
-    <li><b>Help:</b> Access this help guide.</li>
-</ul>
+    <h3>Administrator View</h3>
+    <p>Administrators have access to all features listed below, providing comprehensive control over the system.</p>
+    <ul>
+        <li><b>Schedule:</b> View, add, edit, and delete class schedules. Use the date pickers and 'Load Schedule' button to view specific time ranges. Be mindful of potential conflicts.</li>
+        <li><b>Classes:</b> Manage educational classes, assign courses and teachers, manage student enrollment, and set class capacities.</li>
+        <li><b>Students:</b> Manage student profiles (add, edit, delete).</li>
+        <li><b>Teachers:</b> Manage teacher profiles (add, edit, delete).</li>
+        <li><b>Courses:</b> Define and manage the courses offered.</li>
+        <li><b>Rooms:</b> Manage physical or virtual rooms, including capacity and type.</li>
+        <li><b>Education:</b>
+            <ul>
+                <li><b>Results & reviews:</b> Select a class to view and manage student grades. Click <b>Chỉnh Sửa</b> (Edit) to modify scores, Art status, and Conduct. Save changes with <b>Lưu Thay Đổi</b> (Save Changes).</li>
+                <li><b>Academic Achievements:</b> Select a class to view a list of students and their calculated academic achievements.</li>
+                <li><b>Assignments:</b> Manage assignments for classes. Select a class, then Add, Edit, or Delete assignments.</li>
+            </ul>
+        </li>
+        <li><b>Accounts:</b> View user accounts (Teachers, Students) and reset passwords.</li>
+        <li><b>Logs:</b> Review a chronological list of significant actions performed within the system.</li>
+        <li><b>Help:</b> Access this help guide.</li>
+    </ul>
 
-<h3>Teacher View</h3>
-<ul>
-    <li><b>My Schedule:</b> Displays your teaching schedule for the selected date range.</li>
-    <li><b>My Classes:</b> Shows the classes you are assigned to teach and allows viewing enrolled students.</li>
-    <li><b>My Students:</b> Provides a view of students enrolled in your classes.</li>
-    <li><b>Courses:</b> Allows viewing details of available courses.</li>
-    <li><b>Help:</b> Access this help guide.</li>
-</ul>
+    <h3>Teacher View</h3>
+    <p>Teachers focus on academic management and have access to the following:</p>
+    <ul>
+        <li><b>Schedule:</b> View, add, edit, and delete class schedules for any class.</li>
+        <li><b>Classes:</b> Manage educational classes, assign courses, and manage student enrollment for any class.</li>
+        <li><b>Students:</b> Manage student profiles for students in any class.</li>
+        <li><b>Courses:</b> View details of available courses.</li>
+        <li><b>Education:</b> This is the primary section for teachers.
+            <ul>
+                <li><b>Results & reviews:</b> Select any class from the tree to view and manage student grades. Click <b>Chỉnh Sửa</b> (Edit) to enable editing mode for scores, Art status, and Conduct. Click <b>Lưu Thay Đổi</b> (Save Changes) to commit them.</li>
+                <li><b>Academic Achievements:</b> Select any class from the tree to view a list of students and their calculated academic achievements.</li>
+                <li><b>Assignments:</b> Manage assignments for any class. Select a class from the dropdown, then Add, Edit, or Delete assignments. Assignments past their due date cannot be edited (only deleted).</li>
+            </ul>
+        </li>
+        <li><b>Help:</b> Access this help guide.</li>
+    </ul>
+    <p class="note"><b>Note for Teachers:</b> You do not have access to manage Teacher profiles, Room details, User Accounts, or System Logs. These are Administrator-level functions.</p>
 
-<h3>Student View</h3>
-<ul>
-    <li><b>My Schedule:</b> Displays your personal class schedule.</li>
-    <li><b>My Classes:</b> Shows the classes you are currently enrolled in.</li>
-    <li><b>Courses:</b> Allows viewing details of available courses.</li>
-    <li><b>Help:</b> Access this help guide.</li>
-</ul>
 
-<hr>
+    <h3>Student View</h3>
+    <ul>
+        <li><b>My Schedule:</b> Displays your personal class schedule.</li>
+        <li><b>My Classes:</b> Shows the classes you are currently enrolled in.</li>
+        <li><b>Courses:</b> Allows viewing details of available courses.</li>
+        <li><b>Learning Results:</b> This section provides your academic overview.
+            <ul>
+                <li><b>Info & Results:</b> Displays your personal information and detailed academic transcript (grades for all subjects, average scores, conduct).</li>
+                <li><b>Academic Achievements:</b> Shows your calculated academic achievements based on your performance.</li>
+                <li><b>Assignments:</b> Lists assignments for your classes, including their due dates/times and current status (e.g., "Còn hạn làm bài", "Hết hạn làm bài").</li>
+            </ul>
+        </li>
+        <li><b>Help:</b> Access this help guide.</li>
+    </ul>
 
-<h2>Common Actions</h2>
-<ul>
-    <li><b>Adding Data:</b> Click the 'Add' button (or similar) in the relevant section. A dialog box will appear to enter the required information.</li>
-    <li><b>Editing Data:</b> Select a row in the table you wish to edit, then click the 'Edit' button. A dialog box pre-filled with the current data will appear.</li>
-    <li><b>Deleting Data:</b> Select a row in the table and click the 'Delete' button. You will usually be asked for confirmation. Note: Some items cannot be deleted if they are actively linked elsewhere (e.g., a teacher assigned to a class).</li>
-    <li><b>Filtering/Loading Data:</b> Use date pickers or other filter options (if available) and click buttons like 'Load Schedule' or 'Filter' to narrow down the displayed data.</li>
-</ul>
+    <hr>
 
-<hr>
+    <h2>Common Actions (for Admin/Teacher)</h2>
+    <ul>
+        <li><b>Adding Data:</b> Click the 'Add' button (or similar) in the relevant section (e.g., Students, Classes, Assignments). A dialog box will appear to enter the required information. Fields marked with * are typically mandatory.</li>
+        <li><b>Editing Data:</b> Select a row in the table you wish to edit (e.g., a student, a class), then click the 'Edit' button. A dialog box pre-filled with the current data will appear.
+            <ul><li>In the <b>Education > Results & reviews</b> section, click <b>Chỉnh Sửa</b> (Edit) to make the grade table editable. Click on cells to input scores.</li></ul>
+        </li>
+        <li><b>Saving Edits:</b> After making changes (e.g., in the grade table or an edit dialog), click <b>Lưu Thay Đổi</b> (Save Changes) or "Save" to persist them. Use <b>Hủy Bỏ</b> (Cancel) to discard unsaved edits.</li>
+        <li><b>Deleting Data:</b> Select an item and click the 'Delete' button. You will usually be asked for confirmation. Note: Some items cannot be deleted if they are actively linked elsewhere.</li>
+    </ul>
 
-<h2>Other Features</h2>
-<ul>
-    <li><b>Exporting Data:</b> Administrators and Teachers can export data to Excel via the <b>Export > Export to Excel...</b> menu. Select the data type and choose a save location.</li>
-    <li><b>Changing Themes:</b> Customize the application's look and feel using the <b>View > Themes</b> menu.</li>
-    <li><b>Logging Out:</b> Use the <b>Main > Logout</b> menu item to securely log out of the application.</li>
-    <li><b>Exiting:</b> Use the <b>Main > Exit</b> menu item or the window's close button to exit the application. You will be asked for confirmation.</li>
-</ul>
+    <hr>
 
-<hr>
+    <h2>Academic Achievements Calculation</h2>
+    <p>Academic achievements are determined based on the following rules (summary):</p>
+    <ol>
+        <li><b>Prerequisite:</b> All core subjects (Toán, Văn, Anh, Lý, Hoá, Sinh, Sử, Địa, GDCD) must have a score of 2.00 or higher. If not, the title will be "Không đủ điều kiện xét".</li>
+        <li><b>Part 1 (Overall Performance):</b>
+            <ul>
+                <li><b>HS Yếu/Trung bình (Weak/Average Student):</b> Overall average < 6.50; Conduct: Average or better.</li>
+                <li><b>HS Khá (Fairly Good Student):</b> 6.50 ≤ Overall average < 8.00; Math, Literature, English > 6.5; Conduct: Fair or better.</li>
+                <li><b>HS Giỏi (Good Student):</b> 8.00 ≤ Overall average < 9.00; Math, Literature, English > 8.00; Conduct: Good or Excellent.</li>
+                <li><b>HS Xuất sắc (Excellent Student):</b> Overall average ≥ 9.00; Math, Literature, English > 9.00; Conduct: Excellent.</li>
+                <li>If none of the above but prerequisite is met, "Đạt chương trình học tập" (Passed academic program) is shown.</li>
+            </ul>
+        </li>
+        <li><b>Part 2 (Specialization):</b>
+            <ul>
+                <li><b>Bán chuyên KHTN (Semi-specialized in Natural Sciences):</b> Natural Sciences average ≥ 9.00.</li>
+                <li><b>Chuyên KHTN (Specialized in Natural Sciences):</b> Natural Sciences average ≥ 9.50.</li>
+                <li><b>Bán chuyên KHXH (Semi-specialized in Social Sciences):</b> Social Sciences average ≥ 9.00.</li>
+                <li><b>Chuyên KHXH (Specialized in Social Sciences):</b> Social Sciences average ≥ 9.50.</li>
+            </ul>
+        </li>
+    </ol>
+    <p>The final title combines Part 1 and Part 2 if applicable, e.g., <code>Danh hiệu: "HS Giỏi" , "Bán chuyên KHTN"</code>. If only one part is achieved, only that part is shown. If neither part yields a specific title beyond "Đạt chương trình học tập", then "Không có danh hiệu nổi bật" may be displayed.</p>
 
-<h2>Troubleshooting & Contact</h2>
-<p>
-    If you encounter issues or have questions not covered here:
-</p>
-<ul>
-    <li>Ensure you have entered data correctly, especially required fields in dialog boxes.</li>
-    <li>Check the status bar at the bottom for any messages.</li>
-    <li>Contact the system administrator: <b>zakhanh</b></li>
-    <li>Visit our <a href="https://helpedumanager.netlify.app/">online support portal</a>.</li>
-</ul>
 
+    <hr>
+
+    <h2>Other Features</h2>
+    <ul>
+        <li><b>Exporting Data:</b> Administrators and Teachers can export data to Excel via the <b>Export > Export to Excel...</b> menu. Select the data type and choose a save location.</li>
+        <li><b>Changing Themes:</b> Customize the application's look and feel using the <b>View > Themes</b> menu.</li>
+        <li><b>Logging Out:</b> Use the <b>Main > Logout</b> menu item to securely log out of the application.</li>
+        <li><b>Exiting:</b> Use the <b>Main > Exit</b> menu item or the window's close button to exit the application. You will be asked for confirmation.</li>
+    </ul>
+
+    <hr>
+
+    <h2>Troubleshooting & Contact</h2>
+    <p>
+        If you encounter issues or have questions not covered here:
+    </p>
+    <ul>
+        <li>Ensure you have entered data correctly, especially required fields in dialog boxes.</li>
+        <li>Check the status bar at the bottom of the main window for any messages.</li>
+        <li>For technical issues, system logs (accessible by Administrators) might provide more details.</li>
+        <li>Contact the system administrator: <b>zakhanh</b></li>
+        <li>Visit our <a href="https://helpedumanager.netlify.app/" target="_blank" rel="noopener noreferrer">online support portal</a> (Demo Link).</li>
+    </ul>
+</div>
 </body>
 </html>

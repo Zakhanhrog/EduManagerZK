@@ -80,16 +80,16 @@ public class UIUtils {
     public static Icon loadSVGIcon(String path, int size) {
         if (path == null || path.isEmpty()) return null;
         try {
-            URL iconUrl = UIUtils.class.getResource(path); // Dùng getResource từ Class
+            URL iconUrl = UIUtils.class.getResource(path);
             if (iconUrl != null) {
                 return new FlatSVGIcon(iconUrl).derive(size, size);
             } else {
                 System.err.println("UIUtils Warning: SVG icon resource not found at: " + path);
-                return null; // Trả về null nếu không tìm thấy
+                return null;
             }
         } catch (Exception e) {
             System.err.println("UIUtils Error: loading/parsing SVG icon from path: " + path + " - " + e.getMessage());
-            return null; // Trả về null nếu có lỗi
+            return null;
         }
     }
 }

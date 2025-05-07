@@ -18,13 +18,12 @@ public enum ConductRating {
         return displayName;
     }
 
-    // Optional: phương thức để lấy enum từ display name
     public static ConductRating fromString(String text) {
         for (ConductRating b : ConductRating.values()) {
             if (b.displayName.equalsIgnoreCase(text)) {
                 return b;
             }
         }
-        return null; // Hoặc ném exception
+        return null;
     }
 }
