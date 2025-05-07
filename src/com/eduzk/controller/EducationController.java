@@ -171,44 +171,108 @@ public class EducationController implements ClassListChangeListener {
 
     // Loads grade data specifically for the currently logged-in student
     public void loadDataForCurrentStudent() {
+        // --- Kiểm tra ban đầu ---
         if (currentUser == null || currentUser.getRole() != Role.STUDENT || currentUser.getStudentId() == null) {
-            clearCurrentData();
-            if(educationPanel != null) educationPanel.updateTableData(Collections.emptyList(), Collections.emptyList());
-            return;
+            clearCurrentData(); // Xóa cache nếu có
+            // Cập nhật UI về trạng thái trống nếu panel tồn tại
+            if (educationPanel != null) {
+                educationPanel.updateStudentInfoDisplay(null, null);
+                educationPanel.updateAchievementTitleDisplay(null);
+                // Gọi hàm cập nhật bảng điểm với dữ liệu rỗng
+                // educationPanel.updateTableData(Collections.emptyList(), Collections.emptyList()); // Hoặc dùng hàm riêng nếu có
+                educationPanel.updateTableDataForStudent(null, null);
+            }
+            return; // Thoát nếu không phải student hoặc thiếu thông tin
         }
 
         int studentId = currentUser.getStudentId();
-        System.out.println("EducationController: Loading grade data for current student ID: " + studentId);
+        System.out.println("EducationController: Loading data for current student ID: " + studentId);
+
         try {
+            // --- Lấy thông tin Student ---
             Student currentStudent = studentDAO.getById(studentId);
             if (currentStudent == null) {
                 System.err.println("Error: Student profile not found for current user ID: " + studentId);
                 clearCurrentData();
-                if(educationPanel != null) educationPanel.updateTableData(Collections.emptyList(), Collections.emptyList());
-                UIUtils.showErrorMessage(null, "Error", "Could not find your student profile."); // Show error (parent might be null)
+                // Cập nhật UI về trạng thái lỗi/trống
+                if (educationPanel != null) {
+                    educationPanel.updateStudentInfoDisplay(null, null);
+                    educationPanel.updateAchievementTitleDisplay(null);
+                    educationPanel.updateTableDataForStudent(null, null);
+                }
+                UIUtils.showErrorMessage(null, "Error", "Could not find your student profile.");
                 return;
             }
+
+            // --- Lấy thông tin Lớp chính của Student (để hiển thị và có thể ưu tiên record) ---
             EduClass studentPrimaryClass = null;
-            List<EduClass> studentClasses = classDAO.findByStudentId(studentId);
+            List<EduClass> studentClasses = classDAO.findByStudentId(studentId); // Giả định DAO có hàm này
             if (studentClasses != null && !studentClasses.isEmpty()) {
+                // Lấy lớp đầu tiên làm lớp chính để hiển thị thông tin
                 studentPrimaryClass = studentClasses.get(0);
             }
-            this.currentDisplayedRecords = recordDAO.findAllByStudentId(studentId);
-            this.currentDisplayedStudents = List.of(currentStudent); // List contains only the current student
-            this.currentSelectedClassId = -1; // No specific class selected in this context
 
-            // Update the panel specifically for the student view
+            // --- Lấy TẤT CẢ bản ghi học tập của Student ---
+            // `updateTableDataForStudent` cần danh sách này để hiển thị (dù bảng chỉ có 1 dòng)
+            List<AcademicRecord> studentRecordsFromDB = recordDAO.findAllByStudentId(studentId);
+            this.currentDisplayedRecords = (studentRecordsFromDB != null) ? new ArrayList<>(studentRecordsFromDB) : new ArrayList<>();
+            this.currentDisplayedStudents = List.of(currentStudent); // Cập nhật cache controller
+            this.currentSelectedClassId = (studentPrimaryClass != null) ? studentPrimaryClass.getClassId() : -1; // Cập nhật ID lớp đang xem (nếu có)
+
+            // --- Chọn MỘT bản ghi để tính danh hiệu ---
+            // Ưu tiên bản ghi của lớp chính, nếu không có thì lấy bản ghi đầu tiên
+            AcademicRecord recordToDisplayAchievement = null; // KHAI BÁO BIẾN Ở ĐÂY
+            if (!this.currentDisplayedRecords.isEmpty()) { // Sử dụng cache đã cập nhật
+                if (studentPrimaryClass != null) {
+                    final int primaryClassId = studentPrimaryClass.getClassId();
+                    Optional<AcademicRecord> foundRecord = this.currentDisplayedRecords.stream()
+                            .filter(r -> r != null && r.getClassId() == primaryClassId) // Thêm kiểm tra r != null
+                            .findFirst();
+                    recordToDisplayAchievement = foundRecord.orElse(this.currentDisplayedRecords.get(0));
+                } else {
+                    recordToDisplayAchievement = this.currentDisplayedRecords.get(0);
+                }
+            }
+            // Nếu this.currentDisplayedRecords rỗng, recordToDisplayAchievement sẽ là null
+
+            // --- Cập nhật giao diện trong EducationPanel ---
             if (educationPanel != null) {
+                // 1. Cập nhật Panel thông tin cá nhân
                 educationPanel.updateStudentInfoDisplay(currentStudent, studentPrimaryClass);
+
+                // 2. Tính toán và cập nhật Label Danh hiệu
+                String achievementTitle = "Chưa có dữ liệu để xếp danh hiệu";
+                if (recordToDisplayAchievement != null) {
+                    try {
+                        achievementTitle = recordToDisplayAchievement.getAchievementTitle();
+                        if (!achievementTitle.startsWith("Danh hiệu:")) {
+                            achievementTitle = "Danh hiệu: " + achievementTitle;
+                        }
+                    } catch (Exception calcEx) {
+                        System.err.println("Error calculating achievement title: " + calcEx.getMessage());
+                        achievementTitle = "Danh hiệu: Lỗi tính toán";
+                    }
+                }
+                educationPanel.updateAchievementTitleDisplay(achievementTitle);
+
+                // 3. Cập nhật Bảng điểm (JTable)
+                // Truyền currentStudent và danh sách đầy đủ các bản ghi (currentDisplayedRecords)
                 educationPanel.updateTableDataForStudent(currentStudent, this.currentDisplayedRecords);
-                writeLog("Viewed Grades", "Student viewed their own grades.");
+
+                // 4. Ghi log hành động
+                writeLog("Viewed Info & Results", "Student viewed their own info, grades and achievement.");
             }
 
         } catch (DataAccessException e) {
             System.err.println("Error loading grade data for student " + studentId + ": " + e.getMessage());
             UIUtils.showErrorMessage(null, "Data Load Error", "Failed to load your academic records.");
             clearCurrentData();
-            if(educationPanel != null) educationPanel.updateTableData(Collections.emptyList(), Collections.emptyList());
+            // Cập nhật UI về trạng thái lỗi/trống trong catch
+            if (educationPanel != null) {
+                educationPanel.updateStudentInfoDisplay(null, null);
+                educationPanel.updateAchievementTitleDisplay(null);
+                educationPanel.updateTableDataForStudent(null, null);
+            }
         }
     }
 
@@ -238,7 +302,7 @@ public class EducationController implements ClassListChangeListener {
         }
         // Validate row index
         if (rowIndex < 0 || currentDisplayedRecords == null || rowIndex >= currentDisplayedRecords.size()) {
-            System.err.println("Invalid row index for grade update: " + rowIndex);
+            System.err.println("Invalid row     index for grade update: " + rowIndex);
             return;
         }
 
@@ -249,7 +313,7 @@ public class EducationController implements ClassListChangeListener {
 
         try {
             // Handle different types of updates (Conduct, Art, Grade)
-            if ("Hạnh kiểm".equals(subjectKey)) { // <--- THAY ĐỔI TỪ CONDUCT_KEY
+            if ("Hạnh kiểm".equals(subjectKey)) {
                 oldValue = record.getConductRating();
                 if (value instanceof ConductRating) {
                     if (!Objects.equals(oldValue, value)){
@@ -316,12 +380,7 @@ public class EducationController implements ClassListChangeListener {
             // If a change occurred, update UI and mark pending changes
             if (changed) {
                 if (educationPanel != null) {
-                    // Update the specific cell visually (optional, table might update itself)
-                    // educationPanel.updateSpecificCellValue(rowIndex, subjectKey, validatedValue);
-
-                    // Recalculate and update average columns in the table
                     educationPanel.updateCalculatedValues(rowIndex, record);
-                    // Mark that there are unsaved changes
                     educationPanel.markChangesPending(true);
                 }
                 // Log the edit action (consider logging details carefully)
@@ -905,4 +964,5 @@ public class EducationController implements ClassListChangeListener {
         }
         return true;
     }
+
 }

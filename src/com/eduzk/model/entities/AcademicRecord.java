@@ -6,6 +6,8 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.ArrayList;
+import java.util.List;
 
 public class AcademicRecord implements Serializable {
     private static final long serialVersionUID = 3L; // Thay đổi serialVersionUID
@@ -107,7 +109,103 @@ public class AcademicRecord implements Serializable {
         }
         return (count > 0) ? sum / count : 0.0;
     }
+    public String getAchievementTitle() {
+        final double MIN_SCORE_REQUIRED = 2.00;
+        String[] subjectsToCheck = {"Toán", "Văn", "Anh", "Lí", "Hoá", "Sinh", "Sử", "Địa", "GDCD"};
 
+        for (String subject : subjectsToCheck) {
+            Double score = this.getGrade(subject);
+            if (score == null || score < MIN_SCORE_REQUIRED) {
+                return "Danh hiệu: \"Không đủ điều kiện xét\"";
+            }
+        }
+
+        // --- Tính toán Phần 1 ---
+        String part1Title = null;
+        double overallAvg = this.calculateAvgOverallSubjects();
+        ConductRating conduct = this.getConductRating();
+        Double mathScore = this.getGrade("Toán");
+        Double literatureScore = this.getGrade("Văn");
+        Double englishScore = this.getGrade("Anh");
+
+        // --- SỬA LOGIC KIỂM TRA VÀ SO SÁNH VỚI ENUM ---
+        if (conduct == null || mathScore == null || literatureScore == null || englishScore == null) {
+            part1Title = "Chưa đủ thông tin xếp loại";
+        } else {
+            // Sử dụng trực tiếp các hằng số Enum để so sánh, không cần ordinal()
+            if (overallAvg >= 9.00 && mathScore > 9.00 && literatureScore > 9.00 && englishScore > 9.00 &&
+                    conduct == ConductRating.EXCELLENT) { // So sánh trực tiếp với EXCELLENT
+                part1Title = "HS Xuất sắc";
+            } else if (overallAvg >= 8.00 && mathScore > 8.00 && literatureScore > 8.00 && englishScore > 8.00 &&
+                    (conduct == ConductRating.EXCELLENT || conduct == ConductRating.GOOD)) { // Hạnh kiểm Tốt hoặc Xuất sắc
+                part1Title = "HS Giỏi";
+            } else if (overallAvg >= 6.50 && mathScore > 6.5 && literatureScore > 6.5 && englishScore > 6.5 &&
+                    (conduct == ConductRating.EXCELLENT || conduct == ConductRating.GOOD || conduct == ConductRating.FAIR)) { // Hạnh kiểm Khá trở lên
+                part1Title = "HS Khá";
+            } else if (overallAvg < 6.50 &&
+                    (conduct == ConductRating.EXCELLENT || conduct == ConductRating.GOOD || conduct == ConductRating.FAIR || conduct == ConductRating.AVERAGE)) { // Hạnh kiểm Trung bình trở lên
+                part1Title = "HS Trung bình";
+            } else {
+                part1Title = "Đạt chương trình học tập";
+            }
+        }
+
+        // --- Tính toán Phần 2 (Giữ nguyên) ---
+        List<String> part2Titles = new ArrayList<>();
+        double avgKHTN = this.calculateAvgNaturalSciences();
+        double avgKHXH = this.calculateAvgSocialSciences();
+
+        if (avgKHTN >= 9.50) {
+            part2Titles.add("Chuyên KHTN");
+        } else if (avgKHTN >= 9.00) {
+            part2Titles.add("Bán chuyên KHTN");
+        }
+
+        if (avgKHXH >= 9.50) {
+            part2Titles.add("Chuyên KHXH");
+        } else if (avgKHXH >= 9.00) {
+            part2Titles.add("Bán chuyên KHXH");
+        }
+
+        // --- Kết hợp kết quả (Giữ nguyên định dạng) ---
+        StringBuilder finalTitle = new StringBuilder("Danh hiệu: ");
+        boolean hasPart1 = false;
+        boolean hasPart2 = !part2Titles.isEmpty();
+
+        if (part1Title != null && !part1Title.trim().isEmpty()) {
+            if (!part1Title.equalsIgnoreCase("Chưa đủ thông tin xếp loại") &&
+                    !part1Title.equalsIgnoreCase("Đạt chương trình học tập") && // Giả sử đây không phải danh hiệu nổi bật
+                    !part1Title.equalsIgnoreCase("Không đủ điều kiện xét") &&
+                    !part1Title.equalsIgnoreCase("Chưa xếp loại")) {
+                finalTitle.append("\"").append(part1Title.trim()).append("\"");
+                hasPart1 = true;
+            } else {
+                finalTitle.append(part1Title.trim());
+            }
+        } else {
+            finalTitle.append("\"Chưa xếp loại\"");
+        }
+
+        if (hasPart2) {
+            if (hasPart1) {
+                finalTitle.append(" , ");
+            } else if (finalTitle.length() > "Danh hiệu: ".length()) {
+                finalTitle.append(" , ");
+            }
+            finalTitle.append("\"").append(String.join(", ", part2Titles)).append("\"");
+        }
+
+        if (!hasPart1 && !hasPart2) {
+            String currentBuiltTitle = finalTitle.toString();
+            if (currentBuiltTitle.equals("Danh hiệu: \"Chưa xếp loại\"") ||
+                    currentBuiltTitle.equals("Danh hiệu: Đạt chương trình học tập") || // Nếu bạn muốn thay thế cả cái này
+                    currentBuiltTitle.equals("Danh hiệu: ")) { // Trường hợp part1Title là null/empty ban đầu
+                return "Danh hiệu: (Không có danh hiệu nổi bật)";
+            }
+        }
+
+        return finalTitle.toString();
+    }
 
     @Override
     public boolean equals(Object o) {
