@@ -99,10 +99,11 @@ public class TeacherController {
                 newUser.setUsername(defaultUsername);
                 String hashedPassword = PasswordUtils.hashPassword(defaultPassword);
                 newUser.setPassword(hashedPassword);
-                newUser.setRole(Role.STUDENT);
-                newUser.setActive(true);
-                newUser.setStudentId(teacher.getTeacherId());
-                newUser.setTeacherId(null);
+                newUser.setRole(Role.TEACHER);
+                newUser.setActive(teacher.isActive());
+                newUser.setTeacherId(teacher.getTeacherId());
+                newUser.setStudentId(null);
+
                 newUser.setRequiresPasswordChange(true);
 
                 try {
@@ -407,15 +408,15 @@ public class TeacherController {
 
                                 User tempUser = new User();
                                 tempUser.setUsername(email.trim());
-                                tempUser.setPassword("123456"); // Mật khẩu mặc định
+                                String defaultPassword = "123456";
+                                String hashedPassword = PasswordUtils.hashPassword(defaultPassword);
+                                tempUser.setPassword(hashedPassword);
                                 tempUser.setRole(Role.TEACHER);
                                 tempUser.setActive(active);
                                 tempUser.setStudentId(null);
-                                // teacherId sẽ được set sau khi Teacher được lưu và có ID
-
-                                // Thêm vào danh sách tạm nếu hợp lệ
+                                tempUser.setRequiresPasswordChange(true);
                                 validTeachersToImport.add(tempTeacher);
-                                validUsersToCreate.add(tempUser); // User tạm thời chưa có teacherId
+                                validUsersToCreate.add(tempUser);
 
                             } catch (Exception rowEx) {
                                 // Lỗi validation hoặc đọc dòng
@@ -442,10 +443,10 @@ public class TeacherController {
                                 teacherDAO.add(teacherToAdd);
                                 if (teacherToAdd.getTeacherId() > 0) {
                                     teacherAdded = true;
-                                    // Liên kết teacherId vào User
                                     userToCreate.setTeacherId(teacherToAdd.getTeacherId());
-
-                                    // Thêm User (không cần kiểm tra trùng username nữa vì đã làm ở trên)
+                                    if (userDAO.findByTeacherId(userToCreate.getTeacherId()).isPresent()){
+                                        throw new DataAccessException("Account for Teacher ID " + userToCreate.getTeacherId() + " already exists.");
+                                    }
                                     userDAO.add(userToCreate);
                                     userAdded = true;
                                 } else {

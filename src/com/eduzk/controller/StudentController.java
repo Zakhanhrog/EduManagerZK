@@ -262,10 +262,13 @@ public class StudentController {
         Optional<User> userOpt = userDAO.findByStudentId(studentId);
         if (userOpt.isPresent()) {
             User userToUpdate = userOpt.get();
-            userToUpdate.setPassword(newPassword);
+            String hashedPassword = PasswordUtils.hashPassword(newPassword);
+            userToUpdate.setPassword(hashedPassword); // Lưu mật khẩu đã hash
+            userToUpdate.setRequiresPasswordChange(false); // Khi admin đổi pass, không cần user force change nữa
+
             try {
                 userDAO.update(userToUpdate);
-                writeUpdateLog("Updated Student Password", userToUpdate, "For Student ID: " + studentId);
+                writeLog("Updated Student Password", "For User linked to Student ID: " + studentId + ", Username: " + userToUpdate.getUsername());
                 UIUtils.showInfoMessage(studentPanel, "Success", "Password updated for student ID " + studentId);
                 return true;
             } catch (DataAccessException e) {
@@ -366,13 +369,16 @@ public class StudentController {
 
                                 User tempUser = new User();
                                 tempUser.setUsername(phone.trim()); // Dùng phone làm username
-                                tempUser.setPassword("123456"); // Mật khẩu mặc định
+                                String defaultPassword = "123456";
+                                String hashedPassword = PasswordUtils.hashPassword(defaultPassword);
+                                tempUser.setPassword(hashedPassword); // Lưu mật khẩu đã hash
+
                                 tempUser.setRole(Role.STUDENT);
                                 tempUser.setActive(true); // Mặc định active
                                 tempUser.setTeacherId(null);
+                                tempUser.setRequiresPasswordChange(true); // Yêu cầu đổi mật khẩu
                                 // studentId sẽ được set sau khi Student được lưu và có ID
 
-                                // Thêm vào danh sách tạm nếu hợp lệ
                                 validStudentsToImport.add(tempStudent);
                                 validUsersToCreate.add(tempUser);
 
