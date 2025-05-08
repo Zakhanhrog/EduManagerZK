@@ -1,5 +1,6 @@
 package com.eduzk.model.dao.interfaces;
 
+import com.eduzk.model.entities.AcademicRecord;
 import com.eduzk.model.entities.Student;
 import com.eduzk.model.exceptions.DataAccessException;
 import java.util.List;
@@ -30,12 +31,6 @@ public interface IStudentDAO {
      * @throws IllegalArgumentException if the student object is invalid.
      */
     void add(Student student) throws DataAccessException;
-    /**
-     * Updates an existing student in the data source. The student is identified by their ID.
-     * @param student The Student object with updated information. Must not be null.
-     * @throws DataAccessException if the student to update is not found or if a data storage error occurs.
-     * @throws IllegalArgumentException if the student object is invalid.
-     */
     void update(Student student) throws DataAccessException;
     /**
      * Deletes a student from the data source based on their ID.
@@ -58,4 +53,5 @@ public interface IStudentDAO {
      * @throws DataAccessException Nếu có lỗi xảy ra trong quá trình xóa.
      */
     int deleteByIds(List<Integer> ids) throws DataAccessException;
+    List<Student> getStudentsByClassId(int classId) throws DataAccessException;
 }

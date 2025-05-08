@@ -1,7 +1,5 @@
 package com.eduzk.model.entities;
 
-import com.eduzk.model.entities.ArtStatus;
-import com.eduzk.model.entities.ConductRating;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
@@ -10,24 +8,25 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AcademicRecord implements Serializable {
-    private static final long serialVersionUID = 3L; // Thay đổi serialVersionUID
-
+    private static final long serialVersionUID = 3L;
     private int recordId;
     private int studentId;
     private int classId;
     private Map<String, Double> subjectGrades;
-
     private ArtStatus artStatus;
     private ConductRating conductRating;
+    private static final String[] SUBJECTS_TO_CLEAR = {
+            "Toán", "Văn", "Anh", "Lí", "Hoá", "Sinh", "Sử", "Địa", "GDCD"
+    };
+
     public AcademicRecord() {
         subjectGrades = new HashMap<>();
-        // Khởi tạo giá trị mặc định nếu cần
         this.artStatus = ArtStatus.PASSED;
         this.conductRating = ConductRating.GOOD;
     }
 
     public AcademicRecord(int studentId, int classId) {
-        this(); // Gọi constructor mặc định
+        this();
         this.studentId = studentId;
         this.classId = classId;
     }
@@ -232,5 +231,20 @@ public class AcademicRecord implements Serializable {
                 ", art=" + artStatus +
                 ", conduct=" + conductRating +
                 '}';
+    }
+    public boolean clearSubjectGrades() {
+        boolean changed = false;
+        if (this.subjectGrades == null) {
+            // Nếu map grades là null, không có gì để xóa, coi như không thay đổi
+            return false;
+        }
+
+        for (String subjectKey : SUBJECTS_TO_CLEAR) {
+            if (this.subjectGrades.containsKey(subjectKey) && this.subjectGrades.get(subjectKey) != null) {
+                this.subjectGrades.put(subjectKey, null); // Đặt về null
+                changed = true;
+            }
+        }
+        return changed;
     }
 }

@@ -139,13 +139,12 @@ public class IdGenerator {
         return getNextId(ASSIGNMENT_ID_KEY);
     }
 
-    // Generic method to get the next ID for a given entity type (key)
     private int getNextId(String key) {
         lock.lock();
         try {
             int nextId = nextIdMap.getOrDefault(key, 1);
             nextIdMap.put(key, nextId + 1);
-            saveNextIds(); // Persist the change immediately
+            saveNextIds();
             return nextId;
         } finally {
             lock.unlock();

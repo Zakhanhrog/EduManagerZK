@@ -87,7 +87,6 @@ public abstract class BaseDAO<T extends Serializable> {
     public List<T> getAll() {
         lock.readLock().lock();
         try {
-            // Return a copy to prevent external modification of the internal list
             return new ArrayList<>(this.dataList);
         } finally {
             lock.readLock().unlock();

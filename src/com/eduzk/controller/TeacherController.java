@@ -24,6 +24,7 @@ import java.util.*;
 import java.util.Map;
 import java.util.HashMap;
 import com.eduzk.model.dao.impl.LogService;
+import com.eduzk.utils.PasswordUtils;
 
 import com.eduzk.view.MainView;
 
@@ -79,12 +80,10 @@ public class TeacherController {
             UIUtils.showWarningMessage(teacherPanel, "Validation Error", "Teacher name cannot be empty.");
             return false;
         }
-        // Email là bắt buộc để tạo username
         if (!ValidationUtils.isNotEmpty(teacher.getEmail()) || !ValidationUtils.isValidEmail(teacher.getEmail())) {
             UIUtils.showWarningMessage(teacherPanel, "Validation Error", "A valid Email is required (used as username).");
             return false;
         }
-        // Thêm các validation khác nếu cần
 
         boolean userCreatedSuccessfully = false;
         try {
@@ -95,25 +94,24 @@ public class TeacherController {
             // 2. Tự động tạo User nếu thêm Teacher thành công và có ID
             if (teacher.getTeacherId() > 0) {
                 String defaultUsername = teacher.getEmail();
-                String defaultPassword = "123456"; // Mật khẩu mặc định
+                String defaultPassword = "123456";
                 User newUser = new User();
                 newUser.setUsername(defaultUsername);
-                newUser.setPassword(defaultPassword);
-                newUser.setRole(Role.TEACHER);
-                newUser.setActive(teacher.isActive()); // Đồng bộ trạng thái active
-                newUser.setTeacherId(teacher.getTeacherId()); // Liên kết ID Teacher
-                newUser.setStudentId(null);
+                String hashedPassword = PasswordUtils.hashPassword(defaultPassword);
+                newUser.setPassword(hashedPassword);
+                newUser.setRole(Role.STUDENT);
+                newUser.setActive(true);
+                newUser.setStudentId(teacher.getTeacherId());
+                newUser.setTeacherId(null);
+                newUser.setRequiresPasswordChange(true);
 
                 try {
-                    // Kiểm tra trùng username (Email) trước khi thêm
                     if (userDAO.findByUsername(newUser.getUsername()).isPresent()) {
                         throw new DataAccessException("Username (Email) '" + newUser.getUsername() + "' already exists for another user account.");
                     }
                     userDAO.add(newUser);
                     userCreatedSuccessfully = true;
                     System.out.println("Successfully created User account for Teacher ID: " + teacher.getTeacherId());
-
-                    // *** GHI LOG KHI CẢ HAI THÀNH CÔNG ***
                     writeAddLog("Added Teacher & User", teacher);
 
                 } catch (DataAccessException | IllegalArgumentException e) {
@@ -256,16 +254,14 @@ public class TeacherController {
         System.out.println("Attempting to delete multiple teachers: " + teacherIdsToDelete);
         int deletedTeacherCount = 0;
         int deletedUserCount = 0;
-        List<String> finalLogDetails = new ArrayList<>(); // Lưu chi tiết log cho từng người
+        List<String> finalLogDetails = new ArrayList<>();
 
         try {
-            // **Xóa từng người một để xử lý User liên kết dễ hơn**
-            // (Hoặc sửa DAO.deleteMultiple để trả về list ID đã xóa thành công)
             for (Integer teacherId : teacherIdsToDelete) {
                 boolean teacherDeleted = false;
                 boolean userDeleted = false;
                 User linkedUser = null;
-                String teacherName = "ID: " + teacherId; // Tên mặc định
+                String teacherName = "ID: " + teacherId;
 
                 try {
                     // Lấy tên trước khi xóa Teacher
@@ -277,7 +273,7 @@ public class TeacherController {
                     if (userOpt.isPresent()) linkedUser = userOpt.get();
 
                     // Xóa Teacher
-                    teacherDAO.delete(teacherId); // Gọi hàm xóa đơn của DAO
+                    teacherDAO.delete(teacherId);
                     teacherDeleted = true;
                     deletedTeacherCount++;
 

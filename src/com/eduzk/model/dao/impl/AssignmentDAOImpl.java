@@ -104,7 +104,7 @@ public class AssignmentDAOImpl extends BaseDAO<Assignment> implements IAssignmen
                 existing.setTitle(assignment.getTitle());
                 existing.setDescription(assignment.getDescription());
                 existing.setDueDateTime(assignment.getDueDateTime());
-                existing.touch(); // Update the 'updatedAt' timestamp
+                existing.touch();
                 saveData();
                 System.out.println("Updated assignment: ID=" + assignment.getAssignmentId());
             } else {

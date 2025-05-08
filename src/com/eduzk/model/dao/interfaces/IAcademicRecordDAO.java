@@ -11,5 +11,4 @@ public interface IAcademicRecordDAO {
     List<AcademicRecord> findAllByStudentId(int studentId); // Lấy tất cả record của HS (cho view HS)
     void addOrUpdate(AcademicRecord record) throws DataAccessException; // Thêm mới hoặc cập nhật nếu đã tồn tại
     void delete(int recordId) throws DataAccessException; // Xóa theo ID của record
-    // Có thể thêm các phương thức tìm kiếm khác nếu cần
 }

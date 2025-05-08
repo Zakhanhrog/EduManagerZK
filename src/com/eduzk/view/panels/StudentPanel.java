@@ -15,7 +15,6 @@ import java.net.URL;
 import java.util.List;
 import java.util.Vector;
 import java.util.ArrayList;
-import java.util.Arrays;
 import javax.swing.Icon;
 
 public class StudentPanel extends JPanel {
@@ -120,17 +119,16 @@ public class StudentPanel extends JPanel {
     }
 
     private void setupActions() {
-        addButton.addActionListener(e -> openStudentDialog(null)); // Pass null for add mode
+        addButton.addActionListener(e -> openStudentDialog(null));
 
         editButton.addActionListener(e -> {
             int selectedRow = studentTable.getSelectedRow();
             if (selectedRow >= 0) {
-                // Convert view row index to model row index in case of sorting/filtering
                 int modelRow = studentTable.convertRowIndexToModel(selectedRow);
-                int studentId = (int) tableModel.getValueAt(modelRow, 0); // Assuming ID is column 0
+                int studentId = (int) tableModel.getValueAt(modelRow, 0);
                 Student studentToEdit = controller.getStudentById(studentId);
                 if (studentToEdit != null) {
-                    openStudentDialog(studentToEdit); // Pass student object for edit mode
+                    openStudentDialog(studentToEdit);
                 } else {
                     UIUtils.showErrorMessage(this, "Error", "Could not retrieve student details for editing.");
                 }
@@ -161,7 +159,6 @@ public class StudentPanel extends JPanel {
                 UIUtils.showWarningMessage(this, "Error", "Could not find selected students in the data model.");
                 return;
             }
-
             String confirmationMessage;
             if (idsToDelete.size() == 1) {
                 confirmationMessage = "Are you sure you want to delete student '" + namesToDelete.get(0) + "' (ID: " + idsToDelete.get(0) + ")?";
@@ -169,7 +166,6 @@ public class StudentPanel extends JPanel {
                 confirmationMessage = "Are you sure you want to delete these " + idsToDelete.size() + " students?\n"
                         + "(IDs: " + idsToDelete.toString() + ")";
             }
-
             // Hiển thị hộp thoại xác nhận
             if (UIUtils.showConfirmDialog(this, "Confirm Deletion", confirmationMessage)) {
                 if (controller != null) {
@@ -197,8 +193,6 @@ public class StudentPanel extends JPanel {
                 UIUtils.showErrorMessage(this, "Error", "Student Controller not available.");
             }
         });
-
-
     }
 
     private void performSearch() {
@@ -206,19 +200,12 @@ public class StudentPanel extends JPanel {
         String searchText = searchField.getText();
         List<Student> students;
         if (searchText.trim().isEmpty()) {
-            // If search is empty, load all
             students = controller.getAllStudents();
-            // Clear any existing filter on the sorter
             sorter.setRowFilter(null);
         } else {
-            // Perform search via controller (which calls DAO)
             students = controller.searchStudentsByName(searchText);
-            // Optionally apply a RowFilter for more dynamic filtering (if not searching via DAO)
-            // RowFilter<DefaultTableModel, Object> rf = RowFilter.regexFilter("(?i)" + searchText, 1); // Column 1 = Full Name
-            // sorter.setRowFilter(rf);
         }
-        populateTable(students); // Update table with search results
-
+        populateTable(students);
     }
 
     private void openStudentDialog(Student student) {
@@ -226,35 +213,25 @@ public class StudentPanel extends JPanel {
             UIUtils.showErrorMessage(this, "Error", "Student Controller is not initialized.");
             return;
         }
-        // Create and show the dialog
-        // The dialog needs a reference to the controller to perform add/update
-        // Pass the parent window (this panel's top-level window)
         Window parentWindow = SwingUtilities.getWindowAncestor(this);
-        StudentDialog dialog = new StudentDialog((Frame) parentWindow, controller, student); // Pass null for add, student obj for edit
+        StudentDialog dialog = new StudentDialog((Frame) parentWindow, controller, student);
         dialog.setVisible(true);
-
-        // The dialog should call controller.add/update, and controller calls refreshTable here
     }
 
-    // Method called by the controller to refresh the table data
     public void refreshTable() {
-        if (controller == null) return; // Do nothing if controller isn't set yet
+        if (controller == null) return;
         List<Student> students = controller.getAllStudents();
         populateTable(students);
-        // Clear search field after full refresh? Optional.
-        // searchField.setText("");
-        // sorter.setRowFilter(null);
     }
 
-    // Helper method to populate the table model from a list of students
     private void populateTable(List<Student> students) {
-        tableModel.setRowCount(0); // Clear existing data
+        tableModel.setRowCount(0);
         if (students != null) {
             for (Student student : students) {
                 Vector<Object> row = new Vector<>();
                 row.add(student.getStudentId());
                 row.add(student.getFullName());
-                row.add(DateUtils.formatDate(student.getDateOfBirth())); // Use DateUtils
+                row.add(DateUtils.formatDate(student.getDateOfBirth()));
                 row.add(student.getGender());
                 row.add(student.getPhone());
                 row.add(student.getEmail());
@@ -264,12 +241,9 @@ public class StudentPanel extends JPanel {
         }
     }
     public void setAdminControlsEnabled(boolean isAdmin) {
-        addButton.setVisible(isAdmin); // Hoặc setEnabled(isAdmin)
+        addButton.setVisible(isAdmin);
         editButton.setVisible(isAdmin);
         deleteButton.setVisible(isAdmin);
-        // Các nút khác (Search) có thể luôn hiển thị/enabled
-        // searchButton.setEnabled(true);
-        // searchField.setEnabled(true);
     }
 
     public void setAllButtonsEnabled(boolean enabled) {

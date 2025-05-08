@@ -7,18 +7,17 @@ import com.eduzk.model.dao.impl.AssignmentDAOImpl;
 import com.eduzk.model.dao.impl.IdGenerator;
 import com.eduzk.model.dao.interfaces.*;
 import com.eduzk.model.entities.*;
+import com.eduzk.model.entities.Role;
 import com.eduzk.utils.UIUtils;
 import com.eduzk.view.MainView;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import java.io.FileOutputStream;
 import java.io.File;
-import java.text.DecimalFormat;
 import java.util.List;
 import com.eduzk.model.dao.impl.LogService;
-import com.eduzk.controller.LogController;
 import com.eduzk.model.dao.interfaces.IAcademicRecordDAO;
-import com.eduzk.controller.EducationController;
+
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class MainController {
@@ -108,8 +107,8 @@ public class MainController {
         initializeControllers(
                 userDAO, studentDAO, teacherDAO, courseDAO, roomDAO, eduClassDAO,
                 scheduleDAO, logService, recordDAO,
-                this.assignmentDAO,       // <<< Truyền this.assignmentDAO
-                tempEduClassController    // <<< Truyền biến eduClassController vừa tạo
+                this.assignmentDAO,
+                tempEduClassController
         );
     }
 

@@ -1,10 +1,9 @@
 package com.eduzk.view.dialogs;
 
-import com.eduzk.controller.AuthController; // Cần AuthController để xử lý đăng ký
+import com.eduzk.controller.AuthController;
 import com.eduzk.model.entities.Role;
 import com.eduzk.utils.UIUtils;
 import com.eduzk.utils.ValidationUtils;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ItemEvent;
@@ -13,7 +12,6 @@ public class RegisterDialog extends JDialog {
 
     private final AuthController authController;
 
-    // UI Components
     private JTextField usernameOrPhoneField;
     private JPasswordField passwordField;
     private JPasswordField confirmPasswordField;
@@ -27,23 +25,19 @@ public class RegisterDialog extends JDialog {
     public RegisterDialog(Frame owner, AuthController authController) {
         super(owner, "Register New Account", true);
         this.authController = authController;
-
         initComponents();
         setupLayout();
         setupActions();
-        configureDialog();// Ẩn/hiện trường Teacher ID ban đầu
+        configureDialog();
         updateFieldsBasedOnRole();
     }
-
-
 
     private void initComponents() {
         usernameOrPhoneField = new JTextField(20);
         passwordField = new JPasswordField(20);
         confirmPasswordField = new JPasswordField(20);
-        // Chỉ cho phép đăng ký là Student hoặc Teacher
         roleComboBox = new JComboBox<>(new Role[]{Role.STUDENT, Role.TEACHER});
-        roleComboBox.setSelectedItem(Role.STUDENT); // Mặc định là Student
+        roleComboBox.setSelectedItem(Role.STUDENT);
 
         idLabel = new JLabel();
         teacherIdField = new JTextField(10);
@@ -129,12 +123,9 @@ public class RegisterDialog extends JDialog {
     private void updateFieldsBasedOnRole() {
         Role selectedRole = (Role) roleComboBox.getSelectedItem();
         boolean isTeacher = (selectedRole == Role.TEACHER);
-        idLabel.setText(isTeacher ? "Your Teacher ID*:" : " "); // Hiển thị nhãn cho Teacher, ẩn cho Student
-        teacherIdField.setVisible(isTeacher); // Chỉ hiện trường nhập ID cho Teacher
-        idLabel.setVisible(isTeacher);      // Hiện luôn cả label
-
-        // Thay đổi gợi ý cho trường username/phone (tùy chọn)
-        // (Có thể thêm label riêng hoặc dùng tooltip)
+        idLabel.setText(isTeacher ? "Your Teacher ID*:" : " ");
+        teacherIdField.setVisible(isTeacher);
+        idLabel.setVisible(isTeacher);
         usernameOrPhoneField.setToolTipText(isTeacher ? "Enter your desired username" : "Enter your phone number (must exist in student records)");
 
 
@@ -192,7 +183,6 @@ public class RegisterDialog extends JDialog {
             return;
         }
 
-        // --- Call Controller ---
         registerButton.setEnabled(false);
         cancelButton.setEnabled(false);
         statusLabel.setText("Registering...");
@@ -202,7 +192,6 @@ public class RegisterDialog extends JDialog {
         SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
             @Override
             protected Boolean doInBackground() throws Exception {
-                // Gọi phương thức mới trong AuthController (sẽ tạo ở bước sau)
                 return authController.attemptRegistration(finalUsername, password, confirmPassword, selectedRole, finalTeacherId);
             }
 
@@ -214,7 +203,6 @@ public class RegisterDialog extends JDialog {
                         UIUtils.showInfoMessage(RegisterDialog.this, "Registration Successful", "Account created successfully! You can now login.");
                         dispose();
                     } else {
-                        // Lỗi đã được hiển thị bởi controller, chỉ cần dọn dẹp UI
                         passwordField.setText("");
                         confirmPasswordField.setText("");
                         usernameOrPhoneField.requestFocusInWindow();

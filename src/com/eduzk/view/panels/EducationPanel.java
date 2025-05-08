@@ -10,6 +10,8 @@
     import com.eduzk.model.entities.ConductRating;
     import com.eduzk.utils.UIUtils;
     import com.eduzk.model.entities.Assignment;
+    import com.eduzk.utils.ValidationUtils;
+
     import javax.swing.table.DefaultTableCellRenderer;
     import java.time.format.DateTimeFormatter;
     import javax.swing.*;
@@ -24,6 +26,13 @@
     import java.text.DecimalFormat;
     import java.util.*;
     import java.util.List;
+    import java.awt.Toolkit;
+    import java.awt.datatransfer.Clipboard;
+    import java.awt.datatransfer.DataFlavor;
+    import java.awt.datatransfer.StringSelection;
+    import java.awt.datatransfer.Transferable;
+    import java.awt.event.ActionEvent;
+    import java.awt.event.KeyEvent;
 
     public class EducationPanel extends JPanel {
 
@@ -94,6 +103,7 @@
         private JLabel studentEmailLabel;
         private JLabel studentParentLabel;
         private JTable achievementListTable;
+        private JButton clearGradesButton;
         private DefaultTableModel achievementListTableModel;
         private JScrollPane achievementListTableScrollPane;
         private JPanel adminTeacherAchievementPanel;
@@ -137,6 +147,11 @@
         }
 
         private void initComponents() {
+            clearGradesButton = new JButton("Xóa Điểm");
+            clearGradesButton.setIcon(UIUtils.loadSVGIcon("/icons/clear.svg", 20));
+            clearGradesButton.setToolTipText("Xóa tất cả điểm của các môn học chính để nhập lại.");
+            clearGradesButton.setEnabled(false);
+
             eduClassNodeIcon = UIUtils.loadSVGIcon("/icons/class_node.svg", 25);
             achievementListTableModel = new DefaultTableModel(
                     new String[]{"STT", "Tên Lớp", "Tên Học Sinh", "Học lực"}, 0) {
@@ -261,6 +276,8 @@
             gradeTable.setOpaque(true);
             gradeTableScrollPane.setOpaque(true);
             gradeTableScrollPane.getViewport().setOpaque(true);
+
+            setupPasteActionForGradeTable();
 
             gradeButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
             topOfGradePanel = new JPanel(new BorderLayout(10, 0));
@@ -420,7 +437,6 @@
 
         private void setColumnWidths(){
             try {
-                // Quan trọng: Dùng getColumnIndexFromView để lấy index hiện tại trong view
                 int sttIndex = getColumnIndexFromView("STT");
                 if(sttIndex != -1) {
                     gradeTable.getColumnModel().getColumn(sttIndex).setMaxWidth(40);
@@ -458,6 +474,7 @@
             leftPanel.add(treeScrollPane, BorderLayout.CENTER);
 
             gradeButtonPanel.add(editButton);
+            gradeButtonPanel.add(clearGradesButton);
             gradeButtonPanel.add(cancelButton);
             gradeButtonPanel.add(saveChangesButton);
             gradeButtonPanel.add(exportButton);
@@ -471,7 +488,6 @@
             JPanel centerContentPanel = new JPanel(new BorderLayout(5, 10));
             centerContentPanel.add(studentInfoPanel, BorderLayout.NORTH);
             centerContentPanel.add(gradeTableScrollPane, BorderLayout.CENTER);
-
             gradePanel.add(centerContentPanel, BorderLayout.CENTER);
 
             assignmentButtonPanel.add(addAssignmentButton);
@@ -480,9 +496,9 @@
 
             comboPanel.add(new JLabel("Manage Assignments for Class:"));
             comboPanel.add(assignmentClassComboBox);
+
             assignmentTopPanel.add(comboPanel, BorderLayout.WEST);
             assignmentTopPanel.add(assignmentButtonPanel, BorderLayout.EAST);
-
             assignmentManagementPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
             assignmentManagementPanel.add(assignmentTopPanel, BorderLayout.NORTH);
             assignmentManagementPanel.add(assignmentTableScrollPane, BorderLayout.CENTER);
@@ -497,13 +513,31 @@
 
             splitPane.setLeftComponent(leftPanel);
             splitPane.setRightComponent(rightPanel);
-
             add(splitPane, BorderLayout.CENTER);
 
             rightPanelLayout.show(rightPanel, PLACEHOLDER_CARD);
         }
 
         private void setupActions() {
+            clearGradesButton.addActionListener(e -> {
+                if (controller != null && controller.getCurrentSelectedClassId() > 0) {
+                    int choice = JOptionPane.showConfirmDialog(this,
+                            "Bạn có chắc muốn xóa TOÀN BỘ điểm của các môn học chính (Toán, Văn,...)\n" +
+                                    "cho TẤT CẢ học sinh trong lớp đang chọn không?\n\n" +
+                                    "Hạnh kiểm và điểm Nghệ thuật sẽ KHÔNG bị xóa.\n" +
+                                    "Hành động này chỉ có hiệu lực sau khi bạn nhấn 'Lưu Thay Đổi'.",
+                            "Xác nhận Xóa Điểm Môn Học?",
+                            JOptionPane.YES_NO_OPTION,
+                            JOptionPane.WARNING_MESSAGE);
+
+                    if (choice == JOptionPane.YES_OPTION) {
+                        controller.clearAllSubjectGradesForCurrentClass();
+                    }
+                } else {
+                    UIUtils.showWarningMessage(this, "Chưa chọn lớp", "Vui lòng chọn một lớp học trong cây thư mục trước.");
+                }
+            });
+
             classTree.addTreeSelectionListener(e -> {
                 if (e.isAddedPath()) {
                     DefaultMutableTreeNode selectedNode = (DefaultMutableTreeNode) classTree.getLastSelectedPathComponent();
@@ -512,16 +546,13 @@
             });
 
             gradeTableModel.addTableModelListener(e -> {
-                // Chỉ xử lý sự kiện UPDATE do người dùng chỉnh sửa gây ra
                 if (e.getType() == TableModelEvent.UPDATE && isEditing) {
                     int row = e.getFirstRow();
                     int column = e.getColumn();
 
-                    // Kiểm tra tính hợp lệ của chỉ số và controller
                     if (controller != null && row >= 0 && column >= 0 && row < gradeTableModel.getRowCount()) {
                         String columnName = gradeTableModel.getColumnName(column);
 
-                        // Xác định xem cột có phải là cột dữ liệu có thể chỉnh sửa không
                         boolean isEditableDataColumn = false;
                         for (String key : EDITABLE_SUBJECT_KEYS) {
                             if (key.equals(columnName)) {
@@ -533,56 +564,47 @@
                             isEditableDataColumn = ART_KEY.equals(columnName) || CONDUCT_KEY.equals(columnName);
                         }
 
-                        // Nếu là cột dữ liệu có thể chỉnh sửa
                         if (isEditableDataColumn) {
                             Object newValueFromEditor = gradeTableModel.getValueAt(row, column);
 
                             System.out.println("Grade Table cell update event: row=" + row + ", col=" + column + ", name=" + columnName + ", value from editor=" + newValueFromEditor);
 
-                            // Cập nhật dữ liệu thực tế trong controller
                             controller.updateRecordInMemory(row, columnName, newValueFromEditor);
                             AcademicRecord updatedRecord = controller.getAcademicRecordAt(row);
 
-                            // Nếu cập nhật trong controller thành công
                             if (updatedRecord != null) {
-                                markChangesPending(true); // Đánh dấu có thay đổi chưa lưu
+                                markChangesPending(true);
 
-                                // QUAN TRỌNG: Cập nhật các giá trị tính toán trong TableModel VÀ thông báo cho Table
                                 try {
                                     int khtnIndex = getColumnIndex("TB KHTN");
                                     int khxhIndex = getColumnIndex("TB KHXH");
                                     int tbMonHocIndex = getColumnIndex("TB môn học");
 
-                                    // Lấy cấu trúc dữ liệu nội bộ của DefaultTableModel (hơi không đẹp nhưng cần thiết)
                                     Vector dataVector = gradeTableModel.getDataVector();
                                     if (row < dataVector.size()) {
                                         Vector rowVector = (Vector) dataVector.elementAt(row);
 
-                                        // Cập nhật giá trị KHTN trong model và thông báo
                                         if (khtnIndex != -1 && khtnIndex < rowVector.size()) {
                                             Double avgKHTN = updatedRecord.calculateAvgNaturalSciences();
-                                            // Chỉ cập nhật nếu giá trị khác để tránh vòng lặp không cần thiết (mặc dù listener check type=UPDATE)
                                             if (!areEqual(rowVector.elementAt(khtnIndex), avgKHTN)) {
                                                 rowVector.setElementAt(avgKHTN, khtnIndex);
-                                                gradeTableModel.fireTableCellUpdated(row, khtnIndex); // Thông báo cho ô KHTN
+                                                gradeTableModel.fireTableCellUpdated(row, khtnIndex);
                                             }
                                         }
 
-                                        // Cập nhật giá trị KHXH trong model và thông báo
                                         if (khxhIndex != -1 && khxhIndex < rowVector.size()) {
                                             Double avgKHXH = updatedRecord.calculateAvgSocialSciences();
                                             if (!areEqual(rowVector.elementAt(khxhIndex), avgKHXH)) {
                                                 rowVector.setElementAt(avgKHXH, khxhIndex);
-                                                gradeTableModel.fireTableCellUpdated(row, khxhIndex); // Thông báo cho ô KHXH
+                                                gradeTableModel.fireTableCellUpdated(row, khxhIndex);
                                             }
                                         }
 
-                                        // Cập nhật giá trị TB Môn học trong model và thông báo
                                         if (tbMonHocIndex != -1 && tbMonHocIndex < rowVector.size()) {
                                             Double avgOverall = updatedRecord.calculateAvgOverallSubjects();
                                             if (!areEqual(rowVector.elementAt(tbMonHocIndex), avgOverall)) {
                                                 rowVector.setElementAt(avgOverall, tbMonHocIndex);
-                                                gradeTableModel.fireTableCellUpdated(row, tbMonHocIndex); // Thông báo cho ô TB Môn học
+                                                gradeTableModel.fireTableCellUpdated(row, tbMonHocIndex);
                                             }
                                         }
                                     } else {
@@ -591,14 +613,11 @@
 
                                 } catch (Exception calcEx) {
                                     System.err.println("Error updating calculated grade cells visually in listener: " + calcEx.getMessage());
-                                    calcEx.printStackTrace(); // In stack trace để debug
+                                    calcEx.printStackTrace();
                                 }
 
                             } else {
-                                // Xử lý trường hợp controller không cập nhật được (ví dụ: dữ liệu không hợp lệ)
                                 System.err.println("controller.updateRecordInMemory failed for row " + row + ", column " + columnName + ". Value: " + newValueFromEditor);
-                                // Optional: Có thể hiển thị lỗi cho người dùng hoặc hoàn tác thay đổi trong table model
-                                // Ví dụ: tải lại dữ liệu gốc cho ô đó nếu có thể
                             }
                         }
                     }
@@ -710,8 +729,6 @@
             });
         }
 
-        // Trong lớp com.eduzk.view.panels.EducationPanel
-
         private void handleTreeNodeSelection(DefaultMutableTreeNode selectedNode) {
             if (selectedNode == null) {
                 if (currentUserRole == Role.STUDENT && resultsNode != null) {
@@ -813,6 +830,7 @@
                             boolean canEditGrades = controller.canCurrentUserEditGrades();
                             boolean hasData = gradeTableModel.getRowCount() > 0;
                             editButton.setEnabled(canEditGrades && hasData);
+                            clearGradesButton.setEnabled(canEditGrades && hasData && !isEditing);
                             exportButton.setEnabled(hasData);
                         }
                     } else {
@@ -1242,6 +1260,7 @@
             boolean canEdit = (controller != null && controller.canCurrentUserEditGrades());
             boolean hasData = gradeTableModel.getRowCount() > 0;
             editButton.setEnabled(canEdit && hasData);
+            clearGradesButton.setEnabled(canEdit && hasData && !isEditing);
             exportButton.setEnabled(hasData);
         }
 
@@ -1435,6 +1454,9 @@
             EduClass selectedAssignmentClass = getSelectedAssignmentClass();
             boolean assignmentClassSelected = (selectedAssignmentClass != null);
 
+            if (clearGradesButton != null) {
+                clearGradesButton.setEnabled(!editing && canEditGrades && hasGradeData);
+            }
             if (editButton != null) {
                 editButton.setVisible(!editing);
                 editButton.setEnabled(!editing && canEditGrades && hasGradeData);
@@ -1619,6 +1641,139 @@
                 achievementListTable.getColumnModel().getColumn(1).setPreferredWidth(150);
                 achievementListTable.getColumnModel().getColumn(2).setPreferredWidth(200);
                 achievementListTable.getColumnModel().getColumn(3).setPreferredWidth(300);
+            }
+        }
+        private void setupPasteActionForGradeTable() {
+            if (gradeTable == null) return;
+
+            InputMap inputMap = gradeTable.getInputMap(JComponent.WHEN_FOCUSED);
+            ActionMap actionMap = gradeTable.getActionMap();
+
+            KeyStroke pasteKeyStroke = KeyStroke.getKeyStroke(KeyEvent.VK_V,
+                    Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx());
+
+            inputMap.put(pasteKeyStroke, "pasteGrades");
+            actionMap.put("pasteGrades", new AbstractAction() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    performGradePaste();
+                }
+            });
+        }
+
+        private void performGradePaste() {
+            if (!isEditing || controller == null || !controller.canCurrentUserEditGrades()) {
+                System.out.println("Paste action ignored: Not in editing mode or no permission.");
+                Toolkit.getDefaultToolkit().beep();
+                return;
+            }
+
+            Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+            Transferable transferable = clipboard.getContents(this);
+
+            if (transferable != null && transferable.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+                try {
+                    String clipboardData = (String) transferable.getTransferData(DataFlavor.stringFlavor);
+                    if (clipboardData == null || clipboardData.isEmpty()) {
+                        return;
+                    }
+
+                    String[] clipboardRows = clipboardData.split("\\n");
+                    if (clipboardRows.length == 0) return;
+
+                    int[] selectedTableRows = gradeTable.getSelectedRows();
+                    int[] selectedTableCols = gradeTable.getSelectedColumns();
+
+                    int startRow, startCol;
+
+                    if (selectedTableRows.length > 0 && selectedTableCols.length > 0) {
+                        startRow = selectedTableRows[0];
+                        startCol = selectedTableCols[0];
+                    } else if (gradeTable.getRowCount() > 0 && gradeTable.getColumnCount() > 0) {
+                        startRow = gradeTable.getSelectionModel().getLeadSelectionIndex();
+                        startCol = gradeTable.getColumnModel().getSelectionModel().getLeadSelectionIndex();
+                        if (startRow == -1 || startCol == -1) {
+                            startRow = 0;
+                            startCol = 0;
+                        }
+                    } else {
+                        System.out.println("No target for paste operation.");
+                        return;
+                    }
+
+                    if (gradeTable.isEditing()) {
+                        gradeTable.getCellEditor().stopCellEditing();
+                    }
+
+                    boolean actualChangeMade = false;
+
+                    for (int i = 0; i < clipboardRows.length; i++) {
+                        String cleanedRow = clipboardRows[i].endsWith("\r") ? clipboardRows[i].substring(0, clipboardRows[i].length() - 1) : clipboardRows[i];
+                        String[] clipboardCells = cleanedRow.split("\\t");
+
+                        for (int j = 0; j < clipboardCells.length; j++) {
+                            int targetRow = startRow + i;
+                            int targetColInView = startCol + j;
+
+                            if (targetRow < gradeTableModel.getRowCount() && targetColInView < gradeTable.getColumnCount()) {
+                                int targetColInModel = gradeTable.convertColumnIndexToModel(targetColInView); // Chuyển sang chỉ số cột trong MODEL
+
+                                if (gradeTableModel.isCellEditable(targetRow, targetColInModel)) {
+                                    String pastedValueStr = clipboardCells[j];
+                                    Object valueToSet = pastedValueStr;
+
+                                    Class<?> columnClass = gradeTableModel.getColumnClass(targetColInModel);
+                                    try {
+                                        if (columnClass == Double.class || columnClass == Float.class) {
+                                            if (!pastedValueStr.trim().isEmpty()) {
+                                                valueToSet = Double.parseDouble(pastedValueStr.replace(',', '.'));
+                                            } else {
+                                                valueToSet = null;
+                                            }
+                                        } else if (columnClass == Integer.class) {
+                                            if (!pastedValueStr.trim().isEmpty()) {
+                                                valueToSet = Integer.parseInt(pastedValueStr);
+                                            } else {
+                                                valueToSet = null;
+                                            }
+                                        } else if (columnClass == ArtStatus.class) {
+                                            valueToSet = ArtStatus.fromString(pastedValueStr);
+                                            if (valueToSet == null && ValidationUtils.isNotEmpty(pastedValueStr)) {
+                                                System.err.println("Invalid ArtStatus value for paste: " + pastedValueStr);
+                                                continue;
+                                            }
+                                        } else if (columnClass == ConductRating.class) {
+                                            valueToSet = ConductRating.fromString(pastedValueStr);
+                                            if (valueToSet == null && ValidationUtils.isNotEmpty(pastedValueStr)) {
+                                                System.err.println("Invalid ConductRating value for paste: " + pastedValueStr);
+                                                continue;
+                                            }
+                                        }
+                                    } catch (NumberFormatException nfe) {
+                                        System.err.println("Paste Error: Cannot parse '" + pastedValueStr + "' to " + columnClass.getSimpleName() + " for cell (" + targetRow + ", " + targetColInModel + ")");
+                                        continue;
+                                    }
+
+                                    Object currentValue = gradeTableModel.getValueAt(targetRow, targetColInModel);
+                                    if (!Objects.equals(currentValue, valueToSet)) {
+                                        gradeTableModel.setValueAt(valueToSet, targetRow, targetColInModel);
+                                        actualChangeMade = true;
+                                    }
+                                } else {
+                                     System.out.println("Cell at (" + targetRow + ", " + targetColInModel + ") is not editable.");
+                                }
+                            } else {
+                                 System.out.println("Target cell (" + targetRow + ", " + targetColInView + ") is out of table bounds.");
+                            }
+                        }
+                    }
+                    if (actualChangeMade) {
+                        markChangesPending(true);
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    UIUtils.showErrorMessage(this, "Paste Error", "An error occurred while pasting data: " + ex.getMessage());
+                }
             }
         }
 

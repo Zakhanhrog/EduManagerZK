@@ -3,6 +3,7 @@ package com.eduzk.controller;
 import com.eduzk.model.entities.*;
 import com.eduzk.model.dao.interfaces.IStudentDAO;
 import com.eduzk.model.dao.interfaces.IEduClassDAO;
+import com.eduzk.model.entities.Role;
 import com.eduzk.model.exceptions.DataAccessException;
 import com.eduzk.utils.DateUtils;
 import com.eduzk.utils.ValidationUtils;
@@ -27,12 +28,13 @@ import java.util.HashMap;
 import java.util.Map;
 import com.eduzk.model.dao.impl.LogService;
 import com.eduzk.model.entities.LogEntry;
+import com.eduzk.utils.PasswordUtils;
 
 public class StudentController {
     private final IStudentDAO studentDAO;
     private final User currentUser;
     private final IEduClassDAO eduClassDAO;
-    private StudentPanel studentPanel; // Reference to the view panel
+    private StudentPanel studentPanel;
     private final IUserDAO userDAO;
     private MainView mainView;
     private final LogService logService;
@@ -55,7 +57,7 @@ public class StudentController {
     public List<Student> getAllStudents() {
         try {
             if (currentUser != null && currentUser.getRole() == Role.TEACHER) {
-                int teacherId = getTeacherIdForUser(currentUser); // Gọi hàm helper
+                int teacherId = getTeacherIdForUser(currentUser);
                 if (teacherId > 0) {
                     System.out.println("StudentController: Filtering students for Teacher ID: " + teacherId);
 
@@ -104,7 +106,7 @@ public class StudentController {
         } catch (DataAccessException e) {
             System.err.println("Error loading students: " + e.getMessage());
             UIUtils.showErrorMessage(studentPanel, "Error", "Failed to load student data.");
-            return Collections.emptyList(); // Return empty list on error
+            return Collections.emptyList();
         }
     }
 
@@ -153,7 +155,8 @@ public class StudentController {
                 // Tạo đối tượng User mới
                 User newUser = new User();
                 newUser.setUsername(defaultUsername);
-                newUser.setPassword(defaultPassword);
+                String hashedPassword = PasswordUtils.hashPassword(defaultPassword);
+                newUser.setPassword(hashedPassword);
                 newUser.setRole(Role.STUDENT);
                 newUser.setActive(true);
                 newUser.setStudentId(student.getStudentId());

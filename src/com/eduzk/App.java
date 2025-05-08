@@ -18,6 +18,7 @@ import java.util.concurrent.ExecutionException;
 import com.eduzk.model.dao.impl.LogService;
 import com.eduzk.model.dao.interfaces.IAcademicRecordDAO;
 import com.eduzk.model.dao.impl.AcademicRecordDAOImpl;
+import com.eduzk.utils.PasswordUtils;
 
 
 public class App {
@@ -61,10 +62,10 @@ public class App {
                         publish("Initializing Data Access Objects (DAO)...");
                         IUserDAO userDAO = new UserDAOImpl(dataDir + "users.dat", idFile);
                         ITeacherDAO teacherDAO = new TeacherDAOImpl(dataDir + "teachers.dat", sharedIdGenerator);
-                        IStudentDAO studentDAO = new StudentDAOImpl(dataDir + "students.dat", sharedIdGenerator);
+                        IEduClassDAO eduClassDAO = new EduClassDAOImpl(dataDir + "educlasses.dat", sharedIdGenerator);
+                        IStudentDAO studentDAO = new StudentDAOImpl(dataDir + "students.dat", sharedIdGenerator, eduClassDAO);
                         ICourseDAO courseDAO = new CourseDAOImpl(dataDir + "courses.dat", idFile);
                         IRoomDAO roomDAO = new RoomDAOImpl(dataDir + "rooms.dat", idFile);
-                        IEduClassDAO eduClassDAO = new EduClassDAOImpl(dataDir + "educlasses.dat", sharedIdGenerator);
                         IScheduleDAO scheduleDAO = new ScheduleDAOImpl(dataDir + "schedules.dat", idFile);
                         IAcademicRecordDAO academicRecordDAO = new AcademicRecordDAOImpl(dataDir + "academic_records.dat", sharedIdGenerator);
                         System.out.println("ALL DAOs initialized.");
@@ -166,7 +167,9 @@ public class App {
                 try {
                     User adminUser = new User();
                     adminUser.setUsername("admin");
-                    adminUser.setPassword("admin");
+                    String hashedPassword = PasswordUtils.hashPassword("admin");
+                    adminUser.setPassword(hashedPassword);
+                    System.out.println("Hashed password for default admin: " + hashedPassword);
                     adminUser.setRole(Role.ADMIN);
                     adminUser.setActive(true);
                     adminUser.setRequiresPasswordChange(false);
@@ -178,6 +181,18 @@ public class App {
                 }
             } else {
                 System.out.println("Default admin user 'admin' already exists.");
+                 User existingAdmin = userDAO.findByUsername("admin").get();
+                 if (existingAdmin.getPassword() != null &&
+                     !(existingAdmin.getPassword().startsWith("$2a$") ||
+                       existingAdmin.getPassword().startsWith("$2b$") ||
+                       existingAdmin.getPassword().startsWith("$2y$"))) {
+                     System.out.println("Admin 'admin' exists with plain text password. Updating to hashed version...");
+                     String hashedAdminPassword = PasswordUtils.hashPassword(existingAdmin.getPassword());
+                     existingAdmin.setPassword(hashedAdminPassword);
+                     existingAdmin.setRequiresPasswordChange(false);
+                     userDAO.update(existingAdmin);
+                     System.out.println("- Password for admin 'admin' updated to hashed version.");
+                 }
             }
         } catch (Exception generalEx) {
             System.err.println("!! Error during default admin account check/creation process: " + generalEx.getMessage());

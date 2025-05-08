@@ -6,6 +6,7 @@ import com.eduzk.model.entities.Role;
 import com.eduzk.model.entities.User;
 import com.eduzk.model.exceptions.DataAccessException;
 import com.eduzk.model.dao.impl.LogService;
+import com.eduzk.utils.PasswordUtils;
 import com.eduzk.utils.UIUtils;
 import com.eduzk.utils.ValidationUtils;
 import com.eduzk.view.panels.AccountsPanel;
@@ -18,7 +19,7 @@ public class UserController {
 
     private final IUserDAO userDAO;
     private final User currentUser;
-    private final LogService logService; // <-- THÊM BIẾN LOGSERVICE
+    private final LogService logService;
     private AccountsPanel accountsPanel;
 
     // --- SỬA CONSTRUCTOR ĐỂ NHẬN LogService ---
@@ -62,7 +63,6 @@ public class UserController {
         }
     }
 
-    // --- updateUserPassword (Đã thêm ghi log) ---
     public boolean updateUserPassword(int userId, String newPassword) {
         // --- Kiểm tra quyền ---
         if (!isCurrentUserAdmin()) {
@@ -86,21 +86,14 @@ public class UserController {
                 UIUtils.showErrorMessage(accountsPanel, "Error", "User with ID " + userId + " not found.");
                 return false;
             }
-
-            // Lưu mật khẩu cũ (nếu muốn ghi log chi tiết hơn về thay đổi)
-            // String oldPassword = userToUpdate.getPassword();
-
-            // Cập nhật mật khẩu mới
-            userToUpdate.setPassword(newPassword);
-
-            // Gọi DAO để lưu
+            String hashedPassword = PasswordUtils.hashPassword(newPassword);
+            userToUpdate.setPassword(hashedPassword);
+            userToUpdate.setRequiresPasswordChange(false);
             userDAO.update(userToUpdate);
 
-            // *** GHI LOG SAU KHI THÀNH CÔNG ***
             // Tạo chi tiết log
             String logDetails = String.format("For User ID: %d, Username: %s",
                     userId, userToUpdate.getUsername());
-            // Có thể thêm: ", From old password (masked): ***"
             writeLog("Updated Password", logDetails);
 
             // Thông báo thành công và refresh
@@ -113,7 +106,6 @@ public class UserController {
         } catch (DataAccessException e) {
             System.err.println("Error updating password for user ID " + userId + ": " + e.getMessage());
             UIUtils.showErrorMessage(accountsPanel, "Error", "Failed to update password: " + e.getMessage());
-            // Ghi log lỗi nếu muốn (có thể ghi lại thông tin user nếu lấy được)
             String errorLogDetails = "For User ID: " + userId + (userToUpdate != null ? ", Username: " + userToUpdate.getUsername() : "") + " - Error: " + e.getMessage();
             writeLog("Update Password Failed (DAO)", errorLogDetails);
             return false;

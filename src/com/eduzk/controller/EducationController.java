@@ -2,6 +2,9 @@ package com.eduzk.controller;
 
 import com.eduzk.model.dao.interfaces.*;
 import com.eduzk.model.entities.*;
+import com.eduzk.model.entities.ArtStatus;
+import com.eduzk.model.entities.ConductRating;
+import com.eduzk.model.entities.Role;
 import com.eduzk.model.exceptions.DataAccessException;
 import com.eduzk.model.dao.impl.LogService;
 import com.eduzk.utils.UIUtils;
@@ -22,12 +25,14 @@ public class EducationController implements ClassListChangeListener {
     private final IEduClassDAO classDAO;
     private final IStudentDAO studentDAO;
     private final LogService logService;
-    private final IAssignmentDAO assignmentDAO; // DAO for assignments
-    private EduClassController eduClassControllerRef; // Reference for listener
-    private EducationPanel educationPanel; // Reference to the UI panel
-    private List<AcademicRecord> currentDisplayedRecords; // Cache for grade records
-    private List<Student> currentDisplayedStudents; // Cache for students in grade view
-    private int currentSelectedClassId = -1; // ID of the class selected for grade view
+    private final IAssignmentDAO assignmentDAO;
+    private EduClassController eduClassControllerRef;
+    private EducationPanel educationPanel;
+    private List<AcademicRecord> currentDisplayedRecords;
+    private List<Student> currentDisplayedStudents;
+    private int currentSelectedClassId = -1;
+    private List<AcademicRecord> academicRecordsForSelectedClass;
+    private List<Student> studentsForSelectedClass;
 
     // Updated Constructor to include IAssignmentDAO
     public EducationController(
@@ -60,6 +65,8 @@ public class EducationController implements ClassListChangeListener {
         this.currentDisplayedRecords = new ArrayList<>();
         this.currentDisplayedStudents = new ArrayList<>();
         this.eduClassControllerRef = eduClassController;
+        this.academicRecordsForSelectedClass = new ArrayList<>();
+        this.studentsForSelectedClass = new ArrayList<>();
 
         // Register as a listener for class list changes if controller ref is valid
         if (this.eduClassControllerRef != null) {
@@ -105,9 +112,8 @@ public class EducationController implements ClassListChangeListener {
 
     // Loads grade data for a specific class selected in the "Results & reviews" tree
     public void loadDataForClass(int classId) {
-        // Students don't use this method, their data is loaded differently
         if (currentUser.getRole() == Role.STUDENT || classId <= 0) {
-            clearCurrentData(); // Clear any previous data
+            clearCurrentData();
             if (educationPanel != null) {
                 educationPanel.updateTableData(Collections.emptyList(), Collections.emptyList());
             }
@@ -115,74 +121,82 @@ public class EducationController implements ClassListChangeListener {
         }
 
         this.currentSelectedClassId = classId;
-        System.out.println("EducationController: Loading grade data for class ID: " + classId);
+        System.out.println("[Controller] Loading data for class ID: " + classId);
 
         try {
             EduClass selectedClass = classDAO.getById(classId);
             if (selectedClass == null) {
                 clearCurrentData();
-                if (educationPanel != null) {
-                    educationPanel.updateTableData(Collections.emptyList(), Collections.emptyList());
-                }
+                if (educationPanel != null) educationPanel.updateTableData(Collections.emptyList(), Collections.emptyList());
                 System.err.println("Class not found for grade loading: " + classId);
-                UIUtils.showWarningMessage(educationPanel, "Not Found", "Selected class could not be found.");
+                // UIUtils.showWarningMessage(educationPanel, "Not Found", "Selected class could not be found."); // Có thể bỏ nếu không muốn thông báo
                 return;
             }
 
-            // Get the list of student IDs enrolled in this class
-            List<Integer> studentIds = selectedClass.getStudentIds();
-            if (studentIds == null || studentIds.isEmpty()) {
-                clearCurrentData();
-                if (educationPanel != null) {
-                    educationPanel.updateTableData(Collections.emptyList(), Collections.emptyList());
-                }
-                System.out.println("Class has no students enrolled: " + selectedClass.getClassName());
-                return;
+            // ----- BƯỚC 1: LẤY DANH SÁCH STUDENT ĐÃ GHI DANH -----
+            this.studentsForSelectedClass = studentDAO.getStudentsByClassId(classId);
+            // Sắp xếp nếu muốn
+            if (this.studentsForSelectedClass != null) {
+                this.studentsForSelectedClass.sort(Comparator.comparing(Student::getFullName, String.CASE_INSENSITIVE_ORDER));
+            } else {
+                this.studentsForSelectedClass = new ArrayList<>(); // Đảm bảo không null
             }
+            System.out.println("[Controller] Fetched Students count: " + this.studentsForSelectedClass.size());
 
-            // Fetch student details for the enrolled students
-            this.currentDisplayedStudents = studentIds.stream()
-                    .map(studentDAO::getById)
-                    .filter(Objects::nonNull)
-                    .sorted(Comparator.comparing(Student::getFullName, String.CASE_INSENSITIVE_ORDER))
-                    .collect(Collectors.toList());
 
-            // Fetch or create academic records for these students in this class
-            this.currentDisplayedRecords = this.currentDisplayedStudents.stream()
+            // ----- BƯỚC 2: TẠO DANH SÁCH RECORD TƯƠNG ỨNG (1-1 VỚI STUDENT) -----
+            // Sử dụng findOrCreateRecordForStudent để đảm bảo mỗi student đều có record (trong bộ nhớ)
+            this.academicRecordsForSelectedClass = this.studentsForSelectedClass.stream()
                     .map(student -> findOrCreateRecordForStudent(student.getStudentId(), classId))
                     .collect(Collectors.toList());
+            System.out.println("[Controller] Generated/Fetched Academic Records count: " + this.academicRecordsForSelectedClass.size());
 
-            // Update the UI panel with the loaded data
+
+            // ----- BƯỚC 3: CẬP NHẬT UI VỚI HAI DANH SÁCH ĐÃ KHỚP -----
+            // Gán vào biến dùng chung nếu cần (có thể không cần nếu chỉ dùng studentsForSelectedClass và academicRecordsForSelectedClass)
+            this.currentDisplayedStudents = this.studentsForSelectedClass;
+            this.currentDisplayedRecords = this.academicRecordsForSelectedClass;
+
+
             if (educationPanel != null) {
-                educationPanel.updateTableData(this.currentDisplayedStudents, this.currentDisplayedRecords);
-                writeLog("Viewed Grades", "Viewed grade data for class: " + selectedClass.getClassName() + " (ID: " + classId + ")");
+                System.out.println("[Controller] Calling educationPanel.updateTableData with " +
+                        this.studentsForSelectedClass.size() + " students and " +
+                        this.academicRecordsForSelectedClass.size() + " records."); // Số lượng bây giờ sẽ bằng nhau
+                // Truyền 2 danh sách đã được đảm bảo khớp về số lượng
+                educationPanel.updateTableData(this.studentsForSelectedClass, this.academicRecordsForSelectedClass);
+                String classNameLog = selectedClass.getClassName();
+                writeLog("Viewed Grades", "Viewed grade data for class: " + classNameLog + " (ID: " + classId + ")");
+            } else {
+                System.err.println("[Controller] Error: educationPanel is null!");
             }
 
         } catch (DataAccessException e) {
-            System.err.println("Error loading grade data for class " + classId + ": " + e.getMessage());
+            System.err.println("[Controller] DataAccessException in loadDataForClass: " + e.getMessage());
             UIUtils.showErrorMessage(educationPanel, "Data Load Error", "Failed to load student or grade data for the selected class.");
-            clearCurrentData(); // Clear cache on error
+            clearCurrentData();
             if (educationPanel != null) {
-                // Show empty table on error
                 educationPanel.updateTableData(Collections.emptyList(), Collections.emptyList());
             }
+        } catch (Exception ex) {
+            System.err.println("[Controller] Unexpected Exception in loadDataForClass: " + ex.getMessage());
+            ex.printStackTrace();
+            clearCurrentData();
+            if (educationPanel != null) {
+                educationPanel.updateTableData(Collections.emptyList(), Collections.emptyList());
+            }
+            UIUtils.showErrorMessage(educationPanel, "Unexpected Error", "An unexpected error occurred while loading data.");
         }
     }
 
-    // Loads grade data specifically for the currently logged-in student
     public void loadDataForCurrentStudent() {
-        // --- Kiểm tra ban đầu ---
         if (currentUser == null || currentUser.getRole() != Role.STUDENT || currentUser.getStudentId() == null) {
-            clearCurrentData(); // Xóa cache nếu có
-            // Cập nhật UI về trạng thái trống nếu panel tồn tại
+            clearCurrentData();
             if (educationPanel != null) {
                 educationPanel.updateStudentInfoDisplay(null, null);
                 educationPanel.updateAchievementTitleDisplay(null);
-                // Gọi hàm cập nhật bảng điểm với dữ liệu rỗng
-                // educationPanel.updateTableData(Collections.emptyList(), Collections.emptyList()); // Hoặc dùng hàm riêng nếu có
                 educationPanel.updateTableDataForStudent(null, null);
             }
-            return; // Thoát nếu không phải student hoặc thiếu thông tin
+            return;
         }
 
         int studentId = currentUser.getStudentId();
@@ -194,7 +208,6 @@ public class EducationController implements ClassListChangeListener {
             if (currentStudent == null) {
                 System.err.println("Error: Student profile not found for current user ID: " + studentId);
                 clearCurrentData();
-                // Cập nhật UI về trạng thái lỗi/trống
                 if (educationPanel != null) {
                     educationPanel.updateStudentInfoDisplay(null, null);
                     educationPanel.updateAchievementTitleDisplay(null);
@@ -203,24 +216,15 @@ public class EducationController implements ClassListChangeListener {
                 UIUtils.showErrorMessage(null, "Error", "Could not find your student profile.");
                 return;
             }
-
-            // --- Lấy thông tin Lớp chính của Student (để hiển thị và có thể ưu tiên record) ---
             EduClass studentPrimaryClass = null;
             List<EduClass> studentClasses = classDAO.findByStudentId(studentId); // Giả định DAO có hàm này
             if (studentClasses != null && !studentClasses.isEmpty()) {
-                // Lấy lớp đầu tiên làm lớp chính để hiển thị thông tin
                 studentPrimaryClass = studentClasses.get(0);
             }
-
-            // --- Lấy TẤT CẢ bản ghi học tập của Student ---
-            // `updateTableDataForStudent` cần danh sách này để hiển thị (dù bảng chỉ có 1 dòng)
             List<AcademicRecord> studentRecordsFromDB = recordDAO.findAllByStudentId(studentId);
             this.currentDisplayedRecords = (studentRecordsFromDB != null) ? new ArrayList<>(studentRecordsFromDB) : new ArrayList<>();
             this.currentDisplayedStudents = List.of(currentStudent); // Cập nhật cache controller
             this.currentSelectedClassId = (studentPrimaryClass != null) ? studentPrimaryClass.getClassId() : -1; // Cập nhật ID lớp đang xem (nếu có)
-
-            // --- Chọn MỘT bản ghi để tính danh hiệu ---
-            // Ưu tiên bản ghi của lớp chính, nếu không có thì lấy bản ghi đầu tiên
             AcademicRecord recordToDisplayAchievement = null; // KHAI BÁO BIẾN Ở ĐÂY
             if (!this.currentDisplayedRecords.isEmpty()) { // Sử dụng cache đã cập nhật
                 if (studentPrimaryClass != null) {
@@ -233,7 +237,6 @@ public class EducationController implements ClassListChangeListener {
                     recordToDisplayAchievement = this.currentDisplayedRecords.get(0);
                 }
             }
-            // Nếu this.currentDisplayedRecords rỗng, recordToDisplayAchievement sẽ là null
 
             // --- Cập nhật giao diện trong EducationPanel ---
             if (educationPanel != null) {
@@ -280,27 +283,21 @@ public class EducationController implements ClassListChangeListener {
     private AcademicRecord findOrCreateRecordForStudent(int studentId, int classId) {
         try {
             Optional<AcademicRecord> existingRecord = recordDAO.findByStudentAndClass(studentId, classId);
-            // If record exists, return it. Otherwise, create a new default record (unsaved).
             return existingRecord.orElseGet(() -> {
                 System.out.println("Creating new in-memory AcademicRecord for student " + studentId + " in class " + classId);
                 return new AcademicRecord(studentId, classId);
             });
         } catch (DataAccessException e) {
-            // Log error but return a new object to avoid crashing the UI loading process
             System.err.println("Error finding/creating record for student " + studentId + " in class " + classId + ": " + e.getMessage());
-            return new AcademicRecord(studentId, classId); // Return new object on error
+            return new AcademicRecord(studentId, classId);
         }
     }
 
-    // Updates the AcademicRecord in memory when a cell in the grade table is edited
     public void updateRecordInMemory(int rowIndex, String subjectKey, Object value) {
-        // Check permission before allowing update
         if (!canCurrentUserEditGrades()) {
-            // Silently return or show a message if needed
             System.out.println("Permission denied for grade update attempt.");
             return;
         }
-        // Validate row index
         if (rowIndex < 0 || currentDisplayedRecords == null || rowIndex >= currentDisplayedRecords.size()) {
             System.err.println("Invalid row index for grade update: " + rowIndex);
             return;
@@ -1001,7 +998,7 @@ public class EducationController implements ClassListChangeListener {
 
                 achievementDisplayData.add(new Object[]{
                         stt++,
-                        selectedClass.getClassName(), // Tên lớp hiện tại
+                        selectedClass.getClassName(),
                         student.getFullName(),
                         achievement
                 });
@@ -1015,8 +1012,75 @@ public class EducationController implements ClassListChangeListener {
             educationPanel.displayAllStudentAchievements(new ArrayList<>());
         }
     }
+    public void clearAllSubjectGradesForCurrentClass() {
+        if (currentSelectedClassId <= 0) {
+            UIUtils.showWarningMessage(educationPanel, "Lỗi", "Chưa có lớp nào được chọn.");
+            return;
+        }
+        if (!canCurrentUserEditGrades()) {
+            UIUtils.showErrorMessage(educationPanel, "Không có quyền", "Bạn không có quyền chỉnh sửa điểm cho lớp này.");
+            return;
+        }
 
+        System.out.println("Controller: User requested to clear subject grades for class ID: " + currentSelectedClassId);
 
+        // Lấy danh sách record đang được quản lý trong bộ nhớ
+        List<AcademicRecord> recordsToClear = getCurrentlyLoadedRecordsForSelectedClass();
 
+        if (recordsToClear == null || recordsToClear.isEmpty()) {
+            UIUtils.showInfoMessage(educationPanel, "Không có dữ liệu", "Không có dữ liệu điểm để xóa cho lớp này.");
+            return;
+        }
+
+        boolean actualChangeMade = false;
+        for (AcademicRecord record : recordsToClear) {
+            // Gọi hàm trong AcademicRecord để xóa điểm môn học
+            if (record.clearSubjectGrades()) { // Hàm này trả về true nếu có thay đổi
+                actualChangeMade = true;
+                // Không cần lưu vào DAO ngay, chỉ sửa trong bộ nhớ
+                // Controller sẽ tự động gọi updateRecordInMemory khi TableModelListener được kích hoạt
+                // Hoặc bạn có thể tự đánh dấu record này là đã thay đổi nếu cần
+            }
+        }
+
+        if (actualChangeMade) {
+            // Quan trọng: Cập nhật lại toàn bộ bảng trên UI để hiển thị thay đổi
+            // và kích hoạt lại việc tính toán điểm trung bình (sẽ thành null/0)
+            List<Student> studentsOfClass = getStudentsForSelectedClass(); // Lấy danh sách student tương ứng
+            if (educationPanel != null && studentsOfClass != null) {
+                educationPanel.updateTableData(studentsOfClass, recordsToClear); // Gọi updateTableData để làm mới hoàn toàn
+                educationPanel.markChangesPending(true); // Đánh dấu có thay đổi cần lưu
+                UIUtils.showInfoMessage(educationPanel, "Điểm Đã Xóa (Trong Bộ Nhớ)",
+                        "Điểm các môn học đã được xóa. Nhấn 'Lưu Thay Đổi' để áp dụng vĩnh viễn.");
+            }
+            // Cân nhắc ghi log hành động "chuẩn bị xóa" ở đây nếu muốn
+            writeLog("Prepared Clear Grades", "Prepared to clear subject grades for Class ID: " + currentSelectedClassId);
+
+        } else {
+            UIUtils.showInfoMessage(educationPanel, "Không Thay Đổi", "Không có điểm môn học nào để xóa (có thể đã trống).");
+        }
+    }
+
+    // Hàm helper (bạn cần đảm bảo hàm này hoạt động đúng)
+    private List<AcademicRecord> getCurrentlyLoadedRecordsForSelectedClass() {
+        // Trả về List<AcademicRecord> mà controller đang giữ cho lớp hiện tại
+        // Ví dụ: return this.academicRecordsForSelectedClass;
+        if (currentSelectedClassId > 0 && academicRecordsForSelectedClass != null) {
+            return academicRecordsForSelectedClass;
+        }
+        return Collections.emptyList(); // Hoặc logic lấy dữ liệu của bạn
+    }
+
+    // Hàm helper để lấy danh sách Student tương ứng (bạn có thể đã có)
+    private List<Student> getStudentsForSelectedClass() {
+        if (currentSelectedClassId > 0 && studentDAO != null) {
+            try {
+                return studentDAO.getStudentsByClassId(currentSelectedClassId);
+            } catch (DataAccessException e) {
+                System.err.println("Error getting students for class " + currentSelectedClassId + ": " + e.getMessage());
+            }
+        }
+        return Collections.emptyList();
+    }
 
 }

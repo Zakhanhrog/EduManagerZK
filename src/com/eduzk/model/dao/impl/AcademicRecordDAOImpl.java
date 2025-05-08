@@ -3,18 +3,16 @@ package com.eduzk.model.dao.impl;
 import com.eduzk.model.dao.interfaces.IAcademicRecordDAO;
 import com.eduzk.model.entities.AcademicRecord;
 import com.eduzk.model.exceptions.DataAccessException;
-
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class AcademicRecordDAOImpl extends BaseDAO<AcademicRecord> implements IAcademicRecordDAO {
 
-    private final IdGenerator idGenerator; // Cần IdGenerator để tạo recordId
+    private final IdGenerator idGenerator;
 
     public AcademicRecordDAOImpl(String dataFilePath, IdGenerator idGenerator) {
-        super(dataFilePath); // Gọi constructor BaseDAO
+        super(dataFilePath);
         if (idGenerator == null) {
             throw new IllegalArgumentException("IdGenerator cannot be null");
         }
@@ -76,7 +74,6 @@ public class AcademicRecordDAOImpl extends BaseDAO<AcademicRecord> implements IA
                 }
             }
 
-            // Nếu không tìm thấy bằng recordId HOẶC recordId <= 0, thử tìm theo student/class
             if (!found) {
                 Optional<AcademicRecord> existingOpt = findByStudentAndClassInternal(record.getStudentId(), record.getClassId());
                 if (existingOpt.isPresent()) {
@@ -122,7 +119,6 @@ public class AcademicRecordDAOImpl extends BaseDAO<AcademicRecord> implements IA
         }
     }
 
-    // Phương thức nội bộ để tìm kiếm mà không khóa lại
     private Optional<AcademicRecord> findByStudentAndClassInternal(int studentId, int classId) {
         return dataList.stream()
                 .filter(r -> r.getStudentId() == studentId && r.getClassId() == classId)

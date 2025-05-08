@@ -20,7 +20,6 @@ public class CourseController {
     private final LogService logService;
     private CoursePanel coursePanel;
 
-    // --- SỬA CONSTRUCTOR ĐỂ NHẬN LogService ---
     public CourseController(ICourseDAO courseDAO, User currentUser, LogService logService) {
         this.courseDAO = courseDAO;
         this.currentUser = currentUser;
@@ -77,7 +76,6 @@ public class CourseController {
         }
     }
 
-    // --- SỬA updateCourse ĐỂ GHI LOG ---
     public boolean updateCourse(Course course) {
         if (course == null || course.getCourseId() <= 0 || !ValidationUtils.isNotEmpty(course.getCourseCode()) || !ValidationUtils.isNotEmpty(course.getCourseName())) {
             UIUtils.showWarningMessage(coursePanel, "Validation Error", "Invalid course data for update.");

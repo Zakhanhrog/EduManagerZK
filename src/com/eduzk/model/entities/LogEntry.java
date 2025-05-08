@@ -8,11 +8,11 @@ import java.util.Objects;
 public class LogEntry implements Serializable {
     private static final long serialVersionUID = 3L; // Tăng version ID
 
-    private LocalDateTime timestamp; // Thời gian xảy ra
-    private String username;       // User thực hiện
-    private String userRole;       // Vai trò của user
-    private String action;         // Hành động (e.g., "Added Student", "Updated Password")
-    private String details;        // Chi tiết (e.g., "ID: 5, Name: John Doe")
+    private LocalDateTime timestamp;
+    private String username;
+    private String userRole;
+    private String action;
+    private String details;
 
     // Định dạng thời gian mong muốn
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");

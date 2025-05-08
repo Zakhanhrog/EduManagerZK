@@ -66,7 +66,6 @@ public class UserDAOImpl extends BaseDAO<User> implements IUserDAO {
                     throw new DataAccessException("An account for student ID " + user.getStudentId() + " already exists.");
                 }
             }
-            // --- KẾT THÚC KIỂM TRA STUDENT ID ---
 
             this.dataList.add(user);
             saveData();

@@ -19,6 +19,7 @@ import com.eduzk.model.entities.LogEntry;
 import com.eduzk.view.dialogs.ForcePasswordChangeDialog;
 import java.awt.Frame;
 import java.lang.reflect.InvocationTargetException;
+import com.eduzk.utils.PasswordUtils;
 
 
 public class AuthController {
@@ -35,7 +36,6 @@ public class AuthController {
     private IAcademicRecordDAO recordDAO;
     private final IdGenerator idGenerator;
 
-        // ----- THÊM CONSTRUCTOR ĐẦY ĐỦ NÀY -----
         public AuthController(
                 IUserDAO userDAO,
                 ITeacherDAO teacherDAO,
@@ -46,9 +46,8 @@ public class AuthController {
                 IScheduleDAO scheduleDAO,
                 LogService logService,
                 IAcademicRecordDAO recordDAO,
-                IdGenerator idGenerator)   // Nhận IdGenerator
+                IdGenerator idGenerator)
         {
-            // ----- Kiểm tra null -----
             if (userDAO == null) throw new IllegalArgumentException("UserDAO cannot be null");
             if (teacherDAO == null) throw new IllegalArgumentException("TeacherDAO cannot be null");
             if (studentDAO == null) throw new IllegalArgumentException("StudentDAO cannot be null");
@@ -59,9 +58,7 @@ public class AuthController {
             if (logService == null) throw new IllegalArgumentException("LogService cannot be null");
             if (recordDAO == null) throw new IllegalArgumentException("AcademicRecordDAO cannot be null");
             if (idGenerator == null) throw new IllegalArgumentException("IdGenerator cannot be null");
-            // ----- Kết thúc kiểm tra null -----
 
-            // ----- Gán giá trị -----
             this.userDAO = userDAO;
             this.teacherDAO = teacherDAO;
             this.studentDAO = studentDAO;
@@ -71,10 +68,7 @@ public class AuthController {
             this.scheduleDAO = scheduleDAO;
             this.logService = logService;
             this.recordDAO = recordDAO;
-            this.idGenerator = idGenerator; // <<< GÁN GIÁ TRỊ CHO idGenerator
-            // ----- Kết thúc gán -----
-
-            // Gán controller cho view
+            this.idGenerator = idGenerator;
         }
 
     public void setLogService(LogService logService) {
@@ -113,7 +107,7 @@ public class AuthController {
 
             if (userOptional.isPresent()) {
                 User user = userOptional.get();
-                if (user.getPassword().equals(password)) {
+                if (PasswordUtils.checkPassword(password, user.getPassword())) {
                     if (user.isActive()) {
                         if (user.isRequiresPasswordChange()) {
                             System.out.println("User requires password change: " + user.getUsername());
@@ -186,7 +180,8 @@ public class AuthController {
     }
     public boolean performForcedPasswordChange(User user, String newPassword) {
         try {
-            user.setPassword(newPassword);
+            String hashedPassword = PasswordUtils.hashPassword(newPassword);
+            user.setPassword(hashedPassword);
             user.setRequiresPasswordChange(false);
             userDAO.update(user);
 
@@ -367,7 +362,7 @@ public class AuthController {
                 }
                 if (this.teacherDAO == null) {
                     throw new IllegalStateException("TeacherDAO is not initialized in AuthController.");
-                } // Lỗi cấu hình
+                }
                 System.out.println("Finding teacher by ID: " + teacherIdInput);
                 Teacher existingTeacher = teacherDAO.getById(teacherIdInput);
                 if (existingTeacher == null) {
@@ -381,7 +376,8 @@ public class AuthController {
             System.out.println("All checks passed. Creating new User object...");
             User newUser = new User();
             newUser.setUsername(username);
-            newUser.setPassword(password);
+            String hashedPassword = PasswordUtils.hashPassword(password);
+            newUser.setPassword(hashedPassword);
             newUser.setRole(role);
             newUser.setActive(true);
             newUser.setTeacherId(teacherIdToLink);

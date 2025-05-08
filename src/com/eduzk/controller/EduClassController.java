@@ -2,6 +2,7 @@ package com.eduzk.controller;
 
 import com.eduzk.model.dao.interfaces.*;
 import com.eduzk.model.entities.*;
+import com.eduzk.model.entities.Role;
 import com.eduzk.model.exceptions.DataAccessException;
 import com.eduzk.utils.ValidationUtils;
 import com.eduzk.utils.UIUtils;

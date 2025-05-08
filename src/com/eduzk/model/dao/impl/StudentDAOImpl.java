@@ -1,23 +1,42 @@
 package com.eduzk.model.dao.impl;
 
+import com.eduzk.model.dao.interfaces.IEduClassDAO;
 import com.eduzk.model.dao.interfaces.IStudentDAO;
+import com.eduzk.model.entities.EduClass;
 import com.eduzk.model.entities.Student;
 import com.eduzk.model.exceptions.DataAccessException;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
+
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class StudentDAOImpl extends BaseDAO<Student> implements IStudentDAO {
 
     private final IdGenerator idGenerator;
-    public StudentDAOImpl(String dataFilePath, IdGenerator idGenerator) {
+    private final IEduClassDAO eduClassDAO; // <<<< THÊM BIẾN NÀY
+
+    public StudentDAOImpl(String dataFilePath, IdGenerator idGenerator, IEduClassDAO eduClassDAO) {
         super(dataFilePath);
         if (idGenerator == null) {
             throw new IllegalArgumentException("IdGenerator cannot be null in StudentDAOImpl");
         }
         this.idGenerator = idGenerator;
+        this.eduClassDAO = eduClassDAO;
+
+    }
+    @Override
+    public List<Student> getStudentsByClassId(int classId) throws DataAccessException {
+        if (eduClassDAO == null) {
+            throw new DataAccessException("EduClassDAO is not available in StudentDAOImpl");
+        }
+        EduClass eduClass = eduClassDAO.getById(classId);
+        if (eduClass != null && eduClass.getStudentIds() != null && !eduClass.getStudentIds().isEmpty()) {
+            List<Integer> studentIds = eduClass.getStudentIds();
+            return studentIds.stream()
+                    .map(this::getById)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+        }
+        return Collections.emptyList();
     }
 
     @Override
@@ -146,4 +165,6 @@ public class StudentDAOImpl extends BaseDAO<Student> implements IStudentDAO {
         }
         return removedCount;
     }
+
+
 }
