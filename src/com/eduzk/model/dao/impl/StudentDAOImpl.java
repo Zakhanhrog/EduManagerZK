@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 public class StudentDAOImpl extends BaseDAO<Student> implements IStudentDAO {
 
     private final IdGenerator idGenerator;
-    private final IEduClassDAO eduClassDAO; // <<<< THÊM BIẾN NÀY
+    private final IEduClassDAO eduClassDAO;
 
     public StudentDAOImpl(String dataFilePath, IdGenerator idGenerator, IEduClassDAO eduClassDAO) {
         super(dataFilePath);

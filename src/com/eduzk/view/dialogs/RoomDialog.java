@@ -4,7 +4,6 @@ import com.eduzk.controller.RoomController;
 import com.eduzk.model.entities.Room;
 import com.eduzk.utils.UIUtils;
 import com.eduzk.utils.ValidationUtils;
-
 import javax.swing.*;
 import java.awt.*;
 
@@ -14,7 +13,6 @@ public class RoomDialog extends JDialog {
     private final Room roomToEdit;
     private final boolean isEditMode;
 
-    // UI Components
     private JTextField idField;
     private JTextField numberField;
     private JTextField buildingField;
@@ -29,7 +27,6 @@ public class RoomDialog extends JDialog {
         this.controller = controller;
         this.roomToEdit = room;
         this.isEditMode = (room != null);
-
         setTitle(isEditMode ? "Edit Room" : "Add Room");
         initComponents();
         setupLayout();
@@ -43,11 +40,10 @@ public class RoomDialog extends JDialog {
         idField.setEditable(false);
         numberField = new JTextField(15);
         buildingField = new JTextField(20);
-        capacitySpinner = new JSpinner(new SpinnerNumberModel(1, 1, 1000, 1)); // Min capacity 1
-        typeField = new JTextField(15); // E.g., Classroom, Lab
+        capacitySpinner = new JSpinner(new SpinnerNumberModel(1, 1, 1000, 1));
+        typeField = new JTextField(15);
         availableCheckBox = new JCheckBox("Available");
-        availableCheckBox.setSelected(true); // Default available
-
+        availableCheckBox.setSelected(true);
         saveButton = new JButton("Save");
         cancelButton = new JButton("Cancel");
     }
@@ -60,7 +56,6 @@ public class RoomDialog extends JDialog {
         gbc.insets = new Insets(5, 5, 5, 5);
         int currentRow = 0;
 
-        // Row: ID (Edit mode only)
         if (isEditMode) {
             gbc.gridx = 0; gbc.gridy = currentRow;
             formPanel.add(new JLabel("ID:"), gbc);
@@ -124,8 +119,8 @@ public class RoomDialog extends JDialog {
             typeField.setText(roomToEdit.getType());
             availableCheckBox.setSelected(roomToEdit.isAvailable());
         } else {
-            capacitySpinner.setValue(1); // Default capacity
-            availableCheckBox.setSelected(true); // Default available
+            capacitySpinner.setValue(1);
+            availableCheckBox.setSelected(true);
         }
     }
 
@@ -151,23 +146,17 @@ public class RoomDialog extends JDialog {
             numberField.requestFocusInWindow();
             return;
         }
-        if (capacity <= 0) { // Spinner model ensures >= 1, but good practice
+        if (capacity <= 0) {
             UIUtils.showWarningMessage(this, "Validation Error", "Capacity must be positive.");
             capacitySpinner.requestFocusInWindow();
             return;
         }
-
-
-        // --- Create or Update Room Object ---
         Room room = isEditMode ? roomToEdit : new Room();
         room.setRoomNumber(number);
         room.setBuilding(building);
         room.setCapacity(capacity);
         room.setType(type);
         room.setAvailable(isAvailable);
-        // ID handled by DAO or exists already
-
-        // --- Call Controller ---
         boolean success;
         if (isEditMode) {
             success = controller.updateRoom(room);
@@ -176,8 +165,7 @@ public class RoomDialog extends JDialog {
         }
 
         if (success) {
-            dispose(); // Close dialog on success
+            dispose();
         }
-        // Controller shows messages
     }
 }

@@ -4,13 +4,12 @@ import com.eduzk.model.dao.interfaces.IScheduleDAO;
 import com.eduzk.model.entities.Schedule;
 import com.eduzk.model.exceptions.DataAccessException;
 import com.eduzk.model.exceptions.ScheduleConflictException;
-
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
-import com.eduzk.utils.ValidationUtils; // Import lớp ValidationUtils
-import com.eduzk.utils.DateUtils;     // Import lớp DateUtils
+import com.eduzk.utils.ValidationUtils;
+import com.eduzk.utils.DateUtils;
 import java.util.Optional;
 
 public class ScheduleDAOImpl extends BaseDAO<Schedule> implements IScheduleDAO {
@@ -111,7 +110,7 @@ public class ScheduleDAOImpl extends BaseDAO<Schedule> implements IScheduleDAO {
 
         lock.writeLock().lock();
         try {
-            checkForConflicts(schedule); // Check for conflicts before adding
+            checkForConflicts(schedule);
             this.dataList.add(schedule);
             saveData();
         } finally {
@@ -140,7 +139,7 @@ public class ScheduleDAOImpl extends BaseDAO<Schedule> implements IScheduleDAO {
             }
 
             if (index != -1) {
-                checkForConflicts(schedule); // Check for conflicts before updating
+                checkForConflicts(schedule);
                 dataList.set(index, schedule);
                 saveData();
             } else {
@@ -167,35 +166,29 @@ public class ScheduleDAOImpl extends BaseDAO<Schedule> implements IScheduleDAO {
     }
     @Override
     public List<Schedule> getAllSchedules() throws DataAccessException {
-        // Gọi trực tiếp phương thức getAll() đã được kế thừa từ lớp BaseDAO.
-        // Phương thức này đã có sẵn logic đọc dataList với ReadLock.
         System.out.println("ScheduleDAOImpl: getAllSchedules() called, delegating to BaseDAO.getAll()...");
         try {
-            return super.getAll(); // Gọi hàm getAll() của lớp cha (BaseDAO)
+            return super.getAll();
         } catch (Exception e) {
-            // Bắt lỗi chung và gói lại nếu cần, mặc dù getAll() của BaseDAO thường không ném lỗi nặng
             System.err.println("Error in ScheduleDAOImpl.getAllSchedules while calling super.getAll(): " + e.getMessage());
-            // Có thể gói lại thành DataAccessException nếu muốn nhất quán
             throw new DataAccessException("Failed to retrieve all schedules from BaseDAO.", e);
         }
     }
 
-    // This method must be called within a write lock
     private void checkForConflicts(Schedule newSchedule) throws ScheduleConflictException {
         LocalDate date = newSchedule.getDate();
         LocalTime startTime = newSchedule.getStartTime();
         LocalTime endTime = newSchedule.getEndTime();
         int teacherId = newSchedule.getTeacherId();
         int roomId = newSchedule.getRoomId();
-        int scheduleId = newSchedule.getScheduleId(); // ID is 0 for new schedules, > 0 for updates
+        int scheduleId = newSchedule.getScheduleId();
 
         List<Schedule> potentialConflicts = dataList.stream()
-                .filter(existing -> existing.getScheduleId() != scheduleId && // Exclude self when updating
+                .filter(existing -> existing.getScheduleId() != scheduleId &&
                         existing.getDate().equals(date) &&
-                        existing.overlaps(newSchedule)) // Check time overlap first
+                        existing.overlaps(newSchedule))
                 .collect(Collectors.toList());
 
-        // Check Teacher Conflict
         Optional<Schedule> teacherConflict = potentialConflicts.stream()
                 .filter(existing -> existing.getTeacherId() == teacherId)
                 .findFirst();
@@ -210,7 +203,6 @@ public class ScheduleDAOImpl extends BaseDAO<Schedule> implements IScheduleDAO {
             );
         }
 
-        // Check Room Conflict
         Optional<Schedule> roomConflict = potentialConflicts.stream()
                 .filter(existing -> existing.getRoomId() == roomId)
                 .findFirst();
@@ -224,13 +216,5 @@ public class ScheduleDAOImpl extends BaseDAO<Schedule> implements IScheduleDAO {
                             roomConflict.get().getScheduleId())
             );
         }
-
-        // Optional: Check Student Conflicts (more complex, requires EduClassDAO access)
-        // This would involve getting the student list for the classId of the newSchedule
-        // and checking if any of those students are in *other* classes that have schedules
-        // overlapping at the same time. This is significantly more complex.
-        // For now, we only check Teacher and Room.
     }
-
-    // getAll() is inherited from BaseDAO
 }

@@ -10,9 +10,7 @@ import java.net.URL;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 
-
 public class HelpPanel extends JPanel {
-
     private JEditorPane helpEditorPane;
     private JScrollPane scrollPane;
     private BufferedImage backgroundImage;
@@ -87,13 +85,11 @@ public class HelpPanel extends JPanel {
         @Override
         public void hyperlinkUpdate(HyperlinkEvent e) {
             if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
-                // Khi người dùng nhấp vào link
                 System.out.println("HelpPanel: Link clicked: " + e.getURL());
                 if (Desktop.isDesktopSupported()) {
                     Desktop desktop = Desktop.getDesktop();
                     if (desktop.isSupported(Desktop.Action.BROWSE)) {
                         try {
-                            // Mở link bằng trình duyệt mặc định của hệ thống
                             desktop.browse(e.getURL().toURI());
                         } catch (IOException | URISyntaxException ex) {
                             System.err.println("HelpPanel Error: Could not open link in browser - " + ex.getMessage());
@@ -112,21 +108,13 @@ public class HelpPanel extends JPanel {
     }
     @Override
     protected void paintComponent(Graphics g) {
-        super.paintComponent(g); // Vẽ các thành phần con trước (như JScrollPane) - hoặc sau? Thử cả hai. Thường là super trước.
+        super.paintComponent(g);
 
         if (backgroundImage != null) {
             Graphics2D g2d = (Graphics2D) g.create();
 
-            // Tính toán vị trí để vẽ ảnh ở giữa panel
             int x = (this.getWidth() - backgroundImage.getWidth()) / 2;
             int y = (this.getHeight() - backgroundImage.getHeight()) / 2;
-
-            // Có thể cần Composite để kiểm soát độ trong suốt khi vẽ,
-            // nhưng nếu ảnh PNG đã có alpha thì không cần thiết lắm.
-            // AlphaComposite ac = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.1f); // Ví dụ 10% opacity
-            // g2d.setComposite(ac);
-
-            // Vẽ ảnh
             g2d.drawImage(backgroundImage, x, y, this);
 
             g2d.dispose();

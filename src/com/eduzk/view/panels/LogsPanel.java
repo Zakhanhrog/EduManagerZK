@@ -61,43 +61,37 @@ public class LogsPanel extends JPanel {
         add(scrollPane, BorderLayout.CENTER);
 
         // Điều chỉnh cột (giữ nguyên)
-        logTable.getColumnModel().getColumn(0).setPreferredWidth(140); // Timestamp
-        logTable.getColumnModel().getColumn(1).setPreferredWidth(120); // User
-        logTable.getColumnModel().getColumn(2).setPreferredWidth(80);  // Role
-        logTable.getColumnModel().getColumn(3).setPreferredWidth(150); // Action
-        logTable.getColumnModel().getColumn(4).setPreferredWidth(350); // Details
+        logTable.getColumnModel().getColumn(0).setPreferredWidth(140);
+        logTable.getColumnModel().getColumn(1).setPreferredWidth(120);
+        logTable.getColumnModel().getColumn(2).setPreferredWidth(80);
+        logTable.getColumnModel().getColumn(3).setPreferredWidth(150);
+        logTable.getColumnModel().getColumn(4).setPreferredWidth(350);
     }
 
     public void refreshTable() {
         if (controller == null) {
-            // Chỉ log lỗi, không cần hiển thị message vì người dùng không trực tiếp gây ra
             System.err.println("LogsPanel: Cannot refresh, controller is null.");
             tableModel.setRowCount(0); // Xóa bảng
             return;
         }
         System.out.println("LogsPanel: Refreshing table data requested by controller...");
-        // Lấy dữ liệu mới nhất từ controller
         List<LogEntry> logs = controller.getAllLogsForDisplay();
-        // Cập nhật bảng với dữ liệu mới
         populateTable(logs);
     }
 
     private void populateTable(List<LogEntry> logs) {
-        // <<< LƯU TRẠNG THÁI SORT HIỆN TẠI >>>
         List<? extends RowSorter.SortKey> sortKeys = null;
         if (sorter != null) {
             sortKeys = sorter.getSortKeys();
         }
 
-        tableModel.setRowCount(0); // Xóa dữ liệu cũ trước khi thêm mới
+        tableModel.setRowCount(0);
 
         if (logs != null && !logs.isEmpty()) {
             System.out.println("LogsPanel: Populating table with " + logs.size() + " entries.");
             for (LogEntry entry : logs) {
-                // <<< Đảm bảo LogEntry có các phương thức getter này >>>
-                // <<< Và getFormattedTimestamp trả về String >>>
                 Vector<Object> row = new Vector<>();
-                row.add(entry.getFormattedTimestamp()); // Format cụ thể
+                row.add(entry.getFormattedTimestamp());
                 row.add(entry.getUsername());
                 row.add(entry.getUserRole());
                 row.add(entry.getAction());

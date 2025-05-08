@@ -31,7 +31,6 @@ public class AcademicRecord implements Serializable {
         this.classId = classId;
     }
 
-    // --- Getters and Setters ---
     public int getRecordId() { return recordId; }
     public void setRecordId(int recordId) { this.recordId = recordId; }
     public int getStudentId() { return studentId; }
@@ -40,7 +39,7 @@ public class AcademicRecord implements Serializable {
     public void setClassId(int classId) { this.classId = classId; }
 
     public Map<String, Double> getSubjectGrades() {
-        if (subjectGrades == null) subjectGrades = new HashMap<>(); // Đảm bảo không null
+        if (subjectGrades == null) subjectGrades = new HashMap<>();
         return subjectGrades;
     }
     public void setSubjectGrades(Map<String, Double> subjectGrades) { this.subjectGrades = subjectGrades; }
@@ -51,27 +50,21 @@ public class AcademicRecord implements Serializable {
     public ConductRating getConductRating() { return conductRating; }
     public void setConductRating(ConductRating conductRating) { this.conductRating = conductRating; }
 
-    // --- Phương thức tiện ích để lấy/đặt điểm ---
     public Double getGrade(String subjectKey) {
-        return getSubjectGrades().get(subjectKey); // Trả về null nếu chưa có điểm
+        return getSubjectGrades().get(subjectKey);
     }
     public void setGrade(String subjectKey, Double grade) {
         if (grade == null) {
             getSubjectGrades().remove(subjectKey);
         } else {
-            // Có thể thêm validation điểm ở đây (0-10)
             getSubjectGrades().put(subjectKey, grade);
         }
     }
 
-
-    // --- Các phương thức tính toán ---
-    // (Nên đặt logic tính toán trong Controller hoặc Service để linh hoạt)
-    // Nhưng có thể đặt ở đây để tiện truy cập
     public double calculateAvgNaturalSciences() {
         double sum = 0;
         int count = 0;
-        String[] keys = {"Lí", "Hoá", "Sinh"}; // *** Cần thống nhất key môn học ***
+        String[] keys = {"Lí", "Hoá", "Sinh"};
         for (String key : keys) {
             Double grade = getGrade(key);
             if (grade != null) {
@@ -85,7 +78,7 @@ public class AcademicRecord implements Serializable {
     public double calculateAvgSocialSciences() {
         double sum = 0;
         int count = 0;
-        String[] keys = {"Sử", "Địa", "GDCD"}; // *** Cần thống nhất key môn học ***
+        String[] keys = {"Sử", "Địa", "GDCD"};
         for (String key : keys) {
             Double grade = getGrade(key);
             if (grade != null) {
@@ -100,7 +93,6 @@ public class AcademicRecord implements Serializable {
         double sum = 0;
         int count = 0;
         for (Map.Entry<String, Double> entry : getSubjectGrades().entrySet()) {
-            // *** Bỏ qua môn Nghệ thuật - Cần key thống nhất ***
             if (!entry.getKey().equalsIgnoreCase("Nghệ thuật") && entry.getValue() != null) {
                 sum += entry.getValue();
                 count++;
@@ -119,7 +111,6 @@ public class AcademicRecord implements Serializable {
             }
         }
 
-        // --- Tính toán Phần 1 ---
         String part1Title = null;
         double overallAvg = this.calculateAvgOverallSubjects();
         ConductRating conduct = this.getConductRating();
@@ -127,7 +118,6 @@ public class AcademicRecord implements Serializable {
         Double literatureScore = this.getGrade("Văn");
         Double englishScore = this.getGrade("Anh");
 
-        // --- SỬA LOGIC KIỂM TRA VÀ SO SÁNH VỚI ENUM ---
         if (conduct == null || mathScore == null || literatureScore == null || englishScore == null) {
             part1Title = "Chưa đủ thông tin xếp loại";
         } else {
@@ -138,17 +128,16 @@ public class AcademicRecord implements Serializable {
                     (conduct == ConductRating.EXCELLENT || conduct == ConductRating.GOOD)) {
                 part1Title = "HS Giỏi";
             } else if (overallAvg >= 6.50 && mathScore >= 6.5 && literatureScore >= 6.5 && englishScore >= 6.5 &&
-                    (conduct == ConductRating.EXCELLENT || conduct == ConductRating.GOOD || conduct == ConductRating.FAIR)) { // Hạnh kiểm Khá trở lên
+                    (conduct == ConductRating.EXCELLENT || conduct == ConductRating.GOOD || conduct == ConductRating.FAIR)) {
                 part1Title = "HS Khá";
             } else if (overallAvg < 6.50 &&
-                    (conduct == ConductRating.EXCELLENT || conduct == ConductRating.GOOD || conduct == ConductRating.FAIR || conduct == ConductRating.AVERAGE)) { // Hạnh kiểm Trung bình trở lên
+                    (conduct == ConductRating.EXCELLENT || conduct == ConductRating.GOOD || conduct == ConductRating.FAIR || conduct == ConductRating.AVERAGE)) {
                 part1Title = "HS Trung bình";
             } else {
                 part1Title = "Đạt chương trình học tập";
             }
         }
 
-        // --- Tính toán Phần 2 ---
         List<String> part2Titles = new ArrayList<>();
         double avgKHTN = this.calculateAvgNaturalSciences();
         double avgKHXH = this.calculateAvgSocialSciences();
@@ -165,7 +154,6 @@ public class AcademicRecord implements Serializable {
             part2Titles.add("Bán chuyên KHXH");
         }
 
-        // --- Kết hợp kết quả ---
         StringBuilder finalTitle = new StringBuilder("");
         boolean hasPart1 = false;
         boolean hasPart2 = !part2Titles.isEmpty();
@@ -235,13 +223,12 @@ public class AcademicRecord implements Serializable {
     public boolean clearSubjectGrades() {
         boolean changed = false;
         if (this.subjectGrades == null) {
-            // Nếu map grades là null, không có gì để xóa, coi như không thay đổi
             return false;
         }
 
         for (String subjectKey : SUBJECTS_TO_CLEAR) {
             if (this.subjectGrades.containsKey(subjectKey) && this.subjectGrades.get(subjectKey) != null) {
-                this.subjectGrades.put(subjectKey, null); // Đặt về null
+                this.subjectGrades.put(subjectKey, null);
                 changed = true;
             }
         }

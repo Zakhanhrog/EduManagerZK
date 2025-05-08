@@ -8,7 +8,6 @@ import com.eduzk.model.entities.Teacher;
 import com.eduzk.utils.UIUtils;
 import com.eduzk.utils.ValidationUtils;
 import com.eduzk.view.components.CustomDatePicker;
-
 import javax.swing.*;
 import java.awt.*;
 import java.time.LocalDate;
@@ -24,14 +23,10 @@ public class ScheduleDialog extends JDialog {
     private final ScheduleController controller;
     private final Schedule scheduleToEdit;
     private final boolean isEditMode;
-
-    // Data for ComboBoxes (fetched via controller)
     private List<EduClass> availableClasses;
     private List<Teacher> availableTeachers;
     private List<Room> availableRooms;
 
-
-    // UI Components
     private JTextField idField;
     private JComboBox<EduClass> classComboBox;
     private JComboBox<Teacher> teacherComboBox;
@@ -48,9 +43,7 @@ public class ScheduleDialog extends JDialog {
         this.scheduleToEdit = schedule;
         this.isEditMode = (schedule != null);
 
-        // Fetch data needed for dropdowns
         fetchComboBoxData();
-
         setTitle(isEditMode ? "Edit Schedule Entry" : "Add Schedule Entry");
         initComponents();
         setupLayout();
@@ -65,7 +58,6 @@ public class ScheduleDialog extends JDialog {
             this.availableTeachers = controller.getAllTeachersForSelection();
             this.availableRooms = controller.getAllRoomsForSelection();
         } else {
-            // Handle error or provide empty lists
             this.availableClasses = List.of();
             this.availableTeachers = List.of();
             this.availableRooms = List.of();
@@ -81,15 +73,11 @@ public class ScheduleDialog extends JDialog {
         teacherComboBox = new JComboBox<>(new Vector<>(availableTeachers));
         roomComboBox = new JComboBox<>(new Vector<>(availableRooms));
 
-        // Renderers for better display
         classComboBox.setRenderer(createClassRenderer());
         teacherComboBox.setRenderer(createTeacherRenderer());
         roomComboBox.setRenderer(createRoomRenderer());
-
-
         datePicker = new CustomDatePicker();
 
-        // Time Spinners (using Date model for easy time selection)
         SpinnerDateModel startModel = new SpinnerDateModel(getDefaultTime(8), null, null, Calendar.MINUTE); // Default 8:00 AM
         startTimeSpinner = new JSpinner(startModel);
         JSpinner.DateEditor startTimeEditor = new JSpinner.DateEditor(startTimeSpinner, "HH:mm"); // 24hr format
@@ -100,12 +88,10 @@ public class ScheduleDialog extends JDialog {
         JSpinner.DateEditor endTimeEditor = new JSpinner.DateEditor(endTimeSpinner, "HH:mm");
         endTimeSpinner.setEditor(endTimeEditor);
 
-
         saveButton = new JButton("Save");
         cancelButton = new JButton("Cancel");
     }
 
-    // Helper for default spinner time
     private Date getDefaultTime(int hour) {
         Calendar cal = Calendar.getInstance();
         cal.set(Calendar.HOUR_OF_DAY, hour);
@@ -115,8 +101,6 @@ public class ScheduleDialog extends JDialog {
         return cal.getTime();
     }
 
-
-    // --- ComboBox Renderers ---
     private ListCellRenderer<Object> createClassRenderer() {
         return new DefaultListCellRenderer() {
             @Override
@@ -153,8 +137,6 @@ public class ScheduleDialog extends JDialog {
             }
         };
     }
-    // --- End Renderers ---
-
 
     private void setupLayout() {
         JPanel formPanel = new JPanel(new GridBagLayout());
@@ -164,7 +146,6 @@ public class ScheduleDialog extends JDialog {
         gbc.insets = new Insets(5, 5, 5, 5);
         int currentRow = 0;
 
-        // Row: ID (Edit mode only)
         if (isEditMode) {
             gbc.gridx = 0; gbc.gridy = currentRow;
             formPanel.add(new JLabel("ID:"), gbc);
@@ -231,13 +212,11 @@ public class ScheduleDialog extends JDialog {
     private void populateFields() {
         if (isEditMode && scheduleToEdit != null) {
             idField.setText(String.valueOf(scheduleToEdit.getScheduleId()));
-            // Select items in combo boxes
             selectComboBoxItemById(classComboBox, scheduleToEdit.getClassId());
             selectComboBoxItemById(teacherComboBox, scheduleToEdit.getTeacherId());
             selectComboBoxItemById(roomComboBox, scheduleToEdit.getRoomId());
 
             datePicker.setDate(scheduleToEdit.getDate());
-            // Set time spinners
             if (scheduleToEdit.getStartTime() != null) {
                 startTimeSpinner.setValue(Date.from(scheduleToEdit.getStartTime().atDate(LocalDate.now()).atZone(ZoneId.systemDefault()).toInstant()));
             }
@@ -246,15 +225,13 @@ public class ScheduleDialog extends JDialog {
             }
 
         } else {
-            // Set defaults for add mode if needed
             if (!availableClasses.isEmpty()) classComboBox.setSelectedIndex(0);
             if (!availableTeachers.isEmpty()) teacherComboBox.setSelectedIndex(0);
             if (!availableRooms.isEmpty()) roomComboBox.setSelectedIndex(0);
-            datePicker.setDate(LocalDate.now()); // Default to today
+            datePicker.setDate(LocalDate.now());
         }
     }
 
-    // Helper to select item in ComboBox based on ID
     private <T> void selectComboBoxItemById(JComboBox<T> comboBox, int idToSelect) {
         if (idToSelect <= 0) {
             comboBox.setSelectedIndex(-1);
@@ -263,7 +240,6 @@ public class ScheduleDialog extends JDialog {
         for (int i = 0; i < comboBox.getItemCount(); i++) {
             T item = comboBox.getItemAt(i);
             int itemId = -1;
-            // Get ID based on type
             if (item instanceof EduClass) itemId = ((EduClass) item).getClassId();
             else if (item instanceof Teacher) itemId = ((Teacher) item).getTeacherId();
             else if (item instanceof Room) itemId = ((Room) item).getRoomId();
@@ -273,13 +249,13 @@ public class ScheduleDialog extends JDialog {
                 return;
             }
         }
-        comboBox.setSelectedIndex(-1); // Item not found
+        comboBox.setSelectedIndex(-1);
     }
 
 
     private void configureDialog() {
         pack();
-        setMinimumSize(new Dimension(550, 350)); // Adjust minimum size
+        setMinimumSize(new Dimension(550, 350));
         setLocationRelativeTo(getOwner());
         setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
     }
@@ -289,15 +265,13 @@ public class ScheduleDialog extends JDialog {
         if (value instanceof Date) {
             Calendar cal = Calendar.getInstance();
             cal.setTime((Date) value);
-            // Important: Extract only hour and minute
             return LocalTime.of(cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE));
         }
-        return null; // Or throw an error
+        return null;
     }
 
 
     private void saveSchedule() {
-        // --- Get Selected Data ---
         EduClass selectedClass = (EduClass) classComboBox.getSelectedItem();
         Teacher selectedTeacher = (Teacher) teacherComboBox.getSelectedItem();
         Room selectedRoom = (Room) roomComboBox.getSelectedItem();
@@ -305,7 +279,6 @@ public class ScheduleDialog extends JDialog {
         LocalTime startTime = getTimeFromSpinner(startTimeSpinner);
         LocalTime endTime = getTimeFromSpinner(endTimeSpinner);
 
-        // --- Input Validation ---
         if (selectedClass == null) {
             UIUtils.showWarningMessage(this, "Validation Error", "Please select a Class.");
             classComboBox.requestFocusInWindow(); return;
@@ -318,13 +291,13 @@ public class ScheduleDialog extends JDialog {
             UIUtils.showWarningMessage(this, "Validation Error", "Please select a Room.");
             roomComboBox.requestFocusInWindow(); return;
         }
-        if (!ValidationUtils.isValidDate(selectedDate)) { // Should not happen with picker, but check
+        if (!ValidationUtils.isValidDate(selectedDate)) {
             UIUtils.showWarningMessage(this, "Validation Error", "Please select a valid Date.");
             datePicker.requestFocusInWindow(); return;
         }
         if (!ValidationUtils.isValidTime(startTime) || !ValidationUtils.isValidTime(endTime)) {
             UIUtils.showWarningMessage(this, "Validation Error", "Please select valid Start and End Times.");
-            return; // Focus start time spinner?
+            return;
         }
         if (!ValidationUtils.isValidTimeRange(startTime, endTime)) {
             UIUtils.showWarningMessage(this, "Validation Error", "End Time cannot be before Start Time.");
@@ -332,8 +305,6 @@ public class ScheduleDialog extends JDialog {
             return;
         }
 
-
-        // --- Create or Update Schedule Object ---
         Schedule schedule = isEditMode ? scheduleToEdit : new Schedule();
         schedule.setClassId(selectedClass.getClassId());
         schedule.setTeacherId(selectedTeacher.getTeacherId());
@@ -341,10 +312,7 @@ public class ScheduleDialog extends JDialog {
         schedule.setDate(selectedDate);
         schedule.setStartTime(startTime);
         schedule.setEndTime(endTime);
-        // ID handled by DAO or exists already
 
-
-        // --- Call Controller ---
         boolean success = false;
         try {
             if (isEditMode) {
@@ -354,11 +322,9 @@ public class ScheduleDialog extends JDialog {
             }
 
             if (success) {
-                dispose(); // Close dialog on success
+                dispose();
             }
-            // Controller shows success message or conflict exception message
         } catch (Exception e) {
-            // Catch other unexpected errors during save
             System.err.println("Unexpected error saving schedule: " + e.getMessage());
             UIUtils.showErrorMessage(this, "Error", "An unexpected error occurred while saving the schedule.");
         }

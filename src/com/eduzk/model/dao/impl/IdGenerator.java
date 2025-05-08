@@ -25,7 +25,7 @@ public class IdGenerator {
 
     public IdGenerator(String idFilePath) {
         this.idFilePath = idFilePath;
-        this.nextIdMap = new ConcurrentHashMap<>(); // Use concurrent map for potential future multi-threading
+        this.nextIdMap = new ConcurrentHashMap<>();
         loadNextIds();
         initializeDefaultKeys();
     }
@@ -36,7 +36,7 @@ public class IdGenerator {
             File file = new File(idFilePath);
             if (!file.exists()) {
                 initializeDefaultKeys();
-                saveNextIds(); // Create the file with defaults
+                saveNextIds();
                 return;
             }
 
@@ -49,22 +49,19 @@ public class IdGenerator {
                         nextIdMap.put(key, id);
                     } catch (NumberFormatException e) {
                         System.err.println("Warning: Invalid number format for key '" + key + "' in " + idFilePath);
-                        // Optionally initialize with 1 if parsing fails
                         nextIdMap.putIfAbsent(key, 1);
                     }
                 }
             }
         } catch (IOException e) {
-            // Log the error but try to proceed with defaults / in-memory values
             System.err.println("Error loading ID file: " + idFilePath + " - " + e.getMessage());
-            initializeDefaultKeys(); // Ensure defaults are set if loading fails
+            initializeDefaultKeys();
         } finally {
             lock.unlock();
         }
     }
 
     private void initializeDefaultKeys() {
-        // Initialize default keys if they are missing after loading
         nextIdMap.putIfAbsent(USER_ID_KEY, 1);
         nextIdMap.putIfAbsent(STUDENT_ID_KEY, 1);
         nextIdMap.putIfAbsent(TEACHER_ID_KEY, 1);
@@ -86,7 +83,6 @@ public class IdGenerator {
             }
 
             File file = new File(idFilePath);
-            // Ensure parent directory exists
             File parentDir = file.getParentFile();
             if (parentDir != null && !parentDir.exists()) {
                 if (!parentDir.mkdirs()) {

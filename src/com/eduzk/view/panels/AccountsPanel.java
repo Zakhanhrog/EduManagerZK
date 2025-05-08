@@ -30,7 +30,6 @@ public class AccountsPanel extends JPanel {
     private ButtonGroup roleFilterGroup;
     private List<User> allUsersCache = new ArrayList<>();
 
-    // Constructor (sẽ nhận UserController sau khi được tạo)
     public AccountsPanel(UserController controller) {
         this.controller = controller;
         setLayout(new BorderLayout(10, 10));
@@ -40,7 +39,6 @@ public class AccountsPanel extends JPanel {
         setupActions();
     }
 
-    // Phương thức để MainView inject controller sau khi khởi tạo
     public void setController(UserController controller) {
         this.controller = controller;
         if (this.isShowing()) {
@@ -160,7 +158,6 @@ public class AccountsPanel extends JPanel {
             int userId = (int) tableModel.getValueAt(modelRow, 5);
             String username = (String) tableModel.getValueAt(modelRow, 1);
 
-            // Hiển thị dialog đơn giản để nhập mật khẩu mới
             JPasswordField passwordField = new JPasswordField(20);
             JPanel panel = new JPanel(new GridLayout(2, 1));
             panel.add(new JLabel("Enter new password for user: " + username));
@@ -219,7 +216,6 @@ public class AccountsPanel extends JPanel {
     public void configureControlsForRole(Role userRole) {
         boolean canManageAccounts = (userRole == Role.ADMIN);
         if (editPasswordButton != null) editPasswordButton.setVisible(canManageAccounts);
-        // Nút Refresh luôn hiển thị
         if (refreshButton != null) refreshButton.setVisible(true);
     }
 

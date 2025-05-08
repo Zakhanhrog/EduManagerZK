@@ -2,23 +2,20 @@
 package com.eduzk.model.entities;
 
 import java.io.Serializable;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Objects;
-import java.time.LocalDateTime;
 
 public class Assignment implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private int assignmentId;
-    private int eduClassId; // Liên kết với lớp học
+    private int eduClassId;
     private String title;
     private String description;
     private LocalDateTime dueDateTime;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // Constructors
     public Assignment() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
@@ -34,7 +31,6 @@ public class Assignment implements Serializable {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // Getters and Setters
     public int getAssignmentId() {
         return assignmentId;
     }

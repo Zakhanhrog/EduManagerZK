@@ -9,7 +9,6 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public abstract class BaseDAO<T extends Serializable> {
-
     protected final String dataFilePath;
     protected final List<T> dataList;
     protected final ReadWriteLock lock = new ReentrantReadWriteLock();
@@ -39,7 +38,6 @@ public abstract class BaseDAO<T extends Serializable> {
                 }
                 return;
             }
-
             try (ObjectInputStream ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(file)))) {
                 Object readObject = ois.readObject();
                 if (readObject instanceof List) {
@@ -73,7 +71,6 @@ public abstract class BaseDAO<T extends Serializable> {
                     throw new DataAccessException("Could not create directory for data file: " + parentDir.getAbsolutePath());
                 }
             }
-
             try (ObjectOutputStream oos = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))) {
                 oos.writeObject(new ArrayList<>(this.dataList));
             }
@@ -92,6 +89,7 @@ public abstract class BaseDAO<T extends Serializable> {
             lock.readLock().unlock();
         }
     }
+
     public void add(T item) throws ScheduleConflictException {
         if (item == null) {
             throw new IllegalArgumentException("Cannot add a null item.");

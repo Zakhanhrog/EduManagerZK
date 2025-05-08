@@ -12,7 +12,7 @@ public class UserDAOImpl extends BaseDAO<User> implements IUserDAO {
 
     public UserDAOImpl(String dataFilePath, String idFilePath) {
         super(dataFilePath);
-        this.idGenerator = new IdGenerator(idFilePath); // Each DAO needing IDs gets its own generator instance pointed to the same file
+        this.idGenerator = new IdGenerator(idFilePath);
     }
 
     @Override
@@ -37,7 +37,7 @@ public class UserDAOImpl extends BaseDAO<User> implements IUserDAO {
             return dataList.stream()
                     .filter(user -> user.getUserId() == id)
                     .findFirst()
-                    .orElse(null); // Or throw exception if not found is preferred
+                    .orElse(null);
         } finally {
             lock.readLock().unlock();
         }
@@ -50,14 +50,12 @@ public class UserDAOImpl extends BaseDAO<User> implements IUserDAO {
 
         lock.writeLock().lock();
         try {
-            // Kiểm tra username trùng
             boolean usernameExists = dataList.stream()
                     .anyMatch(existingUser -> existingUser.getUsername().equalsIgnoreCase(user.getUsername()));
             if (usernameExists) {
                 throw new DataAccessException("Username '" + user.getUsername() + "' already exists.");
             }
 
-            // --- THÊM KIỂM TRA STUDENT ID TRÙNG NẾU LÀ STUDENT ---
             if (user.getRole() == Role.STUDENT && user.getStudentId() != null) {
                 boolean studentIdExists = dataList.stream()
                         .anyMatch(existingUser -> existingUser.getRole() == Role.STUDENT &&
@@ -91,10 +89,9 @@ public class UserDAOImpl extends BaseDAO<User> implements IUserDAO {
             }
 
             if (index != -1) {
-                // Check if the updated username conflicts with another existing user
-                final int currentIndex = index; // Need final variable for lambda
+                final int currentIndex = index;
                 boolean usernameConflict = dataList.stream()
-                        .filter(existingUser -> existingUser.getUserId() != user.getUserId()) // Exclude self
+                        .filter(existingUser -> existingUser.getUserId() != user.getUserId())
                         .anyMatch(existingUser -> existingUser.getUsername().equalsIgnoreCase(user.getUsername()));
 
                 if (usernameConflict) {
@@ -133,7 +130,6 @@ public class UserDAOImpl extends BaseDAO<User> implements IUserDAO {
         lock.readLock().lock();
         try {
             return dataList.stream()
-                    // Chỉ tìm user là STUDENT và có studentId khớp
                     .filter(user -> user.getRole() == Role.STUDENT &&
                             user.getStudentId() != null &&
                             user.getStudentId() == studentId)
@@ -150,10 +146,9 @@ public class UserDAOImpl extends BaseDAO<User> implements IUserDAO {
         lock.readLock().lock();
         try {
             return dataList.stream()
-                    // Chỉ tìm user là TEACHER và có teacherId khớp
                     .filter(user -> user.getRole() == Role.TEACHER &&
-                            user.getTeacherId() != null && // Quan trọng: Kiểm tra null trước khi so sánh
-                            user.getTeacherId().equals(teacherId)) // Dùng equals cho Integer
+                            user.getTeacherId() != null &&
+                            user.getTeacherId().equals(teacherId))
                     .findFirst();
         } finally {
             lock.readLock().unlock();

@@ -16,7 +16,6 @@ public class TeacherDialog extends JDialog {
     private final Teacher teacherToEdit;
     private final boolean isEditMode;
 
-    // UI Components
     private JTextField idField;
     private JTextField nameField;
     private CustomDatePicker dobPicker;
@@ -52,7 +51,7 @@ public class TeacherDialog extends JDialog {
         phoneField = new JTextField(15);
         emailField = new JTextField(25);
         activeCheckBox = new JCheckBox("Active");
-        activeCheckBox.setSelected(true); // Default to active
+        activeCheckBox.setSelected(true);
 
         saveButton = new JButton("Save");
         cancelButton = new JButton("Cancel");
@@ -66,7 +65,6 @@ public class TeacherDialog extends JDialog {
         gbc.insets = new Insets(5, 5, 5, 5);
         int currentRow = 0;
 
-        // Row: ID (Edit mode only)
         if (isEditMode) {
             gbc.gridx = 0; gbc.gridy = currentRow;
             formPanel.add(new JLabel("ID:"), gbc);
@@ -75,20 +73,18 @@ public class TeacherDialog extends JDialog {
             currentRow++;
         }
 
-        // Row: Name
         gbc.gridx = 0; gbc.gridy = currentRow; gbc.gridwidth = 1; gbc.fill = GridBagConstraints.NONE;
         formPanel.add(new JLabel("Full Name*:"), gbc);
         gbc.gridx = 1; gbc.gridy = currentRow; gbc.gridwidth = 2; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
         formPanel.add(nameField, gbc);
         currentRow++;
 
-        // Row: DOB & Gender
         gbc.gridx = 0; gbc.gridy = currentRow; gbc.gridwidth = 1; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0.0;
         formPanel.add(new JLabel("Date of Birth:"), gbc);
         gbc.gridx = 1; gbc.gridy = currentRow; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 0.5;
         formPanel.add(dobPicker, gbc);
 
-        gbc.gridx = 2; gbc.gridy = currentRow; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0.0; // Label for gender
+        gbc.gridx = 2; gbc.gridy = currentRow; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0.0;
         gbc.anchor = GridBagConstraints.EAST;
         formPanel.add(new JLabel("Gender:"), gbc);
         gbc.gridx = 3; gbc.gridy = currentRow; gbc.anchor = GridBagConstraints.WEST; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 0.5;
@@ -96,14 +92,12 @@ public class TeacherDialog extends JDialog {
         currentRow++;
 
 
-        // Row: Specialization
         gbc.gridx = 0; gbc.gridy = currentRow; gbc.gridwidth = 1; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0.0;
         formPanel.add(new JLabel("Specialization:"), gbc);
         gbc.gridx = 1; gbc.gridy = currentRow; gbc.gridwidth = 3; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
         formPanel.add(specializationField, gbc);
         currentRow++;
 
-        // Row: Phone & Email
         gbc.gridx = 0; gbc.gridy = currentRow; gbc.gridwidth = 1; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0.0;
         formPanel.add(new JLabel("Phone:"), gbc);
         gbc.gridx = 1; gbc.gridy = currentRow; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 0.5;
@@ -116,18 +110,15 @@ public class TeacherDialog extends JDialog {
         currentRow++;
 
 
-        // Row: Active Status
         gbc.gridx = 0; gbc.gridy = currentRow; gbc.gridwidth = 4; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0.0;
         formPanel.add(activeCheckBox, gbc);
         currentRow++;
 
 
-        // Button Panel
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttonPanel.add(saveButton);
         buttonPanel.add(cancelButton);
 
-        // Add panels to dialog
         setLayout(new BorderLayout());
         add(formPanel, BorderLayout.CENTER);
         add(buttonPanel, BorderLayout.SOUTH);
@@ -150,7 +141,7 @@ public class TeacherDialog extends JDialog {
             activeCheckBox.setSelected(teacherToEdit.isActive());
         } else {
             genderComboBox.setSelectedIndex(0);
-            activeCheckBox.setSelected(true); // Default active for new teachers
+            activeCheckBox.setSelected(true);
         }
     }
 
@@ -161,7 +152,6 @@ public class TeacherDialog extends JDialog {
     }
 
     private void saveTeacher() {
-        // --- Input Validation ---
         String name = nameField.getText().trim();
         LocalDate dob = dobPicker.getDate();
         String gender = (String) genderComboBox.getSelectedItem();
@@ -185,9 +175,7 @@ public class TeacherDialog extends JDialog {
             emailField.requestFocusInWindow();
             return;
         }
-        // Add more validation if needed
 
-        // --- Create or Update Teacher Object ---
         Teacher teacher = isEditMode ? teacherToEdit : new Teacher();
         teacher.setFullName(name);
         teacher.setDateOfBirth(dob);
@@ -196,9 +184,7 @@ public class TeacherDialog extends JDialog {
         teacher.setPhone(phone);
         teacher.setEmail(email);
         teacher.setActive(isActive);
-        // ID handled by DAO or exists already
 
-        // --- Call Controller ---
         boolean success;
         if (isEditMode) {
             success = controller.updateTeacher(teacher);
@@ -207,8 +193,7 @@ public class TeacherDialog extends JDialog {
         }
 
         if (success) {
-            dispose(); // Close dialog on success
+            dispose();
         }
-        // Controller shows messages
     }
 }

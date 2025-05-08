@@ -32,24 +32,12 @@ public class AcademicRecordDAOImpl extends BaseDAO<AcademicRecord> implements IA
     }
 
     @Override
-    public List<AcademicRecord> findAllByClassId(int classId) {
-        lock.readLock().lock();
-        try {
-            return dataList.stream()
-                    .filter(r -> r.getClassId() == classId)
-                    .collect(Collectors.toList()); // Trả về bản sao
-        } finally {
-            lock.readLock().unlock();
-        }
-    }
-
-    @Override
     public List<AcademicRecord> findAllByStudentId(int studentId) {
         lock.readLock().lock();
         try {
             return dataList.stream()
                     .filter(r -> r.getStudentId() == studentId)
-                    .collect(Collectors.toList()); // Trả về bản sao
+                    .collect(Collectors.toList());
         } finally {
             lock.readLock().unlock();
         }
@@ -64,23 +52,20 @@ public class AcademicRecordDAOImpl extends BaseDAO<AcademicRecord> implements IA
         try {
             int recordId = record.getRecordId();
             boolean found = false;
-            if (recordId > 0) { // Ưu tiên tìm theo recordId nếu có
+            if (recordId > 0) {
                 for (int i = 0; i < dataList.size(); i++) {
                     if (dataList.get(i).getRecordId() == recordId) {
-                        dataList.set(i, record); // Update theo recordId
+                        dataList.set(i, record);
                         found = true;
                         break;
                     }
                 }
             }
-
             if (!found) {
                 Optional<AcademicRecord> existingOpt = findByStudentAndClassInternal(record.getStudentId(), record.getClassId());
                 if (existingOpt.isPresent()) {
-                    // Tìm thấy bản ghi cũ, cập nhật nó (giữ nguyên recordId cũ)
                     AcademicRecord existingRecord = existingOpt.get();
-                    record.setRecordId(existingRecord.getRecordId()); // Đảm bảo giữ ID cũ
-                    // Tìm index và cập nhật
+                    record.setRecordId(existingRecord.getRecordId());
                     for (int i = 0; i < dataList.size(); i++) {
                         if (dataList.get(i).getRecordId() == existingRecord.getRecordId()) {
                             dataList.set(i, record);
@@ -90,8 +75,6 @@ public class AcademicRecordDAOImpl extends BaseDAO<AcademicRecord> implements IA
                     }
                 }
             }
-
-
             if (!found) {
                 record.setRecordId(idGenerator.getNextAcademicRecordId());
                 dataList.add(record);
@@ -101,8 +84,6 @@ public class AcademicRecordDAOImpl extends BaseDAO<AcademicRecord> implements IA
             lock.writeLock().unlock();
         }
     }
-
-
     @Override
     public void delete(int recordId) throws DataAccessException {
         if (recordId <= 0) return;
@@ -118,7 +99,6 @@ public class AcademicRecordDAOImpl extends BaseDAO<AcademicRecord> implements IA
             lock.writeLock().unlock();
         }
     }
-
     private Optional<AcademicRecord> findByStudentAndClassInternal(int studentId, int classId) {
         return dataList.stream()
                 .filter(r -> r.getStudentId() == studentId && r.getClassId() == classId)

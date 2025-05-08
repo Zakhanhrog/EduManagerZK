@@ -8,8 +8,8 @@ import com.eduzk.utils.ValidationUtils;
 import com.eduzk.utils.UIUtils;
 import com.eduzk.view.panels.ClassPanel;
 import com.eduzk.model.dao.impl.LogService;
-import com.eduzk.model.dao.interfaces.ClassListChangeListener; // <<< THÊM IMPORT LISTENER INTERFACE
-import javax.swing.event.EventListenerList;     // <<< THÊM IMPORT EVENTLISTENERLIST
+import com.eduzk.model.dao.interfaces.ClassListChangeListener;
+import javax.swing.event.EventListenerList;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -17,27 +17,19 @@ import java.util.stream.Collectors;
 
 public class EduClassController {
 
-    // --- DAO Dependencies ---
     private final IEduClassDAO eduClassDAO;
     private final ICourseDAO courseDAO;
     private final ITeacherDAO teacherDAO;
     private final IStudentDAO studentDAO;
 
-    // --- View Reference ---
     private ClassPanel classPanel;
 
-    // --- Services and Context ---
     private final LogService logService;
     private final User currentUser;
 
-    // --- Listener Management ---
-    private final EventListenerList listenerList = new EventListenerList(); // <<< THÊM BIẾN QUẢN LÝ LISTENER
+    private final EventListenerList listenerList = new EventListenerList();
 
-    // <<< BỎ BIẾN eduClassControllerRef VÌ KHÔNG CẦN THIẾT Ở ĐÂY >>>
-    // private EduClassController eduClassControllerRef;
 
-    // --- Constructor: Nhận dependencies ---
-    // <<< BỎ THAM SỐ EduClassController eduClassController KHỎI CONSTRUCTOR >>>
     public EduClassController(
             IEduClassDAO eduClassDAO,
             ICourseDAO courseDAO,
@@ -51,16 +43,12 @@ public class EduClassController {
         this.studentDAO = studentDAO;
         this.currentUser = currentUser;
         this.logService = logService;
-        // <<< BỎ DÒNG GÁN eduClassControllerRef >>>
-        // this.eduClassControllerRef = eduClassController;
     }
 
-    // --- Setter for View Panel ---
     public void setClassPanel(ClassPanel classPanel) {
         this.classPanel = classPanel;
     }
 
-    // --- Lấy danh sách lớp dựa trên vai trò người dùng ---
     public List<EduClass> getAllEduClasses() {
         try {
             if (currentUser != null && currentUser.getRole() == Role.TEACHER) {
@@ -73,7 +61,6 @@ public class EduClassController {
                     return Collections.emptyList();
                 }
             } else {
-                // Admin hoặc các vai trò khác (nếu có) thấy tất cả
                 System.out.println("EduClassController: Getting all classes for Admin/Other.");
                 return eduClassDAO.getAll();
             }
@@ -84,7 +71,6 @@ public class EduClassController {
         }
     }
 
-    // --- Helper lấy Teacher ID (Giữ nguyên) ---
     private int getTeacherIdForUser(User user) {
         if (user != null && user.getRole() == Role.TEACHER && user.getTeacherId() != null) {
             System.out.println("EduClassController.getTeacherIdForUser: Found Teacher ID = " + user.getTeacherId());
@@ -94,7 +80,6 @@ public class EduClassController {
         return -1;
     }
 
-    // --- Lấy danh sách Course cho ComboBox (Giữ nguyên) ---
     public List<Course> getAllCoursesForSelection() {
         try {
             return courseDAO.getAll();
@@ -104,13 +89,12 @@ public class EduClassController {
         }
     }
 
-    // --- Lấy danh sách Teacher (active) cho ComboBox (Giữ nguyên) ---
     public List<Teacher> getAllTeachersForSelection() {
         try {
             List<Teacher> allTeachers = teacherDAO.getAll();
             if (allTeachers != null) {
                 return allTeachers.stream()
-                        .filter(Teacher::isActive) // Chỉ lấy giáo viên đang hoạt động
+                        .filter(Teacher::isActive)
                         .collect(Collectors.toList());
             } else {
                 return Collections.emptyList();
@@ -121,17 +105,16 @@ public class EduClassController {
         }
     }
 
-    // --- Lấy danh sách sinh viên đã ghi danh vào lớp (Giữ nguyên) ---
     public List<Student> getEnrolledStudents(int classId) {
         if (classId <= 0) return Collections.emptyList();
         try {
             EduClass eduClass = eduClassDAO.getById(classId);
             if (eduClass != null) {
                 List<Integer> studentIds = eduClass.getStudentIds();
-                if (studentIds == null || studentIds.isEmpty()) return Collections.emptyList(); // Kiểm tra null trước khi stream
+                if (studentIds == null || studentIds.isEmpty()) return Collections.emptyList();
                 return studentIds.stream()
-                        .map(studentDAO::getById) // Tham chiếu phương thức
-                        .filter(Objects::nonNull) // Dùng Objects.nonNull
+                        .map(studentDAO::getById)
+                        .filter(Objects::nonNull)
                         .collect(Collectors.toList());
             }
             return Collections.emptyList();
@@ -142,26 +125,23 @@ public class EduClassController {
         }
     }
 
-    // --- Lấy danh sách sinh viên chưa ghi danh (Giữ nguyên) ---
     public List<Student> getAvailableStudentsForEnrollment(int classId) {
         try {
             List<Student> allStudents = studentDAO.getAll();
-            if (allStudents == null) return Collections.emptyList(); // Kiểm tra null
+            if (allStudents == null) return Collections.emptyList();
 
-            if (classId <= 0) return allStudents; // Nếu classId không hợp lệ, trả về tất cả
+            if (classId <= 0) return allStudents;
 
             EduClass currentClass = eduClassDAO.getById(classId);
             if (currentClass != null) {
                 List<Integer> enrolledIds = currentClass.getStudentIds();
-                if (enrolledIds == null || enrolledIds.isEmpty()) return allStudents; // Nếu lớp chưa có ai, trả về tất cả
+                if (enrolledIds == null || enrolledIds.isEmpty()) return allStudents;
 
-                // Dùng Set để tối ưu việc kiểm tra contains
                 Set<Integer> enrolledIdSet = new HashSet<>(enrolledIds);
                 return allStudents.stream()
                         .filter(s -> !enrolledIdSet.contains(s.getStudentId()))
                         .collect(Collectors.toList());
             }
-            // Nếu không tìm thấy lớp, trả về tất cả sinh viên? Hoặc rỗng? Tùy logic
             return allStudents;
         } catch (DataAccessException e) {
             System.err.println("Error loading available students: " + e.getMessage());
@@ -169,9 +149,7 @@ public class EduClassController {
         }
     }
 
-    // --- Thêm lớp mới: SỬA ĐỂ GỌI fireClassListChanged() ---
     public boolean addEduClass(EduClass eduClass) {
-        // --- Validation: Giữ nguyên ---
         if (eduClass == null || !ValidationUtils.isNotEmpty(eduClass.getClassName()) ||
                 eduClass.getCourse() == null || eduClass.getPrimaryTeacher() == null || eduClass.getMaxCapacity() <= 0) {
             UIUtils.showWarningMessage(classPanel, "Validation Error", "Class name, course, teacher, and positive capacity are required.");
@@ -184,11 +162,11 @@ public class EduClassController {
         }
 
         try {
-            eduClassDAO.add(eduClass); // Thêm vào DAO
-            writeAddLog("Added Class", eduClass); // Ghi log
-            fireClassListChanged(); // <<< THÔNG BÁO RẰNG DANH SÁCH LỚP ĐÃ THAY ĐỔI
+            eduClassDAO.add(eduClass);
+            writeAddLog("Added Class", eduClass);
+            fireClassListChanged();
             if (classPanel != null) {
-                classPanel.refreshTable(); // Refresh bảng trong ClassPanel
+                classPanel.refreshTable();
                 UIUtils.showInfoMessage(classPanel, "Success", "Class added successfully.");
             }
             return true;
@@ -199,9 +177,7 @@ public class EduClassController {
         }
     }
 
-    // --- Cập nhật lớp: SỬA ĐỂ GỌI fireClassListChanged() ---
     public boolean updateEduClass(EduClass eduClass) {
-        // --- Validation: Giữ nguyên ---
         if (eduClass == null || eduClass.getClassId() <= 0 || !ValidationUtils.isNotEmpty(eduClass.getClassName()) ||
                 eduClass.getCourse() == null || eduClass.getPrimaryTeacher() == null || eduClass.getMaxCapacity() <= 0) {
             UIUtils.showWarningMessage(classPanel, "Validation Error", "Invalid class data for update.");
@@ -214,7 +190,6 @@ public class EduClassController {
         }
 
         try {
-            // Kiểm tra sức chứa trước khi cập nhật (Giữ nguyên)
             EduClass existingClass = eduClassDAO.getById(eduClass.getClassId());
             if (existingClass != null && existingClass.getCurrentEnrollment() > eduClass.getMaxCapacity()) {
                 UIUtils.showErrorMessage(classPanel, "Error", "Cannot update class. New maximum capacity ("
@@ -223,11 +198,11 @@ public class EduClassController {
                 return false;
             }
 
-            eduClassDAO.update(eduClass); // Cập nhật trong DAO
-            writeUpdateLog("Updated Class", eduClass); // Ghi log
-            fireClassListChanged(); // <<< THÔNG BÁO RẰNG DANH SÁCH LỚP ĐÃ THAY ĐỔI
+            eduClassDAO.update(eduClass);
+            writeUpdateLog("Updated Class", eduClass);
+            fireClassListChanged();
             if (classPanel != null) {
-                classPanel.refreshTable(); // Refresh bảng trong ClassPanel
+                classPanel.refreshTable();
                 UIUtils.showInfoMessage(classPanel, "Success", "Class updated successfully.");
             }
             return true;
@@ -238,7 +213,6 @@ public class EduClassController {
         }
     }
 
-    // --- Xóa lớp: SỬA ĐỂ GỌI fireClassListChanged() ---
     public boolean deleteEduClass(int classId) {
         if (classId <= 0) {
             UIUtils.showWarningMessage(classPanel, "Error", "Invalid class ID for deletion.");
@@ -246,28 +220,27 @@ public class EduClassController {
         }
 
         EduClass classToDelete = null;
-        String classInfoForLog = "ID: " + classId; // Lấy thông tin trước khi xóa
+        String classInfoForLog = "ID: " + classId;
 
         try {
-            // Kiểm tra ràng buộc trước khi xóa (Giữ nguyên)
             classToDelete = eduClassDAO.getById(classId);
             if (classToDelete != null) {
-                classInfoForLog = "ID: " + classId + ", Name: " + classToDelete.getClassName(); // Log tên lớp nếu tìm thấy
+                classInfoForLog = "ID: " + classId + ", Name: " + classToDelete.getClassName();
                 if (classToDelete.getCurrentEnrollment() > 0) {
                     UIUtils.showErrorMessage(classPanel, "Deletion Failed", "Cannot delete class '" + classToDelete.getClassName() + "'. There are still students enrolled.");
                     return false;
                 }
             } else {
                 UIUtils.showWarningMessage(classPanel, "Not Found", "Class with ID " + classId + " not found for deletion.");
-                return false; // Không tìm thấy lớp để xóa
+                return false;
             }
 
 
-            eduClassDAO.delete(classId); // Xóa khỏi DAO
-            writeDeleteLog("Deleted Class", classInfoForLog); // Ghi log
-            fireClassListChanged(); // <<< THÔNG BÁO RẰNG DANH SÁCH LỚP ĐÃ THAY ĐỔI
+            eduClassDAO.delete(classId);
+            writeDeleteLog("Deleted Class", classInfoForLog);
+            fireClassListChanged();
             if (classPanel != null) {
-                classPanel.refreshTable(); // Refresh bảng trong ClassPanel
+                classPanel.refreshTable();
                 UIUtils.showInfoMessage(classPanel, "Success", "Class deleted successfully.");
             }
             return true;
@@ -278,7 +251,6 @@ public class EduClassController {
         }
     }
 
-    // --- Ghi danh 1 sinh viên (Giữ nguyên) ---
     public boolean enrollStudent(int classId, int studentId) {
         if (classId <= 0 || studentId <= 0) {
             UIUtils.showWarningMessage(classPanel, "Error", "Invalid class or student ID for enrollment.");
@@ -286,11 +258,10 @@ public class EduClassController {
         }
         try {
             eduClassDAO.addStudentToClass(classId, studentId);
-            // Ghi log
             writeEnrollmentLog("Enrolled Student", classId, List.of(studentId));
             if(classPanel != null) {
                 classPanel.refreshStudentListForSelectedClass();
-                classPanel.refreshTable(); // Refresh cả bảng Class để cập nhật số lượng
+                classPanel.refreshTable();
                 UIUtils.showInfoMessage(classPanel, "Success", "Student enrolled successfully.");
             }
             return true;
@@ -301,7 +272,6 @@ public class EduClassController {
         }
     }
 
-    // --- Hủy ghi danh 1 sinh viên (Giữ nguyên) ---
     public boolean unenrollStudent(int classId, int studentId) {
         if (classId <= 0 || studentId <= 0) {
             UIUtils.showWarningMessage(classPanel, "Error", "Invalid class or student ID for unenrolling.");
@@ -309,11 +279,10 @@ public class EduClassController {
         }
         try {
             eduClassDAO.removeStudentFromClass(classId, studentId);
-            // Ghi log
             writeEnrollmentLog("Unenrolled Student", classId, List.of(studentId));
             if(classPanel != null) {
                 classPanel.refreshStudentListForSelectedClass();
-                classPanel.refreshTable(); // Refresh cả bảng Class để cập nhật số lượng
+                classPanel.refreshTable();
                 UIUtils.showInfoMessage(classPanel, "Success", "Student unenrolled successfully.");
             }
             return true;
@@ -324,7 +293,6 @@ public class EduClassController {
         }
     }
 
-    // --- Lấy thông tin lớp theo ID (Giữ nguyên) ---
     public EduClass getEduClassById(int classId) {
         if (classId <= 0) return null;
         try {
@@ -335,7 +303,6 @@ public class EduClassController {
         }
     }
 
-    // --- Ghi danh nhiều sinh viên (Giữ nguyên) ---
     public boolean enrollStudents(int classId, List<Integer> studentIds) {
         if (classId <= 0 || studentIds == null || studentIds.isEmpty()) {
             UIUtils.showWarningMessage(classPanel, "Error", "Invalid class or student IDs for enrollment.");
@@ -373,7 +340,7 @@ public class EduClassController {
                 System.err.println("Error enrolling multiple students: " + e.getMessage());
             }
             if (successCount > 0) {
-                writeEnrollmentLog("Enrolled Multiple Students", classId, studentIds.subList(0, successCount)); // Log những ID thực sự có thể đã được thêm (ước lượng)
+                writeEnrollmentLog("Enrolled Multiple Students", classId, studentIds.subList(0, successCount));
             }
             if(classPanel != null) {
                 classPanel.refreshStudentListForSelectedClass();
@@ -394,7 +361,6 @@ public class EduClassController {
         }
     }
 
-    // --- Hủy ghi danh nhiều sinh viên (Giữ nguyên) ---
     public boolean unenrollStudents(int classId, List<Integer> studentIds) {
         if (classId <= 0 || studentIds == null || studentIds.isEmpty()) {
             UIUtils.showWarningMessage(classPanel, "Error", "Invalid class or student IDs for unenrolling.");
@@ -407,7 +373,7 @@ public class EduClassController {
         try {
             int removedCount = eduClassDAO.removeStudentsFromClass(classId, studentIds);
             successCount = removedCount;
-            performedUnenroll = true; // Đánh dấu đã thực hiện hành động
+            performedUnenroll = true;
             if (removedCount != studentIds.size()) {
                 errors.add("Some students might not have been unenrolled (e.g., not found in class).");
             }
@@ -415,11 +381,9 @@ public class EduClassController {
             errors.add("Failed to unenroll students: " + e.getMessage());
             System.err.println("Error unenrolling multiple students: " + e.getMessage());
         }
-        // Luôn ghi log hành động đã được thực hiện
         if(performedUnenroll) {
-            writeEnrollmentLog("Unenrolled Multiple Students", classId, studentIds); // Log tất cả ID đã yêu cầu xóa
+            writeEnrollmentLog("Unenrolled Multiple Students", classId, studentIds);
         }
-        // Refresh và thông báo
         if(classPanel != null) {
             classPanel.refreshStudentListForSelectedClass();
             classPanel.refreshTable();
@@ -430,10 +394,9 @@ public class EduClassController {
             String errorMsg = successCount + " student(s) unenrolled. \nErrors encountered:\n" + String.join("\n", errors);
             UIUtils.showWarningMessage(classPanel, "Partial Success/Errors", errorMsg);
         }
-        return successCount > 0; // Trả về true nếu ít nhất 1 người bị xóa
+        return successCount > 0;
     }
 
-    // --- Các hàm ghi log (Giữ nguyên) ---
     private void writeAddLog(String action, EduClass eduClass) {
         String details = String.format("ID: %d, Name: %s, CourseID: %d, TeacherID: %d, Cap: %d",
                 eduClass.getClassId(), eduClass.getClassName(),
@@ -482,40 +445,23 @@ public class EduClassController {
         }
     }
 
-    // --- Các phương thức quản lý Listener (THÊM MỚI hoặc SỬA LẠI) ---
-    /**
-     * Thêm một listener để nhận thông báo khi danh sách lớp có thể đã thay đổi.
-     * @param listener Listener cần thêm.
-     */
     public void addClassListChangeListener(ClassListChangeListener listener) {
         listenerList.add(ClassListChangeListener.class, listener);
         System.out.println("EduClassController: Listener added: " + listener.getClass().getName());
     }
 
-    /**
-     * Xóa một listener đã đăng ký.
-     * @param listener Listener cần xóa.
-     */
     public void removeClassListChangeListener(ClassListChangeListener listener) {
         listenerList.remove(ClassListChangeListener.class, listener);
         System.out.println("EduClassController: Listener removed: " + listener.getClass().getName());
     }
 
-    /**
-     * Thông báo cho tất cả các listener đã đăng ký rằng danh sách lớp đã thay đổi.
-     * Phương thức này nên được gọi sau khi thêm, sửa, hoặc xóa lớp thành công.
-     */
     protected void fireClassListChanged() {
         Object[] listeners = listenerList.getListenerList();
-        // Duyệt ngược để an toàn nếu listener tự hủy đăng ký trong lúc xử lý
         for (int i = listeners.length - 2; i >= 0; i -= 2) {
             if (listeners[i] == ClassListChangeListener.class) {
                 System.out.println("EduClassController: Notifying ClassListChangeListener.");
-                // Gọi phương thức của listener
                 ((ClassListChangeListener) listeners[i + 1]).classListChanged();
             }
         }
     }
-    // <<< BỎ PHƯƠNG THỨC cleanup() KHỎI ĐÂY >>>
-    // Hàm cleanup() phải nằm trong EducationController (nơi implement listener)
 }

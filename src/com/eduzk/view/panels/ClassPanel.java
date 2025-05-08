@@ -82,7 +82,7 @@ public class ClassPanel extends JPanel {
 
         // --- Buttons ---
         int iconSize = 20;
-        addClassButton = new JButton("Add Class"); // Bỏ icon khỏi constructor
+        addClassButton = new JButton("Add Class");
         Icon addIcon = loadSVGIconButton("/icons/add.svg", iconSize);
         if (addIcon != null) addClassButton.setIcon(addIcon);
 
@@ -121,7 +121,7 @@ public class ClassPanel extends JPanel {
         leftPanel.add(classActionPanel, BorderLayout.NORTH);
         JScrollPane classScrollPane = new JScrollPane(classTable);
         leftPanel.add(classScrollPane, BorderLayout.CENTER);
-        leftPanel.setMinimumSize(new Dimension(400, 200)); // Ensure left panel is reasonably sized
+        leftPanel.setMinimumSize(new Dimension(400, 200));
 
         // --- Right Panel (Student List and Actions) ---
         JPanel studentActionPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
@@ -130,16 +130,16 @@ public class ClassPanel extends JPanel {
 
         JPanel rightPanel = new JPanel(new BorderLayout(0, 5));
         rightPanel.setBorder(BorderFactory.createTitledBorder("Enrolled Students"));
-        rightPanel.add(selectedClassLabel, BorderLayout.NORTH); // Show which class is selected
+        rightPanel.add(selectedClassLabel, BorderLayout.NORTH);
         JScrollPane studentScrollPane = new JScrollPane(enrolledStudentTable);
         rightPanel.add(studentScrollPane, BorderLayout.CENTER);
         rightPanel.add(studentActionPanel, BorderLayout.SOUTH);
-        rightPanel.setMinimumSize(new Dimension(300, 200)); // Ensure right panel is reasonably sized
+        rightPanel.setMinimumSize(new Dimension(300, 200));
 
         // --- Split Pane ---
         splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftPanel, rightPanel);
-        splitPane.setDividerLocation(600); // Initial divider position
-        splitPane.setResizeWeight(0.6); // Give more weight to the left panel on resize
+        splitPane.setDividerLocation(600);
+        splitPane.setResizeWeight(0.6);
 
         add(splitPane, BorderLayout.CENTER);
     }
@@ -147,7 +147,6 @@ public class ClassPanel extends JPanel {
     private void setupActions() {
         // --- Class Actions ---
         addClassButton.addActionListener(e -> openClassDialog(null));
-
         editClassButton.addActionListener(e -> {
             int selectedRow = classTable.getSelectedRow();
             if (selectedRow >= 0) {
@@ -181,7 +180,6 @@ public class ClassPanel extends JPanel {
             }
         });
 
-        // --- Student Enrollment Actions ---
         enrollStudentButton.addActionListener(e -> enrollMultipleStudentsAction());
         unenrollStudentButton.addActionListener(e -> unenrollMultipleStudentsAction());
         refreshButton.addActionListener(e -> {
@@ -190,7 +188,6 @@ public class ClassPanel extends JPanel {
             UIUtils.showInfoMessage(this,"Refreshed", "Class list updated."); // Thông báo (tùy chọn)
         });
 
-        // --- Table Selection Listener ---
         classTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
             @Override
             public void valueChanged(ListSelectionEvent e) {
@@ -228,7 +225,6 @@ public class ClassPanel extends JPanel {
         unenrollStudentButton.setEnabled(classSelected && studentSelected);
     }
 
-    // --- HÀM MỚI CHO VIỆC ENROLL NHIỀU HỌC SINH ---
     private void enrollMultipleStudentsAction() {
         int selectedClassRow = classTable.getSelectedRow();
         if (selectedClassRow < 0) {
@@ -239,11 +235,9 @@ public class ClassPanel extends JPanel {
         EduClass selectedClass = controller.getEduClassById(classId);
         if (selectedClass == null) return;
 
-        // Lấy danh sách học sinh có thể enroll
         List<Student> availableStudents = controller.getAvailableStudentsForEnrollment(classId);
         if (availableStudents.isEmpty()) {  return; }
 
-        // --- Tạo JList cho phép chọn nhiều ---
         DefaultListModel<Student> listModel = new DefaultListModel<>();
         availableStudents.forEach(listModel::addElement);
         JList<Student> studentList = new JList<>(listModel);
@@ -265,7 +259,6 @@ public class ClassPanel extends JPanel {
         JScrollPane listScrollPane = new JScrollPane(studentList);
         listScrollPane.setPreferredSize(new Dimension(350, 250));
 
-        // Hiển thị dialog
         int result = JOptionPane.showConfirmDialog(this, listScrollPane, "Select Student(s) to Enroll",
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
@@ -280,7 +273,6 @@ public class ClassPanel extends JPanel {
                                     remainingCapacity + " spot(s) remaining in class '" + selectedClass.getClassName() + "'.");
                     return;
                 }
-                // Lấy danh sách ID của học sinh được chọn
                 List<Integer> studentIdsToEnroll = selectedStudents.stream()
                         .map(Student::getStudentId)
                         .collect(Collectors.toList());
@@ -291,7 +283,6 @@ public class ClassPanel extends JPanel {
         }
     }
 
-    // --- HÀM MỚI CHO VIỆC UNENROLL NHIỀU HỌC SINH ---
     private void unenrollMultipleStudentsAction() {
         int selectedClassRow = classTable.getSelectedRow();
         int[] selectedStudentViewRows = enrolledStudentTable.getSelectedRows();

@@ -104,7 +104,7 @@ public class AssignmentDAOImpl extends BaseDAO<Assignment> implements IAssignmen
                 existing.setTitle(assignment.getTitle());
                 existing.setDescription(assignment.getDescription());
                 existing.setDueDateTime(assignment.getDueDateTime());
-                existing.touch();
+                existing.touch(); // Update the 'updatedAt' timestamp
                 saveData();
                 System.out.println("Updated assignment: ID=" + assignment.getAssignmentId());
             } else {
@@ -125,24 +125,6 @@ public class AssignmentDAOImpl extends BaseDAO<Assignment> implements IAssignmen
                 System.out.println("Deleted assignment: ID=" + id);
             } else {
                 throw new DataAccessException("Assignment with ID " + id + " not found for deletion.");
-            }
-        } finally {
-            lock.writeLock().unlock();
-        }
-    }
-
-    @Override
-    public void deleteByClassId(int classId) throws DataAccessException {
-        lock.writeLock().lock();
-        try {
-            long initialSize = dataList.size();
-            boolean changed = dataList.removeIf(a -> a.getEduClassId() == classId);
-            if (changed) {
-                saveData();
-                long finalSize = dataList.size();
-                System.out.println("Deleted " + (initialSize - finalSize) + " assignments for class ID: " + classId);
-            } else {
-                System.out.println("No assignments found to delete for class ID: " + classId);
             }
         } finally {
             lock.writeLock().unlock();

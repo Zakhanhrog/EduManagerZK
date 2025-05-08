@@ -38,7 +38,6 @@ public class StudentPanel extends JPanel {
         setupActions();
     }
 
-    // Method to set the controller after instantiation (used by MainView)
     public void setController(StudentController controller) {
         this.controller = controller;
         refreshTable();
@@ -50,14 +49,13 @@ public class StudentPanel extends JPanel {
                 new Object[]{"ID", "Full Name", "DOB", "Gender", "Phone", "Email", "Parent"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Make table cells non-editable by default
+                return false;
             }
         };
         studentTable = new JTable(tableModel);
         studentTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         studentTable.setAutoCreateRowSorter(true);
         sorter = (TableRowSorter<DefaultTableModel>) studentTable.getRowSorter();
-
 
         // Buttons
         int iconSize = 20;
@@ -113,7 +111,6 @@ public class StudentPanel extends JPanel {
 
         add(topPanel, BorderLayout.NORTH);
 
-        // Center Panel (Table)
         JScrollPane scrollPane = new JScrollPane(studentTable);
         add(scrollPane, BorderLayout.CENTER);
     }
@@ -166,7 +163,6 @@ public class StudentPanel extends JPanel {
                 confirmationMessage = "Are you sure you want to delete these " + idsToDelete.size() + " students?\n"
                         + "(IDs: " + idsToDelete.toString() + ")";
             }
-            // Hiển thị hộp thoại xác nhận
             if (UIUtils.showConfirmDialog(this, "Confirm Deletion", confirmationMessage)) {
                 if (controller != null) {
                     System.out.println("Requesting deletion for student IDs: " + idsToDelete);
@@ -182,13 +178,13 @@ public class StudentPanel extends JPanel {
         // --- 4. THÊM ACTIONLISTENER CHO REFRESH BUTTON ---
         refreshButton.addActionListener(e -> {
             System.out.println("StudentPanel: Refresh button clicked.");
-            refreshTable(); // Gọi lại chính phương thức refresh của panel này
-            UIUtils.showInfoMessage(this,"Refreshed", "Student list updated."); // Thông báo (tùy chọn)
+            refreshTable();
+            UIUtils.showInfoMessage(this,"Refreshed", "Student list updated.");
         });
 
         importButton.addActionListener(e -> {
             if (controller != null) {
-                controller.importStudentsFromExcel(); // Gọi hàm mới trong controller
+                controller.importStudentsFromExcel();
             } else {
                 UIUtils.showErrorMessage(this, "Error", "Student Controller not available.");
             }
@@ -278,11 +274,11 @@ public class StudentPanel extends JPanel {
         if (addButton != null) addButton.setVisible(canModify);
         if (editButton != null) editButton.setVisible(canModify);
         if (deleteButton != null) deleteButton.setVisible(canModify);
-        if (importButton != null) importButton.setVisible(canModify); // Teacher cũng có thể import? (Nếu đúng yêu cầu)
+        if (importButton != null) importButton.setVisible(canModify);
 
         // Các nút khác như Search, Refresh có thể luôn hiển thị
         if (importButton != null) importButton.setVisible(canImport);
-        if (searchButton != null) searchButton.setVisible(true); // Hoặc setEnabled
+        if (searchButton != null) searchButton.setVisible(true);
         if (searchField != null) searchField.setVisible(true);
         if (refreshButton != null) refreshButton.setVisible(true);
     }

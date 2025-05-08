@@ -41,7 +41,7 @@
         private Role currentUserRole;
         private JSplitPane splitPane;
         private JPanel leftPanel;
-        private JPanel rightPanel; // Will use CardLayout
+        private JPanel rightPanel;
         private JTree classTree;
         private DefaultTreeModel treeModel;
         private DefaultMutableTreeNode mainRootNode;
@@ -49,21 +49,21 @@
         private DefaultMutableTreeNode assignmentsNode;
         private JScrollPane treeScrollPane;
         private Icon resultsRootIcon;
-        private Icon assignmentIcon; // Icon for Assignment node in tree
-        private JPanel gradePanel; // Panel to hold grade components within CardLayout
+        private Icon assignmentIcon;
+        private JPanel gradePanel;
         private JTable gradeTable;
         private DefaultTableModel gradeTableModel;
         private JScrollPane gradeTableScrollPane;
-        private JButton exportButton; // Export Grades
-        private JLabel selectedClassLabel; // Label for selected class in Grade view
-        private boolean isEditing = false; // Grade editing mode flag
-        private JButton editButton; // Edit Grades
-        private JButton cancelButton; // Cancel Grade edits
-        private JButton saveChangesButton; // Save Grade changes
-        private boolean hasPendingChanges = false; // Grade changes pending flag
+        private JButton exportButton;
+        private JLabel selectedClassLabel;
+        private boolean isEditing = false;
+        private JButton editButton;
+        private JButton cancelButton;
+        private JButton saveChangesButton;
+        private boolean hasPendingChanges = false;
         private JPanel gradeButtonPanel;
         private JPanel topOfGradePanel;
-        private JPanel assignmentManagementPanel; // Panel to hold assignment components within CardLayout
+        private JPanel assignmentManagementPanel;
         private JComboBox<EduClass> assignmentClassComboBox;
         private JTable assignmentTable;
         private DefaultTableModel assignmentTableModel;
@@ -73,11 +73,11 @@
         private JButton deleteAssignmentButton;
         private JPanel assignmentButtonPanel;
         private JPanel assignmentTopPanel;
-        private JPanel comboPanel; // Panel for combobox label + combobox
+        private JPanel comboPanel;
         private JPanel placeholderPanel;
         private JLabel placeholderLabel;
         private CardLayout rightPanelLayout;
-        private DefaultMutableTreeNode achievementNode; // Node mới cho danh hiệu
+        private DefaultMutableTreeNode achievementNode;
         private JPanel achievementDisplayPanel;
         private static final String GRADE_PANEL_CARD = "Grades";
         private static final String ASSIGNMENT_PANEL_CARD = "Assignments";
@@ -93,7 +93,7 @@
         private javax.swing.Timer assignmentStatusTimer;
         private final int STATUS_COLUMN_INDEX = 4;
         private List<Assignment> currentlyDisplayedAssignmentsInPanel;
-        private JPanel studentInfoPanel; // Panel để chứa các label thông tin
+        private JPanel studentInfoPanel;
         private JLabel studentNameLabel;
         private JLabel studentIdLabel;
         private JLabel studentDobLabel;
@@ -905,98 +905,78 @@
             this.currentUserRole = userRole;
             System.out.println("EducationPanel: Configuring controls for role: " + userRole);
 
-            // --- B1: Kiểm tra các component cốt lõi đã được khởi tạo chưa ---
             if (splitPane == null || leftPanel == null || rightPanel == null ||
                     gradeTable == null || gradePanel == null || gradeTableScrollPane == null ||
                     studentInfoPanel == null || topOfGradePanel == null || assignmentTopPanel == null ||
-                    controller == null || treeModel == null || mainRootNode == null) { // Thêm các kiểm tra cần thiết
-
+                    controller == null || treeModel == null || mainRootNode == null) {
                 System.err.println("EducationPanel: Core components or controller not fully initialized in configureControlsForRole. Aborting configuration.");
-                // Hiển thị thông báo lỗi hoặc trạng thái không khả dụng
-                this.removeAll(); // Xóa hết component con hiện tại
+                this.removeAll();
                 this.add(new JLabel("Error: Education Panel components failed to initialize.", SwingConstants.CENTER));
                 this.revalidate();
                 this.repaint();
-                return; // Không thực hiện tiếp nếu thiếu component
+                return;
             }
-            // --- Kết thúc B1 ---
 
             boolean isPrivilegedUser = (userRole == Role.ADMIN || userRole == Role.TEACHER);
 
-            // --- B2: Cấu hình hiển thị chung cho SplitPane và Left Panel (luôn hiển thị) ---
             leftPanel.setVisible(true);
             if (splitPane.getLeftComponent() != leftPanel) {
                 splitPane.setLeftComponent(leftPanel);
             }
             splitPane.setDividerSize(8);
             splitPane.setVisible(true);
-            // Đảm bảo splitPane là component gốc của EducationPanel
             if (this.getComponentCount() == 0 || !(this.getComponent(0) instanceof JSplitPane)) {
                 this.removeAll();
                 this.add(splitPane, BorderLayout.CENTER);
             }
-            // --- Kết thúc B2 ---
-
-            // --- B3: Lấy hoặc tạo panel trung tâm trong gradePanel ---
-            // Panel này sẽ chứa studentInfoPanel (cho Student) và gradeTableScrollPane
             JPanel centerContentPanel;
             Component centerComponent = null;
-            // gradePanel dùng BorderLayout, component trung tâm thường ở index 1 (sau topOfGradePanel ở NORTH)
             if (gradePanel.getComponentCount() > 1) {
                 centerComponent = gradePanel.getComponent(1);
             }
 
             if (centerComponent instanceof JPanel) {
                 centerContentPanel = (JPanel) centerComponent;
-                // Đảm bảo nó dùng BorderLayout để xếp chồng info và table
                 if (!(centerContentPanel.getLayout() instanceof BorderLayout)) {
                     centerContentPanel.setLayout(new BorderLayout(5, 10));
                 }
             } else {
-                // Nếu không có hoặc không đúng loại, tạo mới và thêm vào gradePanel
                 System.out.println("Creating/Re-adding centerContentPanel inside gradePanel.");
                 if (centerComponent != null) {
-                    gradePanel.remove(centerComponent); // Xóa component cũ nếu có
+                    gradePanel.remove(centerComponent);
                 }
                 centerContentPanel = new JPanel(new BorderLayout(5, 10));
-                gradePanel.add(centerContentPanel, BorderLayout.CENTER); // Thêm vào vị trí trung tâm
+                gradePanel.add(centerContentPanel, BorderLayout.CENTER);
             }
-            centerContentPanel.removeAll(); // Luôn xóa nội dung cũ của panel trung tâm
-            // --- Kết thúc B3 ---
+            centerContentPanel.removeAll();
 
             TableColumnModel columnModel = gradeTable.getColumnModel();
 
-            // --- B4: Cấu hình chi tiết dựa trên vai trò ---
-            if (isPrivilegedUser) { // ---- Cấu hình cho ADMIN / TEACHER ----
-                reloadClassTree();          // Tải lại cây thư mục đầy đủ
-                handleTreeNodeSelection(null); // Chọn node mặc định (placeholder)
-                studentInfoPanel.setVisible(false); // Ẩn panel thông tin cá nhân
+            if (isPrivilegedUser) {
+                reloadClassTree();
+                handleTreeNodeSelection(null);
+                studentInfoPanel.setVisible(false);
 
-                // -- Cấu hình lại bảng điểm về trạng thái mặc định --
-                gradeTable.setTableHeader(gradeTable.getTableHeader()); // Đảm bảo header hiển thị
-                gradeTable.setShowGrid(true);                           // Hiển thị đường kẻ ô
-                gradeTableScrollPane.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY)); // Border mặc định
+                gradeTable.setTableHeader(gradeTable.getTableHeader());
+                gradeTable.setShowGrid(true);
+                gradeTableScrollPane.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY));
 
                 gradeTable.setOpaque(true);
                 gradeTableScrollPane.setOpaque(true);
                 gradeTableScrollPane.getViewport().setOpaque(true);
-                // -- Thêm lại các cột đã ẩn (STT, Tên HS) nếu cần --
                 boolean columnsRestored = false;
-                // Thêm lại cột Tên HS nếu chưa có và đã lưu
                 if (studentNameColumnHolder != null && getColumnIndexFromView("Tên HS") == -1) {
                     try {
                         columnModel.addColumn(studentNameColumnHolder);
                         columnsRestored = true;
                     } catch (Exception e) {System.err.println("Error re-adding 'Tên HS' column: " + e);}
                 }
-                // Thêm lại cột STT nếu chưa có và đã lưu
                 if (sttColumnHolder != null && getColumnIndexFromView("STT") == -1) {
                     try {
                         columnModel.addColumn(sttColumnHolder);
                         columnsRestored = true;
                     } catch (Exception e) {System.err.println("Error re-adding 'STT' column: " + e);}
                 }
-                // Di chuyển các cột về đúng vị trí nếu đã thêm lại
                 if (columnsRestored) {
                     try {
                         int currentSttIdx = getColumnIndexFromView("STT");
@@ -1004,49 +984,40 @@
                             columnModel.moveColumn(currentSttIdx, STT_ORIGINAL_INDEX);
                         }
                         int currentNameIdx = getColumnIndexFromView("Tên HS");
-                        // Index của Tên HS phải được kiểm tra sau khi STT đã về đúng vị trí (nếu có)
                         if(currentNameIdx != -1 && currentNameIdx != STUDENT_NAME_ORIGINAL_INDEX) {
                             columnModel.moveColumn(currentNameIdx, STUDENT_NAME_ORIGINAL_INDEX);
                         }
                         System.out.println("Columns restored and reordered for Admin/Teacher view.");
-                        setColumnWidths(); // Đặt lại độ rộng các cột
+                        setColumnWidths();
                     } catch (Exception e) {
                         System.err.println("Error moving restored columns: " + e.getMessage());
                     }
-                    // Xóa tham chiếu sau khi thêm lại thành công
                     sttColumnHolder = null;
                     studentNameColumnHolder = null;
                 }
-                // -- Kết thúc thêm lại cột --
 
-                // Thêm bảng điểm vào panel trung tâm
                 centerContentPanel.add(gradeTableScrollPane, BorderLayout.CENTER);
 
-                // Hiển thị các nút và panel điều khiển của Admin/Teacher
                 topOfGradePanel.setVisible(true);
                 assignmentTopPanel.setVisible(true);
-                gradePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5)); // Padding mặc định
+                gradePanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
                 achievementTitleLabel.setVisible(false);
-            } else if (userRole == Role.STUDENT) { // ---- Cấu hình cho STUDENT ----
-                reloadClassTree();          // Tải lại cây (chỉ có node gốc)
-                handleTreeNodeSelection(null); // Chọn node "Info & Results", sẽ tải data HS
+            } else if (userRole == Role.STUDENT) {
+                reloadClassTree();
+                handleTreeNodeSelection(null);
 
-                // -- Hiển thị panel thông tin cá nhân --
                 studentInfoPanel.setVisible(true);
-                centerContentPanel.add(studentInfoPanel, BorderLayout.NORTH); // Đặt thông tin lên trên
+                centerContentPanel.add(studentInfoPanel, BorderLayout.NORTH);
 
                 // -- Cấu hình bảng điểm cho Student --
-                gradeTable.setTableHeader(gradeTable.getTableHeader()); // VẪN GIỮ HEADER
-                gradeTable.setShowGrid(false);                           // KHÔNG hiển thị lưới
-                gradeTableScrollPane.setBorder(BorderFactory.createTitledBorder("Kết quả học tập")); // Đặt tiêu đề
-
-                gradeTable.setOpaque(false);                       // Làm bảng trong suốt
-                gradeTableScrollPane.setOpaque(false);            // Làm scroll pane trong suốt
+                gradeTable.setTableHeader(gradeTable.getTableHeader());
+                gradeTable.setShowGrid(false);
+                gradeTableScrollPane.setBorder(BorderFactory.createTitledBorder("Kết quả học tập"));
+                gradeTable.setOpaque(false);
+                gradeTableScrollPane.setOpaque(false);
                 gradeTableScrollPane.getViewport().setOpaque(false);
 
-                // -- Ẩn cột STT và Tên HS --
-                // Chỉ ẩn nếu cột chưa được lưu trữ (tránh lỗi khi gọi lại)
                 if (sttColumnHolder == null) {
                     int sttViewIndex = getColumnIndexFromView("STT");
                     if (sttViewIndex != -1) {
@@ -1058,7 +1029,7 @@
                     }
                 }
                 if (studentNameColumnHolder == null) {
-                    int studentNameViewIndex = getColumnIndexFromView("Tên HS"); // Lấy index Tên HS *sau khi* STT có thể đã bị xóa
+                    int studentNameViewIndex = getColumnIndexFromView("Tên HS");
                     if (studentNameViewIndex != -1) {
                         try {
                             studentNameColumnHolder = columnModel.getColumn(studentNameViewIndex);
@@ -1067,26 +1038,20 @@
                         } catch (Exception e) { System.err.println("Error removing Tên HS column: " + e); studentNameColumnHolder = null; }
                     }
                 }
-                // -- Kết thúc ẩn cột --
-
-                // Thêm bảng điểm đã tùy chỉnh vào panel trung tâm
                 centerContentPanel.add(gradeTableScrollPane, BorderLayout.CENTER);
 
-                // Ẩn các nút và panel điều khiển của Admin/Teacher
                 topOfGradePanel.setVisible(false);
                 assignmentTopPanel.setVisible(false);
-                gradePanel.setBorder(null); // Bỏ border của gradePanel
+                gradePanel.setBorder(null);
 
-            } else { // ---- KHÔNG CÓ QUYỀN ----
+            } else {
                 splitPane.setVisible(false);
                 this.removeAll();
                 this.add(new JLabel("Access Restricted.", SwingConstants.CENTER));
-                studentInfoPanel.setVisible(false); // Đảm bảo panel info cũng bị ẩn
+                studentInfoPanel.setVisible(false);
                 achievementTitleLabel.setVisible(false);
             }
-            // --- Kết thúc B4 ---
 
-            // --- B5: Reset trạng thái các nút chung ---
             editButton.setEnabled(false);
             cancelButton.setVisible(false);
             saveChangesButton.setVisible(false);
@@ -1095,7 +1060,6 @@
             editAssignmentButton.setEnabled(false);
             deleteAssignmentButton.setEnabled(false);
 
-            // --- B6: Cập nhật giao diện ---
             centerContentPanel.revalidate();
             centerContentPanel.repaint();
             gradePanel.revalidate();
@@ -1336,7 +1300,7 @@
             if (assignmentStatusTimer != null && !assignmentStatusTimer.isRunning() && assignments != null && !assignments.isEmpty()) {
                 assignmentStatusTimer.start();
             } else if (assignmentStatusTimer != null && assignmentStatusTimer.isRunning() && (assignments == null || assignments.isEmpty())) {
-                assignmentStatusTimer.stop(); // Dừng nếu không có bài tập
+                assignmentStatusTimer.stop();
             }
         }
 
@@ -1417,7 +1381,7 @@
                         String nodeText = (String) userObject;
                         label.setText(nodeText);
 
-                        if ("Info & Results".equals(nodeText) || "Results & reviews".equals(nodeText)) { // Kiểm tra cả hai tên
+                        if ("Info & Results".equals(nodeText) || "Results & reviews".equals(nodeText)) {
                             label.setIcon(specificResultsIcon != null ? specificResultsIcon : (expanded ? defaultOpenIcon : defaultClosedIcon));
                         } else if (("Academic Achievements".equals(nodeText) || "Học lực học tập".equals(nodeText)) && achievementTreeIcon != null) { // Kiểm tra cả hai tên có thể có
                             label.setIcon(achievementTreeIcon);

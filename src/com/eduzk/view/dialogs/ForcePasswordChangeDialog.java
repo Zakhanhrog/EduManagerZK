@@ -7,7 +7,6 @@ import com.eduzk.utils.ValidationUtils;
 import com.formdev.flatlaf.FlatClientProperties;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
@@ -26,7 +25,6 @@ public class ForcePasswordChangeDialog extends JDialog {
     public ForcePasswordChangeDialog(Frame owner, AuthController authController, User userToUpdate) {
         super(owner, "Change Initial Password", true);
 
-        // --- Input Validation ---
         if (authController == null) {
             throw new IllegalArgumentException("AuthController cannot be null.");
         }
@@ -62,13 +60,11 @@ public class ForcePasswordChangeDialog extends JDialog {
         errorLabel.setForeground(UIManager.getColor("Label.errorForeground"));
         errorLabel.setHorizontalAlignment(SwingConstants.CENTER);
         errorLabel.setFont(errorLabel.getFont().deriveFont(Font.ITALIC));
-
         newPasswordField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Enter new password (min 6 chars)");
         confirmPasswordField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Confirm new password");
         newPasswordField.putClientProperty(FlatClientProperties.STYLE, "showRevealButton: true");
         confirmPasswordField.putClientProperty(FlatClientProperties.STYLE, "showRevealButton: true");
         changeButton.putClientProperty(FlatClientProperties.BUTTON_TYPE, "primary");
-        // ----------------------------------------------------------------------------
     }
 
     private void setupLayout() {
@@ -80,13 +76,12 @@ public class ForcePasswordChangeDialog extends JDialog {
         gbc.gridy = 0;
         gbc.gridwidth = 2;
         gbc.anchor = GridBagConstraints.CENTER;
-        gbc.fill = GridBagConstraints.HORIZONTAL; // Allow horizontal expansion
-        gbc.insets = new Insets(5, 5, 15, 5); // Top, left, bottom, right padding
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(5, 5, 15, 5);
 
         // Add Message Label
         mainPanel.add(messageLabel, gbc);
 
-        // --- New Password Row ---
         gbc.gridy++;
         gbc.gridwidth = 1; // Reset to one column
         gbc.anchor = GridBagConstraints.LINE_END;
@@ -126,7 +121,6 @@ public class ForcePasswordChangeDialog extends JDialog {
         gbc.fill = GridBagConstraints.NONE;
         gbc.insets = new Insets(10, 5, 0, 5);
 
-        // Use a standard FlowLayout for the button panel for easy centering
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
         buttonPanel.add(cancelButton);
         buttonPanel.add(changeButton);
@@ -135,11 +129,8 @@ public class ForcePasswordChangeDialog extends JDialog {
         this.setContentPane(mainPanel);
     }
     private void setupActions() {
-        // Action for the "Change Password" button
         changeButton.addActionListener(e -> performPasswordChange());
-        // Allow pressing Enter in the confirm password field to trigger the change
         confirmPasswordField.addActionListener(e -> performPasswordChange());
-        // Action for the "Cancel" button - simply close the dialog
         cancelButton.addActionListener(e -> dispose());
         setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
@@ -155,13 +146,12 @@ public class ForcePasswordChangeDialog extends JDialog {
         errorLabel.setText(" ");
         String newPassword = new String(newPasswordField.getPassword());
         String confirmPassword = new String(confirmPasswordField.getPassword());
-        // --- Input Validation ---
         if (!ValidationUtils.isNotEmpty(newPassword) || !ValidationUtils.isNotEmpty(confirmPassword)) {
             errorLabel.setText("Please enter and confirm the new password.");
              UIUtils.showWarningMessage(this, "Input Required", "Please enter and confirm the new password."); // Alternative
             return;
         }
-        if (!ValidationUtils.isValidPassword(newPassword)) { // Use your existing validation logic
+        if (!ValidationUtils.isValidPassword(newPassword)) {
             errorLabel.setText("Password must be at least 6 characters long.");
              UIUtils.showWarningMessage(this, "Invalid Password", "Password must be at least 6 characters long.");
             return;

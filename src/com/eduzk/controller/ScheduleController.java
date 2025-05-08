@@ -46,24 +46,21 @@ public class ScheduleController {
     }
     public List<Schedule> getSchedulesByDateRange(LocalDate start, LocalDate end) {
         if (start == null || end == null || end.isBefore(start)) {
-            // Default to today or a week? Handle invalid range.
             UIUtils.showWarningMessage(schedulePanel,"Invalid Range", "Please provide a valid date range.");
             return Collections.emptyList();
         }
         try {
             if (currentUser != null && currentUser.getRole() == Role.TEACHER) {
-                int teacherId = getTeacherIdForUser(currentUser); // Gọi hàm helper
+                int teacherId = getTeacherIdForUser(currentUser);
                 if (teacherId > 0) {
                     System.out.println("ScheduleController: Filtering schedule for Teacher ID: " + teacherId);
-                    // Gọi DAO để lọc theo teacherId và khoảng ngày
                     return scheduleDAO.findByTeacherId(teacherId, start, end);
                 } else {
                     System.err.println("ScheduleController: Could not determine Teacher ID for logged in user. Returning empty schedule.");
                     return Collections.emptyList();
                 }
-            } else { // Admin hoặc vai trò khác (hoặc chưa đăng nhập)
+            } else {
                 System.out.println("ScheduleController: Getting all schedules in range for Admin/Other.");
-                // Lấy tất cả schedule trong khoảng ngày
                 return scheduleDAO.findByDateRange(start, end);
             }
         } catch (DataAccessException e) {
@@ -115,7 +112,7 @@ public class ScheduleController {
             List<Room> allRooms = roomDAO.getAll();
             if (allRooms != null) {
                 return allRooms.stream()
-                        .filter(Room::isAvailable) // Lọc Room available
+                        .filter(Room::isAvailable)
                         .collect(Collectors.toList());
             } else {
                 return Collections.emptyList();
@@ -237,9 +234,8 @@ public class ScheduleController {
         Schedule scheduleToDelete = null;
         String scheduleInfoForLog = "ID: " + scheduleId;
         try {
-            scheduleToDelete = scheduleDAO.getById(scheduleId); // Cần hàm này trong DAO
+            scheduleToDelete = scheduleDAO.getById(scheduleId);
             if(scheduleToDelete != null) {
-                // Tạo chuỗi chi tiết hơn
                 scheduleInfoForLog = String.format("ID: %d, Date: %s, Time: %s-%s, ClassID: %d, TeacherID: %d, RoomID: %d",
                         scheduleId,
                         DateUtils.formatDate(scheduleToDelete.getDate()),
@@ -297,7 +293,7 @@ public class ScheduleController {
         System.out.println("ScheduleController: getAllSchedules() called.");
         if (scheduleDAO == null) {
             System.err.println("ScheduleController Error: scheduleDAO is null!");
-             UIUtils.showErrorMessage(null, "Error", "Schedule data access is not available.");
+            UIUtils.showErrorMessage(null, "Error", "Schedule data access is not available.");
             return Collections.emptyList();
         }
         try {
@@ -347,7 +343,6 @@ public class ScheduleController {
         writeLog(action, details);
     }
 
-    // Hàm ghi log chung
     private void writeLog(String action, String details) {
         if (logService != null && currentUser != null) {
             try {
@@ -359,7 +354,7 @@ public class ScheduleController {
                         details
                 );
                 logService.addLogEntry(log);
-                System.out.println("Log written: " + log); // Log ra console
+                System.out.println("Log written: " + log);
             } catch (Exception e) {
                 System.err.println("!!! Failed to write log entry: " + action + " - " + e.getMessage());
             }

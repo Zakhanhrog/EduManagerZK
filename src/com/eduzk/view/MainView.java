@@ -48,7 +48,7 @@ public class MainView extends JFrame {
     private EducationPanel educationPanel;
     private EducationController educationController;
 
-    public LogsPanel getLogsPanel() { // <<< THÊM PHƯƠNG THỨC GETTER NÀY
+    public LogsPanel getLogsPanel() {
         return this.logsPanel;
     }
     public MainView(MainController mainController) {
@@ -198,7 +198,6 @@ public class MainView extends JFrame {
     }
 
     private void showExportExcelDialog() {
-        // --- LẤY VAI TRÒ USER HIỆN TẠI ---
         Role currentUserRole = (mainController != null && mainController.getLoggedInUser() != null)
                 ? mainController.getLoggedInUser().getRole()
                 : null;
@@ -207,7 +206,6 @@ public class MainView extends JFrame {
             UIUtils.showErrorMessage(this, "Error", "Cannot determine user role for export.");
             return;
         }
-        // --- TẠO DANH SÁCH TÙY CHỌN DỰA TRÊN ROLE ---
         List<String> optionsList = new ArrayList<>();
         if (currentUserRole == Role.ADMIN) {
             optionsList.add(MainController.EXPORT_STUDENTS);
@@ -228,18 +226,16 @@ public class MainView extends JFrame {
 
         String[] exportOptions = optionsList.toArray(new String[0]);
         String selectedOption = (String) JOptionPane.showInputDialog(
-                this,                                     // Parent component
-                "Select data to export:",                 // Message
-                "Export to Excel",                        // Title
-                JOptionPane.PLAIN_MESSAGE,              // Message type
-                null,                                     // Icon (null for default)
-                exportOptions,                            // Array of choices
-                exportOptions[0]                          // Default choice
+                this,
+                "Select data to export:",
+                "Export to Excel",
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                exportOptions,
+                exportOptions[0]
         );
 
-        // 3. Nếu người dùng chọn một tùy chọn (không nhấn Cancel)
         if (selectedOption != null) {
-            // 4. Hiển thị hộp thoại chọn nơi lưu file (JFileChooser)
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setDialogTitle("Save Excel File");
             String suggestedFileName = selectedOption.replace(" ", "_") + ".xlsx";
@@ -255,9 +251,7 @@ public class MainView extends JFrame {
                     fileToSave = new File(filePath + ".xlsx");
                 }
 
-                // 5. Gọi Controller để thực hiện Export với lựa chọn và đường dẫn file
                 System.out.println("Export requested for: " + selectedOption + " to file: " + fileToSave.getAbsolutePath());
-                // Gọi phương thức export trong MainController (sẽ tạo ở bước sau)
                 mainController.exportDataToExcel(selectedOption, fileToSave, -1);
             } else {
                 System.out.println("Export save cancelled by user.");
@@ -268,16 +262,13 @@ public class MainView extends JFrame {
     }
 
     private void performLogout() {
-        // Confirmation dialog
         if (UIUtils.showConfirmDialog(this, "Logout", "Are you sure you want to logout?")) {
             System.out.println("Logout confirmed by user.");
-            // 1. Gọi phương thức logout của MainController
             if (mainController != null) {
                 mainController.logout();
             } else {
                 System.err.println("MainView Error: mainController is null during logout!");
             }
-            // 2. Đóng cửa sổ MainView hiện tại
             this.dispose();
         }else {
             System.out.println("Logout cancelled by user.");
@@ -286,11 +277,11 @@ public class MainView extends JFrame {
 
 
     private void setupWindowListener() {
-        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE); // Handle close manually
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
-                mainController.exitApplication(); // Use controller logic for exit
+                mainController.exitApplication();
             }
         });
     }
@@ -324,7 +315,6 @@ public class MainView extends JFrame {
         if (lc != null) lc.setLogsPanel(logsPanel);
     }
 
-    // Configure visible tabs based on user role
     public void configureViewForUser(User user) {
         Role currentUserRole = user.getRole();
         if (user == null) {
@@ -350,18 +340,17 @@ public class MainView extends JFrame {
         Icon helpIcon = loadTabSVGICon("/icons/help.svg");
         Icon educationIcon = loadTabSVGICon("/icons/education.svg"); // Nhớ tạo icon này
 
-
         // --- Thêm tab và đặt component tùy chỉnh ---
         boolean isAdmin = (user.getRole() == Role.ADMIN);
         int tabIndex = 0;
 
         if (isAdmin) {
             tabbedPane.addTab(null, null, schedulePanel, "Manage Class Schedules");
-            JPanel scheduleTabComp = createTabComponent("Schedule", scheduleIcon); // Truyền SVG Icon
+            JPanel scheduleTabComp = createTabComponent("Schedule", scheduleIcon);
             tabbedPane.setTabComponentAt(tabIndex++, scheduleTabComp);
 
             tabbedPane.addTab(null, null, classPanel, "Manage Classes & Enrollment");
-            JPanel classesTabComp = createTabComponent("Classes", classesIcon);     // Truyền SVG Icon
+            JPanel classesTabComp = createTabComponent("Classes", classesIcon);
             tabbedPane.setTabComponentAt(tabIndex++, classesTabComp);
 
             tabbedPane.addTab(null, null, studentPanel, "Manage Students");
@@ -380,13 +369,13 @@ public class MainView extends JFrame {
             JPanel roomsTabComp = createTabComponent("Rooms", roomsIcon);
             tabbedPane.setTabComponentAt(tabIndex++, roomsTabComp);
 
-            tabbedPane.addTab(null, null, educationPanel, "Học tập"); // Đặt tooltip nếu muốn
+            tabbedPane.addTab(null, null, educationPanel, "Học tập");
             tabbedPane.setTabComponentAt(tabIndex++, createTabComponent("Education", educationIcon));
 
             JSeparator separator = new JSeparator(SwingConstants.VERTICAL);
             separator.setPreferredSize(new Dimension(5, 20));
-            tabbedPane.addTab("", null); // Thêm tab trống
-            JPanel separatorPanel = new JPanel(); // Panel chứa separator
+            tabbedPane.addTab("", null);
+            JPanel separatorPanel = new JPanel();
             separatorPanel.setOpaque(false);
             separatorPanel.add(separator);
             tabbedPane.setTabComponentAt(tabIndex, separatorPanel);
@@ -414,7 +403,7 @@ public class MainView extends JFrame {
             tabbedPane.addTab(null, null, coursePanel, "View Courses");
             tabbedPane.setTabComponentAt(tabIndex++, createTabComponent("Courses", coursesIcon));
 
-            tabbedPane.addTab(null, null, educationPanel, "Manage Grades & Assignments"); // Có thể đổi tooltip nếu muốn
+            tabbedPane.addTab(null, null, educationPanel, "Manage Grades & Assignments");
             tabbedPane.setTabComponentAt(tabIndex++, createTabComponent("Education", educationIcon));
 
         } else if (user.getRole() == Role.STUDENT) {
@@ -429,7 +418,7 @@ public class MainView extends JFrame {
             tabbedPane.addTab(null, null, coursePanel, "View Courses");
             tabbedPane.setTabComponentAt(tabIndex++, createTabComponent("Courses", coursesIcon));
 
-            tabbedPane.addTab(null, null, educationPanel, "View Learning Results and Assignments"); // Tooltip (có thể đổi)
+            tabbedPane.addTab(null, null, educationPanel, "View Learning Results and Assignments");// tooltip
             tabbedPane.setTabComponentAt(tabIndex++, createTabComponent("Learning Results", educationIcon));
 
         }
@@ -467,7 +456,7 @@ public class MainView extends JFrame {
             accountsPanel.configureControlsForRole(userRole);
         }
         if (logsPanel != null) {
-            logsPanel.configureControlsForRole(userRole); // Gọi hàm tương ứng
+            logsPanel.configureControlsForRole(userRole);
         }
 
     }
@@ -476,7 +465,6 @@ public class MainView extends JFrame {
         int selectedIndex = tabbedPane.getSelectedIndex();
         if (selectedIndex != -1) {
             Component selectedComponent = tabbedPane.getComponentAt(selectedIndex);
-            // Gọi refresh tương ứng dựa trên loại panel
             if (selectedComponent instanceof StudentPanel) {
                 ((StudentPanel) selectedComponent).refreshTable();
             } else if (selectedComponent instanceof TeacherPanel) {
@@ -497,27 +485,26 @@ public class MainView extends JFrame {
 
         }
     }
+
     @Override
     public void setTitle(String title) {
-        super.setTitle(title); // Gọi hàm gốc để đặt tiêu đề cửa sổ
-        // Cập nhật tên ứng dụng trên thanh menu của macOS nếu đang chạy trên Mac
         if (System.getProperty("os.name").toLowerCase().startsWith("mac")) {
             System.setProperty("apple.awt.application.name", title);
         }
     }
     public void setStatusText(String text) {
-        if (statusLabel != null) { // Kiểm tra null
-            statusLabel.setText(text == null ? "" : text); // Xử lý text null
+        if (statusLabel != null) {
+            statusLabel.setText(text == null ? "" : text);
         }
     }
-    private Icon loadTabSVGICon(String path) { // Đổi tên để rõ ràng hơn (tùy chọn)
+    private Icon loadTabSVGICon(String path) {
         if (path == null || path.isEmpty()) {
             return null;
         }
         try {
             URL iconUrl = getClass().getResource(path);
             if (iconUrl != null) {
-                return new FlatSVGIcon(iconUrl); // Load với kích thước gốc của SVG (hoặc theo viewBox)
+                return new FlatSVGIcon(iconUrl);
             } else {
                 System.err.println("Warning: Tab SVG icon resource not found at: " + path);
                 return null;
@@ -528,21 +515,19 @@ public class MainView extends JFrame {
         }
     }
     private JPanel createTabComponent(final String title, final Icon icon) {
-        // Panel chính cho tab, dùng BoxLayout để xếp dọc
         JPanel tabComponent = new JPanel();
-        tabComponent.setLayout(new BoxLayout(tabComponent, BoxLayout.Y_AXIS)); // Xếp dọc
-        tabComponent.setOpaque(false); // QUAN TRỌNG: Để nền tab của LookAndFeel hiển thị qua
+        tabComponent.setLayout(new BoxLayout(tabComponent, BoxLayout.Y_AXIS));
+        tabComponent.setOpaque(false);
 
         // Label chứa Icon
         JLabel iconLabel = new JLabel(icon);
-        iconLabel.setAlignmentX(Component.CENTER_ALIGNMENT); // Căn giữa icon theo chiều ngang
+        iconLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         iconLabel.setOpaque(false);
 
         // Label chứa Text
         JLabel textLabel = new JLabel(title);
-        textLabel.setAlignmentX(Component.CENTER_ALIGNMENT); // Căn giữa text theo chiều ngang
+        textLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         textLabel.setOpaque(false);
-        // Đặt font và màu giống như tab mặc định (tùy chọn, nhưng nên làm)
         Font tabFont = UIManager.getFont("TabbedPane.font");
         if (tabFont != null) {
             textLabel.setFont(tabFont);
@@ -557,26 +542,22 @@ public class MainView extends JFrame {
         tabComponent.add(iconLabel);
 
         // Thêm khoảng cách nhỏ giữa icon và text
-        tabComponent.add(Box.createRigidArea(new Dimension(0, 3))); // 3 pixel dọc
+        tabComponent.add(Box.createRigidArea(new Dimension(0, 3)));
 
         // Thêm text vào panel
         tabComponent.add(textLabel);
 
         // Thêm một chút padding xung quanh để không bị sát viền tab
-        tabComponent.setBorder(new EmptyBorder(4, 0, 2, 0)); // top, left, bottom, right
+        tabComponent.setBorder(new EmptyBorder(4, 0, 2, 0));
 
         return tabComponent;
     }
     public void refreshAccountsPanelData() {
-        // Chỉ refresh nếu panel tồn tại và đang hiển thị (hoặc luôn refresh tùy ý)
         if (accountsPanel != null && accountsPanel.isShowing()) {
             System.out.println("MainView: Requesting AccountsPanel refresh...");
             accountsPanel.refreshTable();
         } else if (accountsPanel != null) {
             System.out.println("MainView: AccountsPanel exists but is not showing, skipping refresh request.");
-            // Hoặc bạn có thể gọi refresh ngay cả khi nó không hiển thị,
-            // để lần tới mở ra dữ liệu đã mới.
-            // accountsPanel.refreshTable();
         } else {
             System.err.println("MainView: accountsPanel is null, cannot refresh.");
         }

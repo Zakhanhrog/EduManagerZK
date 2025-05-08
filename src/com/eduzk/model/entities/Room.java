@@ -7,14 +7,14 @@ public class Room implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private int roomId;
-    private String roomNumber; // E.g., "A101", "Lab B", "Meeting Room 3"
-    private String building; // Optional, e.g., "Main Building", "West Wing"
-    private int capacity; // Maximum number of occupants/students
-    private String type; // E.g., "Classroom", "Laboratory", "Lecture Hall", "Gym"
-    private boolean available; // To mark if the room is usable or under maintenance
+    private String roomNumber;
+    private String building;
+    private int capacity;
+    private String type;
+    private boolean available;
 
     public Room() {
-        this.available = true; // Default to available
+        this.available = true;
     }
 
     public Room(int roomId, String roomNumber, String building, int capacity, String type) {
@@ -89,16 +89,6 @@ public class Room implements Serializable {
 
     @Override
     public String toString() {
-        // Concise representation for selection lists
         return roomNumber + (building != null && !building.isEmpty() ? " (" + building + ")" : "") + " [Cap: " + capacity + "]";
-        // Or a more detailed version:
-        // return "Room{" +
-        //        "roomId=" + roomId +
-        //        ", roomNumber='" + roomNumber + '\'' +
-        //        ", building='" + building + '\'' +
-        //        ", capacity=" + capacity +
-        //        ", type='" + type + '\'' +
-        //        ", available=" + available +
-        //        '}';
     }
 }

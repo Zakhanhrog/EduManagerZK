@@ -6,7 +6,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 
 public class LogEntry implements Serializable {
-    private static final long serialVersionUID = 3L; // Tăng version ID
+    private static final long serialVersionUID = 3L;
 
     private LocalDateTime timestamp;
     private String username;
@@ -14,26 +14,22 @@ public class LogEntry implements Serializable {
     private String action;
     private String details;
 
-    // Định dạng thời gian mong muốn
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    // Constructor
     public LogEntry(LocalDateTime timestamp, String username, String userRole, String action, String details) {
         this.timestamp = timestamp;
-        this.username = username != null ? username : "System"; // Mặc định nếu user null
+        this.username = username != null ? username : "System";
         this.userRole = userRole != null ? userRole : "N/A";
         this.action = action != null ? action : "Unknown Action";
         this.details = details != null ? details : "";
     }
 
-    // Getters
     public LocalDateTime getTimestamp() { return timestamp; }
     public String getUsername() { return username; }
     public String getUserRole() { return userRole; }
     public String getAction() { return action; }
     public String getDetails() { return details; }
 
-    // Getter định dạng thời gian cho hiển thị
     public String getFormattedTimestamp() {
         return timestamp != null ? timestamp.format(formatter) : "N/A";
     }
@@ -48,8 +44,6 @@ public class LogEntry implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         LogEntry logEntry = (LogEntry) o;
-        // Coi log là duy nhất nếu timestamp và user/action/details giống nhau (hơi khó)
-        // Hoặc dựa vào tham chiếu nếu không cần so sánh sâu
         return Objects.equals(timestamp, logEntry.timestamp) &&
                 Objects.equals(username, logEntry.username) &&
                 Objects.equals(action, logEntry.action) &&

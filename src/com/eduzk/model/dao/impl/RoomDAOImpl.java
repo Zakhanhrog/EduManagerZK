@@ -38,8 +38,6 @@ public class RoomDAOImpl extends BaseDAO<Room> implements IRoomDAO {
         }
         lock.readLock().lock();
         try {
-            // Consider if room numbers should be unique per building or globally?
-            // Assuming globally unique for now (case-insensitive).
             return dataList.stream()
                     .filter(room -> roomNumber.equalsIgnoreCase(room.getRoomNumber()))
                     .findFirst();
@@ -76,7 +74,6 @@ public class RoomDAOImpl extends BaseDAO<Room> implements IRoomDAO {
 
         lock.writeLock().lock();
         try {
-            // Check for duplicate room number (case-insensitive)
             boolean numberExists = dataList.stream()
                     .anyMatch(existing -> existing.getRoomNumber().equalsIgnoreCase(room.getRoomNumber()));
             if (numberExists) {
@@ -113,7 +110,6 @@ public class RoomDAOImpl extends BaseDAO<Room> implements IRoomDAO {
             }
 
             if (index != -1) {
-                // Check if the updated room number conflicts
                 final int currentIndex = index;
                 boolean numberConflict = dataList.stream()
                         .filter(existing -> existing.getRoomId() != room.getRoomId()) // Exclude self
@@ -137,8 +133,6 @@ public class RoomDAOImpl extends BaseDAO<Room> implements IRoomDAO {
     public void delete(int id) {
         lock.writeLock().lock();
         try {
-            // Check if room is used in any Schedule before deleting? (ScheduleDAO responsibility?)
-            // Simple delete for now.
             boolean removed = dataList.removeIf(room -> room.getRoomId() == id);
             if (removed) {
                 saveData();
@@ -149,6 +143,4 @@ public class RoomDAOImpl extends BaseDAO<Room> implements IRoomDAO {
             lock.writeLock().unlock();
         }
     }
-
-    // getAll() is inherited from BaseDAO
 }

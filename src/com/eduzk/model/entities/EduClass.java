@@ -95,13 +95,12 @@ public class EduClass implements Serializable {
     }
 
     public List<Integer> getStudentIds() {
-        // Return a copy to prevent external modification of the internal list
         return new ArrayList<>(studentIds);
     }
 
     public void setStudentIds(List<Integer> studentIds) {
         this.studentIds = (studentIds != null) ? new ArrayList<>(studentIds) : new ArrayList<>();
-        this.currentEnrollment = this.studentIds.size(); // CẬP NHẬT Ở ĐÂY
+        this.currentEnrollment = this.studentIds.size();
     }
 
     public void addStudentId(int studentId) {
@@ -122,7 +121,6 @@ public class EduClass implements Serializable {
         return removed;
     }
 
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -138,7 +136,6 @@ public class EduClass implements Serializable {
 
     @Override
     public String toString() {
-        // Concise representation for display
         return className + " (" + (course != null ? course.getCourseCode() : "N/A") + ")";
     }
 

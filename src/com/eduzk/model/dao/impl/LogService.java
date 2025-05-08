@@ -8,7 +8,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import javax.swing.event.EventListenerList; // <<< IMPORT EventListenerList
+import javax.swing.event.EventListenerList;
 
 public class LogService {
 
@@ -16,8 +16,6 @@ public class LogService {
     private final List<LogEntry> logList;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
     private static final int MAX_LOG_ENTRIES = 5000;
-
-    // <<< THÊM BIẾN QUẢN LÝ LISTENER >>>
     private final EventListenerList listenerList = new EventListenerList();
 
     public LogService(String dataFilePath) {
@@ -26,30 +24,24 @@ public class LogService {
         loadLogs();
     }
 
-    // <<< THÊM PHƯƠNG THỨC ĐĂNG KÝ LISTENER >>>
     public void addLogEventListener(LogEventListener listener) {
         listenerList.add(LogEventListener.class, listener);
         System.out.println("LogService: Listener registered - " + listener.getClass().getName());
     }
 
-    // <<< THÊM PHƯƠNG THỨC HỦY ĐĂNG KÝ LISTENER >>>
     public void removeLogEventListener(LogEventListener listener) {
         listenerList.remove(LogEventListener.class, listener);
         System.out.println("LogService: Listener unregistered - " + listener.getClass().getName());
     }
 
-    // <<< THÊM PHƯƠNG THỨC THÔNG BÁO CHO LISTENER >>>
     protected void fireLogAdded(LogEntry newLogEntry) {
         Object[] listeners = listenerList.getListenerList();
-        // Duyệt ngược để an toàn nếu listener tự hủy đăng ký
         for (int i = listeners.length - 2; i >= 0; i -= 2) {
             if (listeners[i] == LogEventListener.class) {
                 System.out.println("LogService: Notifying listener " + listeners[i + 1].getClass().getName());
                 try {
-                    // Gọi phương thức logAdded trên listener
                     ((LogEventListener) listeners[i + 1]).logAdded(newLogEntry);
                 } catch (Exception e) {
-                    // Bắt lỗi nếu listener ném ra exception để không ảnh hưởng đến các listener khác
                     System.err.println("LogService Error: Listener " + listeners[i + 1].getClass().getName() + " threw an exception: " + e.getMessage());
                     e.printStackTrace();
                 }
@@ -58,8 +50,6 @@ public class LogService {
         System.out.println("LogService: Finished notifying listeners.");
     }
 
-
-    // --- Các phương thức loadLogs, saveLogs, trimLogList giữ nguyên ---
     @SuppressWarnings("unchecked")
     private void loadLogs() {
         lock.writeLock().lock();
@@ -92,20 +82,18 @@ public class LogService {
     }
 
     private void saveLogs() {
-        lock.writeLock().lock(); // Đã có lock ở đây
+        lock.writeLock().lock();
         boolean success = false;
         try {
-            trimLogList(); // Trim trước khi lưu
-
+            trimLogList();
             File file = new File(dataFilePath);
             File parentDir = file.getParentFile();
             if (parentDir != null && !parentDir.exists()) {
                 parentDir.mkdirs();
             }
             try (ObjectOutputStream oos = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))) {
-                // Ghi bản sao để an toàn hơn
                 oos.writeObject(new ArrayList<>(this.logList));
-                success = true; // Đánh dấu lưu thành công
+                success = true;
                 System.out.println("LogService: Logs saved successfully.");
             }
         } catch (IOException e) {
@@ -125,40 +113,30 @@ public class LogService {
         }
     }
 
-    /**
-     * Thêm một mục log mới, lưu vào file và thông báo cho listeners.
-     * @param entry LogEntry cần thêm.
-     */
     public void addLogEntry(LogEntry entry) {
         if (entry == null) return;
-        boolean added = false; // Biến để kiểm tra log có thực sự được thêm không
+        boolean added = false;
         lock.writeLock().lock();
         try {
-            logList.add(entry); // Thêm vào cuối
-            added = true; // Đánh dấu đã thêm vào list
+            logList.add(entry);
+            added = true;
             System.out.println("LogService: Log entry added to internal list.");
         } finally {
             lock.writeLock().unlock();
         }
 
-        // Chỉ lưu và thông báo nếu đã thêm thành công vào list
         if (added) {
-            saveLogs(); // Lưu lại toàn bộ danh sách
-            // Thông báo sau khi lưu (hoặc ngay sau khi thêm vào list tùy logic mong muốn)
+            saveLogs();
             System.out.println("LogService: Preparing to notify listeners about new log entry.");
-            fireLogAdded(entry); // <<< GỌI THÔNG BÁO SAU KHI THÊM VÀ LƯU
+            fireLogAdded(entry);
         }
     }
 
-    /**
-     * Lấy tất cả các mục log đã lưu.
-     * @return Danh sách LogEntry (bản sao, mới nhất lên đầu).
-     */
     public List<LogEntry> getAllLogs() {
         lock.readLock().lock();
         try {
             List<LogEntry> sortedLogs = new ArrayList<>(this.logList);
-            Collections.reverse(sortedLogs); // Đảo ngược để mới nhất lên đầu
+            Collections.reverse(sortedLogs);
             return sortedLogs;
         } finally {
             lock.readLock().unlock();

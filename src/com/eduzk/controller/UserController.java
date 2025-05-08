@@ -22,21 +22,19 @@ public class UserController {
     private final LogService logService;
     private AccountsPanel accountsPanel;
 
-    // --- SỬA CONSTRUCTOR ĐỂ NHẬN LogService ---
-    public UserController(IUserDAO userDAO, User currentUser, LogService logService) { // Thêm LogService
-        if (userDAO == null || currentUser == null || logService == null) { // Kiểm tra cả logService
+    public UserController(IUserDAO userDAO, User currentUser, LogService logService) {
+        if (userDAO == null || currentUser == null || logService == null) {
             throw new IllegalArgumentException("DAO, CurrentUser, and LogService cannot be null in UserController");
         }
         this.userDAO = userDAO;
         this.currentUser = currentUser;
-        this.logService = logService; // <-- LƯU LogService
+        this.logService = logService;
     }
 
     public void setAccountsPanel(AccountsPanel accountsPanel) {
         this.accountsPanel = accountsPanel;
     }
 
-    // --- getAllUserAccounts (Giữ nguyên logic lọc Admin) ---
     public List<User> getAllUserAccounts() {
         if (!isCurrentUserAdmin()) {
             System.err.println("UserController: Permission denied for getAllUserAccounts by user " + currentUser.getUsername());
@@ -48,7 +46,6 @@ public class UserController {
             System.out.println("UserController.getAllUserAccounts: userDAO.getAll() returned " + (allUsers == null ? "null" : allUsers.size()) + " users.");
             if (allUsers == null) { return Collections.emptyList(); }
 
-            // Lọc bỏ Admin ngay tại đây
             List<User> filteredUsers = allUsers.stream()
                     .filter(user -> user.getRole() != Role.ADMIN)
                     .collect(Collectors.toList());
@@ -64,12 +61,10 @@ public class UserController {
     }
 
     public boolean updateUserPassword(int userId, String newPassword) {
-        // --- Kiểm tra quyền ---
         if (!isCurrentUserAdmin()) {
             UIUtils.showErrorMessage(accountsPanel, "Permission Denied", "Only administrators can change passwords.");
             return false;
         }
-        // --- Validation đầu vào ---
         if (userId <= 0) {
             UIUtils.showWarningMessage(accountsPanel, "Error", "Invalid User ID.");
             return false;
@@ -79,7 +74,7 @@ public class UserController {
             return false;
         }
 
-        User userToUpdate = null; // Khai báo ngoài try để dùng trong log lỗi
+        User userToUpdate = null;
         try {
             userToUpdate = userDAO.getById(userId);
             if (userToUpdate == null) {
@@ -91,12 +86,10 @@ public class UserController {
             userToUpdate.setRequiresPasswordChange(false);
             userDAO.update(userToUpdate);
 
-            // Tạo chi tiết log
             String logDetails = String.format("For User ID: %d, Username: %s",
                     userId, userToUpdate.getUsername());
             writeLog("Updated Password", logDetails);
 
-            // Thông báo thành công và refresh
             UIUtils.showInfoMessage(accountsPanel, "Success", "Password for user '" + userToUpdate.getUsername() + "' updated successfully.");
             if (accountsPanel != null) {
                 accountsPanel.refreshTable();
@@ -119,38 +112,28 @@ public class UserController {
         }
     }
 
-    // --- isCurrentUserAdmin (Giữ nguyên) ---
     private boolean isCurrentUserAdmin() {
         return this.currentUser != null && this.currentUser.getRole() == Role.ADMIN;
     }
 
-    // --- HÀM HELPER GHI LOG CHUNG (Copy từ Controller khác) ---
     private void writeLog(String action, String details) {
         if (logService != null && currentUser != null) {
             try {
                 LogEntry log = new LogEntry(
                         LocalDateTime.now(),
-                        currentUser.getDisplayName(), // Sử dụng DisplayName của người thực hiện
+                        currentUser.getDisplayName(),
                         currentUser.getRole().name(),
                         action,
                         details
                 );
                 logService.addLogEntry(log);
-                System.out.println("Log written: " + log); // Log ra console để dễ theo dõi
+                System.out.println("Log written: " + log);
             } catch (Exception e) {
                 System.err.println("!!! Failed to write log entry: Action=" + action + ", Details=" + details + " - Error: " + e.getMessage());
-                // Không nên để lỗi ghi log làm ảnh hưởng luồng chính
             }
         } else {
             System.err.println("LogService or CurrentUser is null. Cannot write log for action: " + action);
         }
     }
 
-    // Có thể thêm các hàm helper ghi log cụ thể nếu cần
-    // Ví dụ:
-    // private void writeUpdatePasswordLog(User updatedUser) {
-    //     String details = "For User ID: " + updatedUser.getUserId() + ", Username: " + updatedUser.getUsername();
-    //     writeLog("Updated Password", details);
-    // }
-
-} // Kết thúc lớp UserController
+}

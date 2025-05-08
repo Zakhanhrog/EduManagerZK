@@ -12,7 +12,6 @@ import com.eduzk.utils.ValidationUtils;
 public class CourseDAOImpl extends BaseDAO<Course> implements ICourseDAO {
 
     private final IdGenerator idGenerator;
-
     public CourseDAOImpl(String dataFilePath, String idFilePath) {
         super(dataFilePath);
         this.idGenerator = new IdGenerator(idFilePath);
@@ -72,7 +71,6 @@ public class CourseDAOImpl extends BaseDAO<Course> implements ICourseDAO {
 
         lock.writeLock().lock();
         try {
-            // Check for duplicate course code (case-insensitive)
             boolean codeExists = dataList.stream()
                     .anyMatch(existing -> existing.getCourseCode().equalsIgnoreCase(course.getCourseCode()));
             if (codeExists) {
@@ -106,10 +104,9 @@ public class CourseDAOImpl extends BaseDAO<Course> implements ICourseDAO {
             }
 
             if (index != -1) {
-                // Check if the updated code conflicts with another existing course
                 final int currentIndex = index;
                 boolean codeConflict = dataList.stream()
-                        .filter(existing -> existing.getCourseId() != course.getCourseId()) // Exclude self
+                        .filter(existing -> existing.getCourseId() != course.getCourseId())
                         .anyMatch(existing -> existing.getCourseCode().equalsIgnoreCase(course.getCourseCode()));
 
                 if (codeConflict) {
@@ -130,9 +127,6 @@ public class CourseDAOImpl extends BaseDAO<Course> implements ICourseDAO {
     public void delete(int id) {
         lock.writeLock().lock();
         try {
-            // Check if course is used in any EduClass before deleting? (EduClassDAO responsibility?)
-            // Simple delete for now.
-
             boolean removed = dataList.removeIf(course -> course.getCourseId() == id);
             if (removed) {
                 saveData();
@@ -143,6 +137,4 @@ public class CourseDAOImpl extends BaseDAO<Course> implements ICourseDAO {
             lock.writeLock().unlock();
         }
     }
-
-    // getAll() is inherited from BaseDAO
 }

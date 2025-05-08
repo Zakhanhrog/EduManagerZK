@@ -61,7 +61,7 @@ public class MainController {
             throw new IllegalArgumentException("AcademicRecordDAO cannot be null in MainController");
         }
 
-        if (idGenerator == null) { // <<< THÊM KIỂM TRA NULL CHO IdGenerator
+        if (idGenerator == null) {
             throw new IllegalArgumentException("IdGenerator cannot be null in MainController");
         }
         if (loggedInUser == null) {
@@ -76,7 +76,7 @@ public class MainController {
         this.authController = authController;
 
         try {
-            this.assignmentDAO = new AssignmentDAOImpl(this.idGenerator); // <<< KHỞI TẠO this.assignmentDAO
+            this.assignmentDAO = new AssignmentDAOImpl(this.idGenerator);
         } catch (Exception e) {
             System.err.println("!!! CRITICAL ERROR INITIALIZING AssignmentDAO !!!");
             e.printStackTrace();
@@ -88,8 +88,7 @@ public class MainController {
             throw new RuntimeException("Failed to initialize AssignmentDAO", e);
         }
 
-        // Khởi tạo EduClassController (cần làm trước khi gọi initializeControllers nếu EducationController cần nó)
-        EduClassController tempEduClassController = null; // Dùng biến tạm thời
+        EduClassController tempEduClassController = null;
         try {
             tempEduClassController = new EduClassController(eduClassDAO, courseDAO, teacherDAO, studentDAO, loggedInUser, logService);
         } catch (Exception e) {
@@ -103,7 +102,6 @@ public class MainController {
         }
 
 
-        // Gọi initializeControllers với ĐẦY ĐỦ tham số
         initializeControllers(
                 userDAO, studentDAO, teacherDAO, courseDAO, roomDAO, eduClassDAO,
                 scheduleDAO, logService, recordDAO,
@@ -122,7 +120,6 @@ public class MainController {
     )
     {
         try {
-            // Khởi tạo các controller khác
             this.eduClassController = eduClassController;
             studentController = new StudentController(studentDAO, eduClassDAO, userDAO, loggedInUser, logService);
             teacherController = new TeacherController(teacherDAO, userDAO, loggedInUser, logService);

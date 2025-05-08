@@ -53,7 +53,6 @@ public class CoursePanel extends JPanel {
         topPanel.add(searchPanel, BorderLayout.WEST);
         topPanel.add(actionPanel, BorderLayout.EAST);
 
-        // Thêm topPanel vào panel chính (this) ở phía Bắc
         add(topPanel, BorderLayout.NORTH);
         JScrollPane scrollPane = new JScrollPane(courseTable);
         add(scrollPane, BorderLayout.CENTER);
@@ -65,7 +64,6 @@ public class CoursePanel extends JPanel {
     }
 
     private void initComponents() {
-        // Table Model
         tableModel = new DefaultTableModel(
                 new Object[]{"ID", "Code", "Name", "Level", "Credits", "Description"}, 0) {
             @Override
@@ -78,7 +76,6 @@ public class CoursePanel extends JPanel {
         courseTable.setAutoCreateRowSorter(true);
         sorter = (TableRowSorter<DefaultTableModel>) courseTable.getRowSorter();
 
-        // Adjust column widths (optional, but often helpful)
         TableColumn idCol = courseTable.getColumnModel().getColumn(0);
         idCol.setPreferredWidth(40);
         idCol.setMaxWidth(60);
@@ -157,7 +154,7 @@ public class CoursePanel extends JPanel {
         searchField.addActionListener(e -> performSearch());
         refreshButton.addActionListener(e -> {
             System.out.println("CoursePanel: Refresh button clicked.");
-            refreshTable(); // Gọi lại chính phương thức refresh của panel này
+            refreshTable();
             UIUtils.showInfoMessage(this,"Refreshed", "Course list updated."); // Thông báo (tùy chọn)
         });
     }
@@ -168,9 +165,8 @@ public class CoursePanel extends JPanel {
         List<Course> courses;
         if (searchText.trim().isEmpty()) {
             courses = controller.getAllCourses();
-            sorter.setRowFilter(null); // Clear filter
+            sorter.setRowFilter(null);
         } else {
-            // Search via controller
             courses = controller.searchCoursesByName(searchText);
         }
         populateTable(courses);
@@ -195,7 +191,7 @@ public class CoursePanel extends JPanel {
     }
 
     private void populateTable(List<Course> courses) {
-        tableModel.setRowCount(0); // Clear existing data
+        tableModel.setRowCount(0);
         if (courses != null) {
             for (Course course : courses) {
                 Vector<Object> row = new Vector<>();
@@ -203,7 +199,7 @@ public class CoursePanel extends JPanel {
                 row.add(course.getCourseCode());
                 row.add(course.getCourseName());
                 row.add(course.getLevel());
-                row.add(course.getCredits()); // Assuming credits is int
+                row.add(course.getCredits());
                 row.add(course.getDescription());
                 tableModel.addRow(row);
             }
@@ -216,7 +212,7 @@ public class CoursePanel extends JPanel {
         if (editButton != null) editButton.setVisible(canModify);
         if (deleteButton != null) deleteButton.setVisible(canModify);
 
-        if (searchButton != null) searchButton.setVisible(true); // Hoặc setEnabled
+        if (searchButton != null) searchButton.setVisible(true);
         if (searchField != null) searchField.setVisible(true);
         if (refreshButton != null) refreshButton.setVisible(true);
 

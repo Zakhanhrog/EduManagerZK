@@ -63,7 +63,7 @@ public class TeacherController {
 
     public List<Teacher> searchTeachersBySpecialization(String specialization) {
         if (!ValidationUtils.isNotEmpty(specialization)) {
-            return getAllTeachers(); // Return all if search is empty
+            return getAllTeachers();
         }
         try {
             return teacherDAO.findBySpecialization(specialization);
@@ -75,7 +75,6 @@ public class TeacherController {
     }
 
     public boolean addTeacher(Teacher teacher) {
-        // --- Validation Teacher ---
         if (teacher == null || !ValidationUtils.isNotEmpty(teacher.getFullName())) {
             UIUtils.showWarningMessage(teacherPanel, "Validation Error", "Teacher name cannot be empty.");
             return false;
@@ -87,11 +86,9 @@ public class TeacherController {
 
         boolean userCreatedSuccessfully = false;
         try {
-            // 1. Thêm Teacher
             teacherDAO.add(teacher);
             System.out.println("Teacher added with ID: " + teacher.getTeacherId());
 
-            // 2. Tự động tạo User nếu thêm Teacher thành công và có ID
             if (teacher.getTeacherId() > 0) {
                 String defaultUsername = teacher.getEmail();
                 String defaultPassword = "123456";
@@ -118,7 +115,6 @@ public class TeacherController {
                 } catch (DataAccessException | IllegalArgumentException e) {
                     System.err.println("!!! FAILED to add User account for Teacher ID " + teacher.getTeacherId() + " !!! DAO Error: " + e.getMessage());
                     UIUtils.showWarningMessage(teacherPanel, "User Creation Failed", "Teacher added, but failed to create linked user account:\n" + e.getMessage());
-                    // Ghi log chỉ việc thêm Teacher thành công
                     writeAddLog("Added Teacher (User Failed)", teacher);
                 } catch (Exception ex) {
                     System.err.println("!!! UNEXPECTED ERROR adding User account for Teacher ID " + teacher.getTeacherId() + " !!! Error: " + ex.getMessage());
@@ -132,22 +128,19 @@ public class TeacherController {
                 writeAddLog("Added Teacher (ID Error)", teacher);
             }
 
-            // --- Refresh và Thông báo ---
             if (teacherPanel != null) {
-                teacherPanel.refreshTable(); // Luôn refresh bảng Teacher
+                teacherPanel.refreshTable();
             }
             if (userCreatedSuccessfully && mainView != null) {
-                mainView.refreshAccountsPanelData(); // Refresh Accounts nếu User tạo thành công
+                mainView.refreshAccountsPanelData();
             }
-            // Thông báo dựa trên việc tạo User
             if(userCreatedSuccessfully) {
                 UIUtils.showInfoMessage(teacherPanel, "Success", "Teacher and linked User account added successfully.");
-            } // Thông báo lỗi tạo User đã hiển thị bên trong catch
+            }
 
-            return true; // Trả về true vì Teacher đã thêm được
+            return true;
 
         } catch (DataAccessException | IllegalArgumentException e) {
-            // Lỗi ngay từ khi thêm Teacher ban đầu
             System.err.println("Error adding teacher: " + e.getMessage());
             UIUtils.showErrorMessage(teacherPanel, "Error", "Failed to add teacher: " + e.getMessage());
             return false;
@@ -179,14 +172,12 @@ public class TeacherController {
             UIUtils.showWarningMessage(teacherPanel, "Error", "Invalid teacher ID for deletion.");
             return false;
         }
-        // Bạn nên có dialog xác nhận ở TeacherPanel trước khi gọi hàm này
 
         boolean teacherDeleted = false;
         boolean userDeleted = false;
-        User linkedUser = null; // Lưu user tìm được để log
+        User linkedUser = null;
 
         try {
-            // 1. Tìm User liên kết TRƯỚC KHI xóa Teacher (để lấy thông tin log)
             Optional<User> userOpt = userDAO.findByTeacherId(teacherId);
             if (userOpt.isPresent()) {
                 linkedUser = userOpt.get();
@@ -195,12 +186,10 @@ public class TeacherController {
                 System.out.println("No linked User found for Teacher ID " + teacherId);
             }
 
-            // 2. Xóa Teacher
             teacherDAO.delete(teacherId);
-            teacherDeleted = true; // Giả sử thành công nếu không có exception
+            teacherDeleted = true;
             System.out.println("Deleted Teacher ID: " + teacherId);
 
-            // 3. Xóa User liên kết nếu tìm thấy
             if (linkedUser != null) {
                 try {
                     userDAO.delete(linkedUser.getUserId());
@@ -208,26 +197,21 @@ public class TeacherController {
                     System.out.println("Deleted linked User ID: " + linkedUser.getUserId());
                 } catch (DataAccessException e) {
                     System.err.println("Error deleting linked user for teacher ID " + teacherId + ": " + e.getMessage());
-                    // Có thể thông báo lỗi này
                 }
             }
 
-            // *** GHI LOG XÓA ***
             String userDetail = linkedUser != null ? ("Linked User: " + linkedUser.getUsername() + "(ID:"+linkedUser.getUserId()+")" + (userDeleted ? " - Deleted" : " - Deletion Failed")) : "No Linked User";
             writeDeleteLog("Deleted Teacher", "ID: " + teacherId + " | " + userDetail);
 
 
-            // --- Refresh và Thông báo ---
             if (teacherPanel != null) teacherPanel.refreshTable();
             if (userDeleted && mainView != null) mainView.refreshAccountsPanelData();
             UIUtils.showInfoMessage(teacherPanel, "Success", "Teacher" + (userDeleted ? " and linked User account" : "") + " deleted successfully.");
             return true;
 
         } catch (DataAccessException e) {
-            // Lỗi khi xóa Teacher hoặc User
             System.err.println("Error deleting teacher or linked user for ID " + teacherId + ": " + e.getMessage());
             UIUtils.showErrorMessage(teacherPanel, "Error", "Failed to delete teacher: " + e.getMessage());
-            // Vẫn refresh để cập nhật trạng thái (nếu có gì đó bị xóa)
             if (teacherPanel != null) teacherPanel.refreshTable();
             return false;
         } catch (Exception e) {
@@ -265,30 +249,24 @@ public class TeacherController {
                 String teacherName = "ID: " + teacherId;
 
                 try {
-                    // Lấy tên trước khi xóa Teacher
                     Teacher teacher = teacherDAO.getById(teacherId);
                     if (teacher != null) teacherName = teacher.getFullName() + " (ID: " + teacherId + ")";
 
-                    // Tìm User liên kết
                     Optional<User> userOpt = userDAO.findByTeacherId(teacherId);
                     if (userOpt.isPresent()) linkedUser = userOpt.get();
 
-                    // Xóa Teacher
                     teacherDAO.delete(teacherId);
                     teacherDeleted = true;
                     deletedTeacherCount++;
 
-                    // Xóa User nếu có
                     if (linkedUser != null) {
                         userDAO.delete(linkedUser.getUserId());
                         userDeleted = true;
                         deletedUserCount++;
                     }
-                    // Thêm log thành công cho người này
                     finalLogDetails.add(teacherName + (userDeleted ? " + Linked User" : " (No/Failed Linked User)"));
 
                 } catch (DataAccessException e) {
-                    // Lỗi khi xóa Teacher hoặc User của người này
                     System.err.println("Error deleting teacher/user for ID " + teacherId + ": " + e.getMessage());
                     finalLogDetails.add(teacherName + " - FAILED: " + e.getMessage());
                 } catch (Exception ex) {
@@ -296,35 +274,32 @@ public class TeacherController {
                     finalLogDetails.add(teacherName + " - FAILED (Unexpected)");
                     ex.printStackTrace();
                 }
-            } // end for
+            }
 
-            // *** GHI LOG TỔNG KẾT XÓA NHIỀU ***
             if (!finalLogDetails.isEmpty()) {
                 writeDeleteLog("Deleted Multiple Teachers", String.join("; ", finalLogDetails));
             }
 
-            // --- Refresh và Thông báo ---
             if (deletedTeacherCount > 0 || deletedUserCount > 0) {
                 if (teacherPanel != null) teacherPanel.refreshTable();
                 if (deletedUserCount > 0 && mainView != null) mainView.refreshAccountsPanelData();
-                // Thông báo chung chung hơn vì có thể có lỗi từng phần
                 UIUtils.showInfoMessage(teacherPanel, "Deletion Attempt Finished",
                         "Attempted to delete " + teacherIdsToDelete.size() + " teacher(s). \n" +
                                 "Successfully deleted Teachers: " + deletedTeacherCount + "\n" +
                                 "Successfully deleted Linked Users: " + deletedUserCount + "\n" +
                                 "(Check console log for individual errors if any)");
-                return true; // Coi như action đã chạy
+                return true;
             } else {
                 UIUtils.showWarningMessage(teacherPanel, "Deletion Info", "No teachers were deleted (may not exist or errors occurred).");
                 return false;
             }
 
-        } catch (Exception e) { // Bắt lỗi chung nếu có gì đó ngoài vòng lặp
+        } catch (Exception e) {
             System.err.println("Unexpected error during multiple teacher deletion process: " + e.getMessage());
             e.printStackTrace();
             if (teacherPanel != null) {
                 UIUtils.showErrorMessage(teacherPanel, "Unexpected Error", "An unexpected error occurred during deletion.");
-                teacherPanel.refreshTable(); // Cố gắng refresh
+                teacherPanel.refreshTable();
             }
             return false;
         }
@@ -368,7 +343,7 @@ public class TeacherController {
                         workbook = new XSSFWorkbook(fis);
                         Sheet sheet = workbook.getSheetAt(0);
                         Iterator<Row> rowIterator = sheet.iterator();
-                        if (rowIterator.hasNext()) rowIterator.next(); // Bỏ qua header
+                        if (rowIterator.hasNext()) rowIterator.next();
 
                         int rowNum = 1;
                         while (rowIterator.hasNext()) {
@@ -377,26 +352,22 @@ public class TeacherController {
                             processedCount++;
 
                             try {
-                                // --- 1. ĐỌC & VALIDATE DỮ LIỆU ---
                                 String fullName = getStringCellValue(row.getCell(0));
                                 LocalDate dob = getDateCellValue(row.getCell(1));
                                 String gender = getStringCellValue(row.getCell(2));
                                 String specialization = getStringCellValue(row.getCell(3));
                                 String phone = getStringCellValue(row.getCell(4));
-                                String email = getStringCellValue(row.getCell(5)); // Dùng làm username
+                                String email = getStringCellValue(row.getCell(5));
                                 Boolean active = getBooleanCellValue(row.getCell(6));
                                 if (active == null) active = true;
 
-                                // --- Validation ---
                                 if (!ValidationUtils.isNotEmpty(fullName)) throw new IllegalArgumentException("Full Name required.");
                                 if (!ValidationUtils.isNotEmpty(email) || !ValidationUtils.isValidEmail(email)) throw new IllegalArgumentException("Valid Email required (used as username).");
                                 if (ValidationUtils.isNotEmpty(phone) && !ValidationUtils.isValidPhoneNumber(phone)) throw new IllegalArgumentException("Invalid phone number format.");
-                                // **Kiểm tra trùng username (email) ngay bây giờ**
                                 if (userDAO.findByUsername(email.trim()).isPresent()){
                                     throw new DataAccessException("Username (Email) '" + email.trim() + "' already exists.");
                                 }
 
-                                // --- 2. TẠO OBJECTS NHƯNG CHƯA LƯU ---
                                 Teacher tempTeacher = new Teacher();
                                 tempTeacher.setFullName(fullName.trim());
                                 tempTeacher.setDateOfBirth(dob);
@@ -419,15 +390,13 @@ public class TeacherController {
                                 validUsersToCreate.add(tempUser);
 
                             } catch (Exception rowEx) {
-                                // Lỗi validation hoặc đọc dòng
                                 String errorMsg = "Row " + rowNum + ": Validation/Read Error - " + rowEx.getMessage();
                                 System.err.println(errorMsg);
                                 errors.add(errorMsg);
                                 validationErrorCount++;
                             }
-                        } // end while
+                        }
 
-                        // --- 3. THỰC HIỆN LƯU VÀO DAO (SAU KHI ĐỌC HẾT FILE) ---
                         int actualTeacherSuccessCount = 0;
                         int actualUserSuccessCount = 0;
 
@@ -439,7 +408,6 @@ public class TeacherController {
                             String currentProcessingInfo = " (Teacher: " + teacherToAdd.getFullName() + ", User: " + userToCreate.getUsername() + ")";
 
                             try {
-                                // Thêm Teacher trước để lấy ID
                                 teacherDAO.add(teacherToAdd);
                                 if (teacherToAdd.getTeacherId() > 0) {
                                     teacherAdded = true;
@@ -459,14 +427,12 @@ public class TeacherController {
                                 }
 
                             } catch (Exception addEx) {
-                                // Lỗi khi thêm Teacher hoặc User vào DAO
                                 String errorMsg = "Import Save Error" + currentProcessingInfo + ": " + addEx.getMessage();
                                 System.err.println(errorMsg);
                                 errors.add(errorMsg);
                             }
-                        } // end for loop saving
+                        }
 
-                        // Chuẩn bị kết quả trả về
                         Map<String, Object> resultData = new HashMap<>();
                         resultData.put("errors", errors);
                         resultData.put("processedCount", processedCount);
@@ -477,7 +443,6 @@ public class TeacherController {
                         return resultData;
 
                     } finally {
-                        // Đóng tài nguyên
                         if (workbook != null) try { workbook.close(); } catch (IOException ignored) {}
                         if (fis != null) try { fis.close(); } catch (IOException ignored) {}
                     }
@@ -486,23 +451,20 @@ public class TeacherController {
                 @Override
                 protected void done() {
                     try {
-                        // Lấy kết quả từ background task
                         Map<String, Object> resultData = get();
                         List<String> errors = (List<String>) resultData.get("errors");
                         int finalProcessedCount = (int) resultData.get("processedCount");
                         int finalTeacherSuccessCount = (int) resultData.get("teacherSuccessCount");
-                        int finalUserSuccessCount = (int) resultData.get("userSuccessCount"); // Số user thực sự được tạo
+                        int finalUserSuccessCount = (int) resultData.get("userSuccessCount");
                         int finalValidationErrorCount = (int) resultData.get("validationErrorCount");
-                        int totalErrors = errors != null ? errors.size() : 0; // Bao gồm cả lỗi validation và lỗi lưu
+                        int totalErrors = errors != null ? errors.size() : 0;
                         int saveErrors = totalErrors - finalValidationErrorCount;
 
-                        // *** LUÔN GỌI REFRESH ĐỂ LẤY DỮ LIỆU MỚI NHẤT TỪ DAO ***
                         if (teacherPanel != null) {
                             System.out.println("Import done. Refreshing TeacherPanel...");
                             teacherPanel.refreshTable();
                             teacherPanel.setAllButtonsEnabled(true);
                         }
-                        // Refresh AccountsPanel nếu có User được thêm thành công
                         if (finalUserSuccessCount > 0 && mainView != null) {
                             System.out.println("Import done. Refreshing AccountsPanel...");
                             mainView.refreshAccountsPanelData();
@@ -517,7 +479,6 @@ public class TeacherController {
                             writeGeneralLog("Imported Teachers", logDetails);
                         }
 
-                        // Xây dựng thông báo kết quả chi tiết
                         StringBuilder messageBuilder = new StringBuilder();
                         messageBuilder.append("Import finished.\n");
                         messageBuilder.append("Total rows processed (excluding header): ").append(finalProcessedCount).append("\n");
@@ -539,7 +500,6 @@ public class TeacherController {
                         }
 
                     } catch (Exception e) {
-                        // Lỗi trong quá trình thực thi SwingWorker
                         e.printStackTrace();
                         UIUtils.showErrorMessage(teacherPanel, "Import Error", "An unexpected error occurred during the import process: " + e.getMessage());
                         if (teacherPanel != null) {
@@ -556,18 +516,17 @@ public class TeacherController {
         return this.currentUser != null && this.currentUser.getRole() == Role.ADMIN;
     }
 
-    // --- CÁC HÀM HELPER ĐỌC EXCEL (Copy từ StudentController hoặc BaseController nếu có) ---
     private String getStringCellValue(Cell cell) {
         if (cell == null) return null;
         try {
             switch (cell.getCellType()) {
                 case STRING: return cell.getStringCellValue();
-                case NUMERIC: return String.valueOf((long)cell.getNumericCellValue()); // Cẩn thận với số thập phân/số 0
+                case NUMERIC: return String.valueOf((long)cell.getNumericCellValue());
                 case BOOLEAN: return String.valueOf(cell.getBooleanCellValue());
-                case FORMULA: return cell.getStringCellValue(); // Thử lấy giá trị đã tính
+                case FORMULA: return cell.getStringCellValue();
                 default: return null;
             }
-        } catch (Exception e) { return null; } // Trả về null nếu lỗi đọc ô
+        } catch (Exception e) { return null; }
     }
 
     private LocalDate getDateCellValue(Cell cell) {
@@ -577,20 +536,19 @@ public class TeacherController {
                 java.util.Date javaDate = cell.getDateCellValue();
                 return javaDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
             } else if (cell.getCellType() == CellType.STRING) {
-                return DateUtils.parseDate(cell.getStringCellValue()); // Thử parse từ String
+                return DateUtils.parseDate(cell.getStringCellValue());
             }
-        } catch (Exception e) { /* ignore */ }
+        } catch (Exception e) { }
         return null;
     }
 
-    // Hàm đọc giá trị Boolean từ ô (có thể là TRUE/FALSE hoặc số 1/0)
     private Boolean getBooleanCellValue(Cell cell) {
         if (cell == null) return null;
         try {
             if (cell.getCellType() == CellType.BOOLEAN) {
                 return cell.getBooleanCellValue();
             } else if (cell.getCellType() == CellType.NUMERIC) {
-                return cell.getNumericCellValue() != 0; // Coi 0 là false, khác 0 là true
+                return cell.getNumericCellValue() != 0;
             } else if (cell.getCellType() == CellType.STRING) {
                 String val = cell.getStringCellValue().trim().toLowerCase();
                 if (val.equals("true") || val.equals("1") || val.equals("yes") || val.equals("active")) return true;
@@ -618,7 +576,7 @@ public class TeacherController {
             try {
                 LogEntry log = new LogEntry(
                         LocalDateTime.now(),
-                        currentUser.getDisplayName(), // Dùng DisplayName
+                        currentUser.getDisplayName(),
                         currentUser.getRole().name(),
                         action,
                         details

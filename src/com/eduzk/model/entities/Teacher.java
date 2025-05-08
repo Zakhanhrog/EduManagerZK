@@ -10,14 +10,14 @@ public class Teacher implements Serializable {
     private int teacherId;
     private String fullName;
     private LocalDate dateOfBirth;
-    private String gender; // Consider Enum
-    private String specialization; // E.g., "Mathematics", "English Literature"
+    private String gender;
+    private String specialization;
     private String phone;
     private String email;
-    private boolean active; // To track if the teacher is currently employed/active
+    private boolean active;
 
     public Teacher() {
-        this.active = true; // Default to active
+        this.active = true;
     }
 
     public Teacher(int teacherId, String fullName, LocalDate dateOfBirth, String gender, String specialization, String phone, String email) {

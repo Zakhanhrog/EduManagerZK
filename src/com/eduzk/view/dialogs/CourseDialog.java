@@ -14,12 +14,11 @@ public class CourseDialog extends JDialog {
     private final Course courseToEdit;
     private final boolean isEditMode;
 
-    // UI Components
     private JTextField idField;
     private JTextField codeField;
     private JTextField nameField;
     private JTextField levelField;
-    private JSpinner creditsSpinner; // Use JSpinner for numeric input
+    private JSpinner creditsSpinner;
     private JTextArea descriptionArea;
     private JButton saveButton;
     private JButton cancelButton;
@@ -44,8 +43,7 @@ public class CourseDialog extends JDialog {
         codeField = new JTextField(10);
         nameField = new JTextField(25);
         levelField = new JTextField(15);
-        // Spinner for Credits (e.g., 0 to 20, step 1)
-        creditsSpinner = new JSpinner(new SpinnerNumberModel(0, 0, 100, 1)); // Initial, min, max, step
+        creditsSpinner = new JSpinner(new SpinnerNumberModel(0, 0, 100, 1));
         descriptionArea = new JTextArea(4, 25); // Rows, Columns
         descriptionArea.setLineWrap(true);
         descriptionArea.setWrapStyleWord(true);
@@ -100,7 +98,7 @@ public class CourseDialog extends JDialog {
         gbc.gridx = 0; gbc.gridy = currentRow; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0.0; gbc.anchor = GridBagConstraints.NORTHWEST; // Align label top-left
         formPanel.add(new JLabel("Description:"), gbc);
         gbc.gridx = 1; gbc.gridy = currentRow; gbc.gridwidth = 3; gbc.fill = GridBagConstraints.BOTH; gbc.weightx = 1.0; gbc.weighty = 1.0; // Allow area to grow
-        formPanel.add(new JScrollPane(descriptionArea), gbc); // Put text area in scroll pane
+        formPanel.add(new JScrollPane(descriptionArea), gbc);
         currentRow++;
 
 
@@ -129,17 +127,16 @@ public class CourseDialog extends JDialog {
             creditsSpinner.setValue(courseToEdit.getCredits());
             descriptionArea.setText(courseToEdit.getDescription());
         } else {
-            creditsSpinner.setValue(0); // Default credits
+            creditsSpinner.setValue(0);
         }
     }
 
     private void configureDialog() {
         pack();
-        setMinimumSize(new Dimension(450, 300)); // Set minimum size
+        setMinimumSize(new Dimension(450, 300));
         setLocationRelativeTo(getOwner());
         setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
     }
-
 
     private void saveCourse() {
         // --- Input Validation ---
@@ -148,8 +145,6 @@ public class CourseDialog extends JDialog {
         String level = levelField.getText().trim();
         int credits = (int) creditsSpinner.getValue();
         String description = descriptionArea.getText().trim();
-
-
         if (!ValidationUtils.isNotEmpty(code)) {
             UIUtils.showWarningMessage(this, "Validation Error", "Course Code cannot be empty.");
             codeField.requestFocusInWindow();
@@ -160,23 +155,18 @@ public class CourseDialog extends JDialog {
             nameField.requestFocusInWindow();
             return;
         }
-        if (credits < 0) { // Spinner model should prevent this, but double-check
+        if (credits < 0) {
             UIUtils.showWarningMessage(this, "Validation Error", "Credits cannot be negative.");
             creditsSpinner.requestFocusInWindow();
             return;
         }
 
-
-        // --- Create or Update Course Object ---
         Course course = isEditMode ? courseToEdit : new Course();
         course.setCourseCode(code);
         course.setCourseName(name);
         course.setLevel(level);
         course.setCredits(credits);
         course.setDescription(description);
-        // ID handled by DAO or exists already
-
-        // --- Call Controller ---
         boolean success;
         if (isEditMode) {
             success = controller.updateCourse(course);
@@ -185,8 +175,7 @@ public class CourseDialog extends JDialog {
         }
 
         if (success) {
-            dispose(); // Close dialog on success
+            dispose();
         }
-        // Controller shows messages
     }
 }

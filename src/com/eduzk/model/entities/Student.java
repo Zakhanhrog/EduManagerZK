@@ -10,12 +10,11 @@ public class Student implements Serializable {
     private int studentId;
     private String fullName;
     private LocalDate dateOfBirth;
-    private String gender; // Consider using an Enum if specific genders are needed
+    private String gender;
     private String address;
     private String parentName;
     private String phone;
     private String email;
-    // Add other relevant fields like enrollment date, grade level, etc.
 
     public Student() {
     }

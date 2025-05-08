@@ -36,10 +36,9 @@ public class TeacherPanel extends JPanel {
         setupActions();
     }
 
-    // Method to set the controller after instantiation (used by MainView)
     public void setController(TeacherController controller) {
         this.controller = controller;
-        refreshTable(); // Initial load
+        refreshTable();
     }
 
     private void initComponents() {
@@ -48,12 +47,11 @@ public class TeacherPanel extends JPanel {
                 new Object[]{"ID", "Full Name", "Specialization", "Phone", "Email", "DOB", "Active"}, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Non-editable cells
+                return false;
             }
             @Override
             public Class<?> getColumnClass(int columnIndex) {
-                // Correctly render boolean as checkbox
-                if (columnIndex == 6) { // 'Active' column index
+                if (columnIndex == 6) {
                     return Boolean.class;
                 }
                 return super.getColumnClass(columnIndex);

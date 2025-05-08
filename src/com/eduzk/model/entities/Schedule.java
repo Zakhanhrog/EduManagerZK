@@ -9,14 +9,12 @@ public class Schedule implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private int scheduleId;
-    private int classId; // Reference to the EduClass ID
-    private int teacherId; // Reference to the Teacher ID (can be different from primary)
-    private int roomId; // Reference to the Room ID
-    private LocalDate date; // Specific date for this session
+    private int classId;
+    private int teacherId;
+    private int roomId;
+    private LocalDate date;
     private LocalTime startTime;
     private LocalTime endTime;
-    // Optional: Add recurrence info if needed (e.g., DayOfWeek, frequency)
-    // private DayOfWeek dayOfWeek; // For recurring schedules
 
     public Schedule() {
     }
@@ -30,7 +28,6 @@ public class Schedule implements Serializable {
         this.startTime = startTime;
         this.endTime = endTime;
 
-        // Basic validation
         if (endTime != null && startTime != null && endTime.isBefore(startTime)) {
             throw new IllegalArgumentException("End time cannot be before start time.");
         }
@@ -81,7 +78,6 @@ public class Schedule implements Serializable {
     }
 
     public void setStartTime(LocalTime startTime) {
-        // Consider validation: endTime != null && startTime != null && endTime.isBefore(startTime)
         this.startTime = startTime;
     }
 
@@ -90,16 +86,13 @@ public class Schedule implements Serializable {
     }
 
     public void setEndTime(LocalTime endTime) {
-        // Consider validation: endTime != null && startTime != null && endTime.isBefore(startTime)
         this.endTime = endTime;
     }
 
-    // Helper method to check for time overlap with another schedule on the same date
     public boolean overlaps(Schedule other) {
         if (other == null || !this.date.equals(other.date)) {
-            return false; // Different dates cannot overlap
+            return false;
         }
-        // Overlap occurs if one starts before the other ends AND one ends after the other starts
         return this.startTime.isBefore(other.endTime) && this.endTime.isAfter(other.startTime);
     }
 

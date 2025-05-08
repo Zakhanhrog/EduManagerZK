@@ -67,27 +67,24 @@ public class StudentController {
                     }
 
                     try {
-                        // 1. Lấy các lớp của giáo viên
                         List<EduClass> teacherClasses = eduClassDAO.findByTeacherId(teacherId);
                         if (teacherClasses.isEmpty()) {
                             return Collections.emptyList();
                         }
 
-                        // 2. Lấy ID của tất cả học viên từ các lớp đó, loại bỏ trùng lặp
                         List<Integer> studentIds = teacherClasses.stream()
                                 .flatMap(eduClass -> eduClass.getStudentIds().stream())
                                 .distinct()
                                 .collect(Collectors.toList());
 
                         if (studentIds.isEmpty()) {
-                            return Collections.emptyList(); // Các lớp không có học viên nào
+                            return Collections.emptyList();
                         }
 
-                        // 3. Lấy thông tin chi tiết các học viên từ StudentDAO
                         System.out.println("StudentController: Fetching details for student IDs: " + studentIds);
                         return studentIds.stream()
-                                .map(studentId -> studentDAO.getById(studentId)) // Gọi getById cho từng ID
-                                .filter(Objects::nonNull) // Bỏ qua nếu student không tìm thấy (dữ liệu không nhất quán?)
+                                .map(studentId -> studentDAO.getById(studentId))
+                                .filter(Objects::nonNull)
                                 .collect(Collectors.toList());
 
                     } catch (DataAccessException daoEx) {
@@ -119,7 +116,7 @@ public class StudentController {
 
     public List<Student> searchStudentsByName(String name) {
         if (!ValidationUtils.isNotEmpty(name)) {
-            return getAllStudents(); // Return all if search is empty
+            return getAllStudents();
         }
         try {
             return studentDAO.findByName(name);
@@ -152,7 +149,6 @@ public class StudentController {
                 String defaultUsername = student.getPhone();
                 String defaultPassword = "123456";
 
-                // Tạo đối tượng User mới
                 User newUser = new User();
                 newUser.setUsername(defaultUsername);
                 String hashedPassword = PasswordUtils.hashPassword(defaultPassword);
@@ -254,7 +250,6 @@ public class StudentController {
         }
         return null;
     }
-    // --- THÊM PHƯƠNG THỨC CẬP NHẬT PASSWORD ---
     public boolean updatePasswordForStudent(int studentId, String newPassword) {
         if (userDAO == null) { System.err.println("UserDAO not injected in StudentController!"); return false; }
         if (!ValidationUtils.isValidPassword(newPassword)) { UIUtils.showWarningMessage(studentPanel, "Error", "New password is too short."); return false;}
@@ -263,8 +258,8 @@ public class StudentController {
         if (userOpt.isPresent()) {
             User userToUpdate = userOpt.get();
             String hashedPassword = PasswordUtils.hashPassword(newPassword);
-            userToUpdate.setPassword(hashedPassword); // Lưu mật khẩu đã hash
-            userToUpdate.setRequiresPasswordChange(false); // Khi admin đổi pass, không cần user force change nữa
+            userToUpdate.setPassword(hashedPassword);
+            userToUpdate.setRequiresPasswordChange(false);
 
             try {
                 userDAO.update(userToUpdate);
@@ -324,7 +319,7 @@ public class StudentController {
                         workbook = new XSSFWorkbook(fis);
                         Sheet sheet = workbook.getSheetAt(0);
                         Iterator<Row> rowIterator = sheet.iterator();
-                        if (rowIterator.hasNext()) rowIterator.next(); // Bỏ qua header
+                        if (rowIterator.hasNext()) rowIterator.next();
 
                         int rowNum = 1;
                         while (rowIterator.hasNext()) {
@@ -333,31 +328,24 @@ public class StudentController {
                             processedCount++;
 
                             try {
-                                // --- 1. ĐỌC & VALIDATE DỮ LIỆU STUDENT ---
                                 String fullName = getStringCellValue(row.getCell(0));
                                 LocalDate dob = getDateCellValue(row.getCell(1));
                                 String gender = getStringCellValue(row.getCell(2));
                                 String address = getStringCellValue(row.getCell(3));
                                 String parentName = getStringCellValue(row.getCell(4));
-                                String phone = getStringCellValue(row.getCell(5)); // Dùng làm username
+                                String phone = getStringCellValue(row.getCell(5));
                                 String email = getStringCellValue(row.getCell(6));
 
-                                // --- Validation ---
                                 if (!ValidationUtils.isNotEmpty(fullName)) throw new IllegalArgumentException("Full Name required.");
-                                // Phone là bắt buộc và hợp lệ để làm username
                                 if (!ValidationUtils.isNotEmpty(phone) || !ValidationUtils.isValidPhoneNumber(phone)) {
                                     throw new IllegalArgumentException("Valid Phone Number required (used as username).");
                                 }
-                                // Kiểm tra trùng username (Phone) ngay bây giờ trong bảng User
                                 if (userDAO.findByUsername(phone.trim()).isPresent()){
                                     throw new DataAccessException("Username (Phone) '" + phone.trim() + "' already exists.");
                                 }
-                                // Validation email nếu cần
                                 if (ValidationUtils.isNotEmpty(email) && !ValidationUtils.isValidEmail(email)) {
-                                    // throw new IllegalArgumentException("Invalid email format."); // Hoặc chỉ cảnh báo
                                 }
 
-                                // --- 2. TẠO OBJECTS NHƯNG CHƯA LƯU ---
                                 Student tempStudent = new Student();
                                 tempStudent.setFullName(fullName.trim());
                                 tempStudent.setDateOfBirth(dob);
@@ -368,30 +356,27 @@ public class StudentController {
                                 tempStudent.setEmail(email != null ? email.trim() : null);
 
                                 User tempUser = new User();
-                                tempUser.setUsername(phone.trim()); // Dùng phone làm username
+                                tempUser.setUsername(phone.trim());
                                 String defaultPassword = "123456";
                                 String hashedPassword = PasswordUtils.hashPassword(defaultPassword);
-                                tempUser.setPassword(hashedPassword); // Lưu mật khẩu đã hash
+                                tempUser.setPassword(hashedPassword);
 
                                 tempUser.setRole(Role.STUDENT);
-                                tempUser.setActive(true); // Mặc định active
+                                tempUser.setActive(true);
                                 tempUser.setTeacherId(null);
-                                tempUser.setRequiresPasswordChange(true); // Yêu cầu đổi mật khẩu
-                                // studentId sẽ được set sau khi Student được lưu và có ID
+                                tempUser.setRequiresPasswordChange(true);
 
                                 validStudentsToImport.add(tempStudent);
                                 validUsersToCreate.add(tempUser);
 
                             } catch (Exception rowEx) {
-                                // Lỗi validation hoặc đọc dòng
                                 String errorMsg = "Row " + rowNum + ": Validation/Read Error - " + rowEx.getMessage();
                                 System.err.println(errorMsg);
                                 errors.add(errorMsg);
                                 validationErrorCount++;
                             }
-                        } // end while
+                        }
 
-                        // --- 3. THỰC HIỆN LƯU VÀO DAO ---
                         int actualStudentSuccessCount = 0;
                         int actualUserSuccessCount = 0;
 
@@ -403,22 +388,15 @@ public class StudentController {
                             String currentProcessingInfo = " (Student: " + studentToAdd.getFullName() + ", User: " + userToCreate.getUsername() + ")";
 
                             try {
-                                // Thêm Student trước để lấy ID
                                 studentDAO.add(studentToAdd);
-                                // *** QUAN TRỌNG: Kiểm tra xem ID có được gán không ***
-                                // Logic gán ID nằm trong studentDAO.add(), cần đảm bảo nó hoạt động
-                                // Giả sử sau khi add, studentToAdd.getStudentId() sẽ có giá trị
-                                if (studentToAdd.getStudentId() > 0) { // Giả sử ID vẫn là int
+                                if (studentToAdd.getStudentId() > 0) {
                                     studentAdded = true;
-                                    // Liên kết studentId vào User
                                     userToCreate.setStudentId(studentToAdd.getStudentId());
 
-                                    // **Kiểm tra trùng studentId trong bảng User trước khi thêm**
                                     if (userDAO.findByStudentId(userToCreate.getStudentId()).isPresent()){
                                         throw new DataAccessException("Account for student ID " + userToCreate.getStudentId() + " already exists.");
                                     }
 
-                                    // Thêm User
                                     userDAO.add(userToCreate);
                                     userAdded = true;
 
@@ -432,15 +410,12 @@ public class StudentController {
                                 }
 
                             } catch (Exception addEx) {
-                                // Lỗi khi thêm Student hoặc User vào DAO
                                 String errorMsg = "Import Save Error" + currentProcessingInfo + ": " + addEx.getMessage();
                                 System.err.println(errorMsg);
                                 errors.add(errorMsg);
-                                // Lỗi này tính vào saveErrors
                             }
-                        } // end for loop saving
+                        }
 
-                        // Chuẩn bị kết quả trả về
                         Map<String, Object> resultData = new HashMap<>();
                         resultData.put("errors", errors);
                         resultData.put("processedCount", processedCount);
@@ -451,16 +426,14 @@ public class StudentController {
                         return resultData;
 
                     } finally {
-                        // Đóng tài nguyên
                         if (workbook != null) try { workbook.close(); } catch (IOException ignored) {}
                         if (fis != null) try { fis.close(); } catch (IOException ignored) {}
                     }
-                } // end doInBackground
+                }
 
                 @Override
                 protected void done() {
                     try {
-                        // Lấy kết quả
                         Map<String, Object> resultData = get();
                         List<String> errors = (List<String>) resultData.get("errors");
                         int finalProcessedCount = (int) resultData.get("processedCount");
@@ -469,14 +442,12 @@ public class StudentController {
                         int finalValidationErrorCount = (int) resultData.get("validationErrorCount");
                         int totalErrors = errors != null ? errors.size() : 0;
 
-                        // *** GỌI REFRESH TABLE CỦA PANEL ***
                         if (studentPanel != null) {
                             System.out.println("Import done. Refreshing StudentPanel...");
-                            studentPanel.refreshTable(); // Panel sẽ tự lấy dữ liệu đúng từ DAO
+                            studentPanel.refreshTable();
                             studentPanel.setAllButtonsEnabled(true);
                         }
 
-                        // Refresh AccountsPanel nếu có User được thêm thành công
                         if (finalUserSuccessCount > 0 && mainView != null) {
                             System.out.println("Import done. Refreshing AccountsPanel...");
                             mainView.refreshAccountsPanelData();
@@ -492,7 +463,6 @@ public class StudentController {
                             writeGeneralLog("Imported Students", logDetails);
                         }
 
-                        // Xây dựng và hiển thị thông báo kết quả chi tiết
                         StringBuilder messageBuilder = new StringBuilder();
                         messageBuilder.append("Import finished.\n");
                         messageBuilder.append("Total rows processed: ").append(finalProcessedCount).append("\n");
@@ -512,18 +482,16 @@ public class StudentController {
                         }
 
                     } catch (Exception e) {
-                        // Lỗi trong quá trình thực thi SwingWorker
                         e.printStackTrace();
                         UIUtils.showErrorMessage(studentPanel, "Import Error", "An unexpected error occurred: " + e.getMessage());
                         if (studentPanel != null) studentPanel.setAllButtonsEnabled(true);
                     }
-                } // end done
-            }; // end SwingWorker
+                }
+            };
             worker.execute();
-        } // end if JFileChooser
+        }
     }
 
-    // Lấy giá trị String từ ô, xử lý ô null hoặc không phải String
     private String getStringCellValue(Cell cell) {
         if (cell == null) return null;
         switch (cell.getCellType()) {
@@ -534,13 +502,12 @@ public class StudentController {
             case BOOLEAN:
                 return String.valueOf(cell.getBooleanCellValue());
             case FORMULA:
-                try { return cell.getStringCellValue(); } catch (IllegalStateException e) { return null; } // Có thể lỗi nếu công thức trả về số
+                try { return cell.getStringCellValue(); } catch (IllegalStateException e) { return null; }
             default:
                 return null;
         }
     }
 
-    // Lấy giá trị LocalDate từ ô, xử lý ô null hoặc kiểu khác
     private LocalDate getDateCellValue(Cell cell) {
         if (cell == null) return null;
         try {
@@ -603,16 +570,13 @@ public class StudentController {
                 String userDetail = "Linked User IDs: [" + deletedUsersInfo.stream().map(u -> String.valueOf(u.getUserId())).collect(Collectors.joining(", ")) + "]";
                 writeDeleteLog("Deleted Student(s)", studentDetail + " | " + userDetail);
             }
-           // --- 3. REFRESH VÀ THÔNG BÁO ---
             if (deletedStudentCount > 0 || deletedUserCount > 0) {
                 if (studentPanel != null) {
                     studentPanel.refreshTable();
                 }
-                // Gọi refresh AccountsPanel nếu có User bị xóa
                 if (deletedUserCount > 0 && mainView != null) {
                     mainView.refreshAccountsPanelData();
                 }
-                // Thông báo kết quả
                 UIUtils.showInfoMessage(studentPanel, "Deletion Successful",
                         deletedStudentCount + " student(s) and " + deletedUserCount + " linked user account(s) deleted successfully.");
                 return true;
@@ -647,7 +611,7 @@ public class StudentController {
             try {
                 LogEntry log = new LogEntry(
                         LocalDateTime.now(),
-                        currentUser.getDisplayName(), // Dùng DisplayName thay vì Username
+                        currentUser.getDisplayName(),
                         currentUser.getRole().name(),
                         action,
                         details

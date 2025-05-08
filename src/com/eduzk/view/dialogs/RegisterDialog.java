@@ -110,8 +110,6 @@ public class RegisterDialog extends JDialog {
     private void setupActions() {
         registerButton.addActionListener(e -> performRegistration());
         cancelButton.addActionListener(e -> dispose());
-
-        // Listener để ẩn/hiện trường Teacher ID
         roleComboBox.addItemListener(e -> {
             if (e.getStateChange() == ItemEvent.SELECTED) {
                 updateFieldsBasedOnRole();
@@ -119,7 +117,6 @@ public class RegisterDialog extends JDialog {
         });
     }
 
-    // Helper ẩn/hiện trường Teacher ID
     private void updateFieldsBasedOnRole() {
         Role selectedRole = (Role) roleComboBox.getSelectedItem();
         boolean isTeacher = (selectedRole == Role.TEACHER);
@@ -129,11 +126,10 @@ public class RegisterDialog extends JDialog {
         usernameOrPhoneField.setToolTipText(isTeacher ? "Enter your desired username" : "Enter your phone number (must exist in student records)");
 
 
-        this.pack(); // Điều chỉnh kích thước dialog
+        this.pack();
     }
 
     private void configureDialog() {
-        // pack() đã được gọi, không cần gọi lại ở đây
         setResizable(false);
         setLocationRelativeTo(getOwner());
         setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
@@ -156,29 +152,24 @@ public class RegisterDialog extends JDialog {
 
         // --- Validation Riêng theo Role ---
         if (selectedRole == Role.STUDENT) {
-            // Username phải là SĐT hợp lệ
             if (!ValidationUtils.isValidPhoneNumber(usernameOrPhone)) {
                 statusLabel.setText("Invalid phone number format for student registration.");
                 usernameOrPhoneField.requestFocusInWindow();
                 return;
             }
-            // Không cần Teacher ID
             teacherIdInput = null;
         } else if (selectedRole == Role.TEACHER) {
-            // Username phải là username hợp lệ
             if (!ValidationUtils.isValidUsername(usernameOrPhone)) {
                 statusLabel.setText("Invalid username format for teacher (3-20 alphanumeric/underscore).");
                 usernameOrPhoneField.requestFocusInWindow();
                 return;
             }
-            // Phải có Teacher ID hợp lệ
             if (!ValidationUtils.isNotEmpty(teacherIdStr)) { statusLabel.setText("Teacher ID is required."); teacherIdField.requestFocusInWindow(); return; }
             try {
                 teacherIdInput = Integer.parseInt(teacherIdStr);
                 if (teacherIdInput <= 0) { statusLabel.setText("Invalid Teacher ID (must be positive)."); teacherIdField.requestFocusInWindow(); return; }
             } catch (NumberFormatException e) { statusLabel.setText("Invalid Teacher ID (must be a number)."); teacherIdField.requestFocusInWindow(); return; }
         } else {
-            // Vai trò không hợp lệ (không nên xảy ra với ComboBox)
             statusLabel.setText("Invalid role selected.");
             return;
         }

@@ -65,7 +65,6 @@ public class TeacherDAOImpl extends BaseDAO<Teacher> implements ITeacherDAO {
             }
 
             if (index != -1) {
-                // Optional: Check for duplicate email/phone before update
                 dataList.set(index, teacher);
                 saveData();
             } else {
@@ -80,10 +79,6 @@ public class TeacherDAOImpl extends BaseDAO<Teacher> implements ITeacherDAO {
     public void delete(int id) {
         lock.writeLock().lock();
         try {
-            // Check if teacher is assigned to any active classes or schedules before deleting?
-            // This might require calls to EduClassDAO or ScheduleDAO.
-            // For simplicity now, we just delete. Add checks later if needed.
-
             boolean removed = dataList.removeIf(teacher -> teacher.getTeacherId() == id);
             if (removed) {
                 saveData();
@@ -111,48 +106,38 @@ public class TeacherDAOImpl extends BaseDAO<Teacher> implements ITeacherDAO {
     @Override
     public int deleteMultiple(List<Integer> ids) throws DataAccessException {
         if (ids == null || ids.isEmpty()) {
-            return 0; // Không có gì để xóa
+            return 0;
         }
 
         int initialSize;
         int finalSize;
 
-        lock.writeLock().lock(); // Lấy khóa ghi vì ta sẽ thay đổi dataList
+        lock.writeLock().lock();
         try {
-            initialSize = dataList.size(); // Ghi lại kích thước ban đầu
+            initialSize = dataList.size();
             System.out.println("TeacherDAOImpl.deleteMultiple: Initial size = " + initialSize + ", attempting to remove IDs: " + ids);
-
-            // Sử dụng removeIf để xóa hiệu quả các phần tử khớp với danh sách IDs
-            // Cần chuyển List<Integer> thành một cấu trúc cho phép kiểm tra nhanh (ví dụ: Set) nếu danh sách ID lớn
-            // Với danh sách nhỏ, contains() trên List cũng tạm ổn.
-            // List<Integer> finalIds = new ArrayList<>(ids); // Tạo bản copy final để dùng trong lambda
             boolean removed = dataList.removeIf(teacher -> ids.contains(teacher.getTeacherId()));
 
-            finalSize = dataList.size(); // Ghi lại kích thước sau khi xóa
+            finalSize = dataList.size();
             int deletedCount = initialSize - finalSize;
             System.out.println("TeacherDAOImpl.deleteMultiple: Removed " + deletedCount + " items. Final size = " + finalSize);
 
-
-            // Chỉ gọi saveData MỘT LẦN nếu có sự thay đổi
             if (deletedCount > 0) {
                 System.out.println("TeacherDAOImpl.deleteMultiple: Saving data after deletion...");
-                saveData(); // Lưu trạng thái mới của dataList vào file
+                saveData();
                 System.out.println("TeacherDAOImpl.deleteMultiple: Data saved.");
             } else {
                 System.out.println("TeacherDAOImpl.deleteMultiple: No items were removed matching the IDs.");
             }
 
-            return deletedCount; // Trả về số lượng đã xóa
+            return deletedCount;
 
-        } catch (Exception e) { // Bắt lỗi chung khi remove hoặc save
-            // Gói lại lỗi thành DataAccessException để Controller xử lý nhất quán
+        } catch (Exception e) {
             System.err.println("Error during multiple delete operation: " + e.getMessage());
             e.printStackTrace();
             throw new DataAccessException("Error deleting multiple teachers.", e);
         } finally {
-            lock.writeLock().unlock(); // Luôn nhả khóa ghi
+            lock.writeLock().unlock();
         }
     }
-
-    // getAll() is inherited from BaseDAO
 }

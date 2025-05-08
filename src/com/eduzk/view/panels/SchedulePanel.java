@@ -40,23 +40,21 @@ public class SchedulePanel extends JPanel {
 
     public void setController(ScheduleController controller) {
         this.controller = controller;
-        // Initial load (e.g., for the current week or month)
         loadInitialSchedule();
     }
 
     private void loadInitialSchedule() {
-        // Default: Show schedule for the current week
         LocalDate today = LocalDate.now();
         LocalDate startOfWeek = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
         LocalDate endOfWeek = today.with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.SUNDAY));
         startDatePicker.setDate(startOfWeek);
         endDatePicker.setDate(endOfWeek);
-        refreshScheduleView(); // Load data for this range
+        refreshScheduleView();
     }
 
     private void initComponents() {
         // Date Pickers
-        startDatePicker = new CustomDatePicker(LocalDate.now().minusDays(7)); // Default start: 1 week ago
+        startDatePicker = new CustomDatePicker(LocalDate.now().minusDays(7));
         endDatePicker = new CustomDatePicker(LocalDate.now()); // Default end: today
 
         // Table Model
@@ -66,7 +64,6 @@ public class SchedulePanel extends JPanel {
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
-            // Could add Class<?> overrides for Date/Time if needed for sorting
         };
         scheduleTable = new JTable(tableModel);
         scheduleTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -115,7 +112,7 @@ public class SchedulePanel extends JPanel {
     }
 
     private void setupLayout() {
-        // --- Top Panel (Filters and Actions) ---
+        // Top Panel (Filters and Actions)
         JPanel topPanel = new JPanel(new BorderLayout(20, 0));
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         filterPanel.add(new JLabel("From:"));
@@ -135,7 +132,6 @@ public class SchedulePanel extends JPanel {
 
         add(topPanel, BorderLayout.NORTH);
 
-        // --- Center Panel (Table) ---
         JScrollPane scrollPane = new JScrollPane(scheduleTable);
         add(scrollPane, BorderLayout.CENTER);
     }
@@ -182,8 +178,8 @@ public class SchedulePanel extends JPanel {
         });
         refreshButton.addActionListener(e -> {
             System.out.println("SchedulePanel: Refresh button clicked.");
-            refreshScheduleView(); // Gọi lại chính phương thức refresh của panel này
-            UIUtils.showInfoMessage(this,"Refreshed", "Schedule list updated."); // Thông báo (tùy chọn)
+            refreshScheduleView();
+            UIUtils.showInfoMessage(this,"Refreshed", "Schedule list updated.");
         });
 
     }
@@ -193,13 +189,11 @@ public class SchedulePanel extends JPanel {
             UIUtils.showErrorMessage(this, "Error", "Schedule Controller is not initialized.");
             return;
         }
-        // Dialog needs lists for dropdowns
         Window parentWindow = SwingUtilities.getWindowAncestor(this);
         ScheduleDialog dialog = new ScheduleDialog((Frame) parentWindow, controller, schedule);
         dialog.setVisible(true);
     }
 
-    // Called by controller or filter button action
     public void refreshScheduleView() {
         if (controller == null) return;
 
@@ -228,7 +222,6 @@ public class SchedulePanel extends JPanel {
                 row.add(DateUtils.formatDate(schedule.getDate()));
                 row.add(DateUtils.formatTime(schedule.getStartTime()));
                 row.add(DateUtils.formatTime(schedule.getEndTime()));
-                // Fetch names using controller helper methods to avoid loading full objects here
                 row.add(controller.getClassNameById(schedule.getClassId()));
                 row.add(controller.getTeacherNameById(schedule.getTeacherId()));
                 row.add(controller.getRoomNameById(schedule.getRoomId()));

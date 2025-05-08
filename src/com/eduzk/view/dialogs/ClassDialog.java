@@ -56,7 +56,6 @@ public class ClassDialog extends JDialog {
         semesterField = new JTextField(10);
         capacitySpinner = new JSpinner(new SpinnerNumberModel(1, 1, 500, 1));
 
-        // Custom renderers to display course/teacher names nicely in ComboBox
         courseComboBox.setRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
@@ -98,7 +97,6 @@ public class ClassDialog extends JDialog {
         gbc.insets = new Insets(5, 5, 5, 5);
         int currentRow = 0;
 
-        // Row: ID (Edit mode only)
         if (isEditMode) {
             gbc.gridx = 0; gbc.gridy = currentRow;
             formPanel.add(new JLabel("ID:"), gbc);
@@ -107,7 +105,6 @@ public class ClassDialog extends JDialog {
             currentRow++;
         }
 
-        // Row: Class Name
         gbc.gridx = 0; gbc.gridy = currentRow; gbc.gridwidth = 1; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0.0;
         formPanel.add(new JLabel("Class Name*:"), gbc);
         gbc.gridx = 1; gbc.gridy = currentRow; gbc.gridwidth = 3; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
@@ -167,24 +164,21 @@ public class ClassDialog extends JDialog {
         if (isEditMode && classToEdit != null) {
             idField.setText(String.valueOf(classToEdit.getClassId()));
             classNameField.setText(classToEdit.getClassName());
-            // Select the correct course and teacher in the ComboBoxes
             selectComboBoxItem(courseComboBox, classToEdit.getCourse());
             selectComboBoxItem(teacherComboBox, classToEdit.getPrimaryTeacher());
             yearField.setText(classToEdit.getAcademicYear());
             semesterField.setText(classToEdit.getSemester());
             capacitySpinner.setValue(classToEdit.getMaxCapacity());
         } else {
-            // Set default selections if needed
             if (courseComboBox.getItemCount() > 0) courseComboBox.setSelectedIndex(0);
             if (teacherComboBox.getItemCount() > 0) teacherComboBox.setSelectedIndex(0);
             capacitySpinner.setValue(20); // Default capacity
         }
     }
 
-    // Helper to select item in ComboBox based on object equality (requires proper equals method)
     private <T> void selectComboBoxItem(JComboBox<T> comboBox, T itemToSelect) {
         if (itemToSelect == null) {
-            comboBox.setSelectedIndex(-1); // No selection
+            comboBox.setSelectedIndex(-1);
             return;
         }
         for (int i = 0; i < comboBox.getItemCount(); i++) {
@@ -199,20 +193,18 @@ public class ClassDialog extends JDialog {
 
     private void configureDialog() {
         pack();
-        setMinimumSize(new Dimension(500, 350)); // Adjust minimum size
+        setMinimumSize(new Dimension(500, 350));
         setLocationRelativeTo(getOwner());
         setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
     }
 
     private void saveClass() {
-        // --- Input Validation ---
         String className = classNameField.getText().trim();
         Course selectedCourse = (Course) courseComboBox.getSelectedItem();
         Teacher selectedTeacher = (Teacher) teacherComboBox.getSelectedItem();
         String year = yearField.getText().trim();
         String semester = semesterField.getText().trim();
         int capacity = (int) capacitySpinner.getValue();
-
 
         if (!ValidationUtils.isNotEmpty(className)) {
             UIUtils.showWarningMessage(this, "Validation Error", "Class Name cannot be empty.");
@@ -235,7 +227,6 @@ public class ClassDialog extends JDialog {
             return;
         }
 
-        // --- Create or Update EduClass Object ---
         EduClass eduClass = isEditMode ? classToEdit : new EduClass();
         eduClass.setClassName(className);
         eduClass.setCourse(selectedCourse);
@@ -243,11 +234,10 @@ public class ClassDialog extends JDialog {
         eduClass.setAcademicYear(year);
         eduClass.setSemester(semester);
         eduClass.setMaxCapacity(capacity);
-        // --- Call Controller ---
         boolean success;
         if (isEditMode) {
             if (classToEdit != null) {
-                eduClass.setStudentIds(classToEdit.getStudentIds()); // Keep existing students
+                eduClass.setStudentIds(classToEdit.getStudentIds());
             }
             success = controller.updateEduClass(eduClass);
         } else {

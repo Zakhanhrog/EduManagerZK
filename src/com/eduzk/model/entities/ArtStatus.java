@@ -5,7 +5,6 @@ public enum ArtStatus {
     FAILED("Không đạt");
 
     private final String displayName;
-
     ArtStatus(String displayName) {
         this.displayName = displayName;
     }
@@ -14,7 +13,6 @@ public enum ArtStatus {
     public String toString() {
         return displayName;
     }
-
     public static ArtStatus fromString(String text) {
         for (ArtStatus b : ArtStatus.values()) {
             if (b.displayName.equalsIgnoreCase(text)) {

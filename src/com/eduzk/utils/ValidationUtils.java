@@ -26,30 +26,6 @@ public class ValidationUtils {
         return isNotEmpty(phone) && PHONE_PATTERN.matcher(phone.trim()).matches();
     }
 
-    public static boolean isPositiveInteger(String value) {
-        if (!isNotEmpty(value)) {
-            return false;
-        }
-        try {
-            int intValue = Integer.parseInt(value.trim());
-            return intValue > 0;
-        } catch (NumberFormatException e) {
-            return false;
-        }
-    }
-
-    public static boolean isNonNegativeInteger(String value) {
-        if (!isNotEmpty(value)) {
-            return false;
-        }
-        try {
-            int intValue = Integer.parseInt(value.trim());
-            return intValue >= 0;
-        } catch (NumberFormatException e) {
-            return false;
-        }
-    }
-
     private static final Pattern USERNAME_PATTERN = Pattern.compile(
             "^[a-zA-Z0-9_]{3,20}$"
     );

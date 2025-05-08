@@ -42,7 +42,7 @@ public class LoginView extends JFrame {
         statusLabel = new JLabel(" ");
         statusLabel.setForeground(UIManager.getColor("Label.errorForeground"));
         statusLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        logoLabel = new JLabel(); // Tạo JLabel trống trước
+        logoLabel = new JLabel();
         logoLabel.setHorizontalAlignment(SwingConstants.CENTER);
     }
     private void styleComponents() {
@@ -54,7 +54,6 @@ public class LoginView extends JFrame {
 
     }
 
-
     private void setupLayout() {
         setTitle("EduZakhanh - Login");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -64,7 +63,7 @@ public class LoginView extends JFrame {
         mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 30, 15, 30)); // Giảm nhẹ padding trên/dưới tổng thể
         GridBagConstraints gbc = new GridBagConstraints();
 
-        // --- 1. THÊM SPACER Ở TRÊN CÙNG ---
+        // THÊM SPACER Ở TRÊN CÙNG
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.gridwidth = 2;
@@ -76,7 +75,6 @@ public class LoginView extends JFrame {
         try {
             URL logoUrl = getClass().getResource("/icons/logo.svg");
             if (logoUrl != null) {
-//                FlatSVGIcon svgIcon = new FlatSVGIcon(logoUrl).derive(180, -1);
                 FlatSVGIcon svgIcon = new FlatSVGIcon(logoUrl);
                 logoLabel.setIcon(svgIcon);
             } else {
@@ -89,54 +87,51 @@ public class LoginView extends JFrame {
             e.printStackTrace();
         }
 
-        // Thiết lập ràng buộc cho logoLabel (đã dịch xuống)
         gbc.gridx = 0;
-        gbc.gridy = 1;       // Logo ở hàng 1
+        gbc.gridy = 1;
         gbc.gridwidth = 2;
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.fill = GridBagConstraints.NONE;
         gbc.weightx = 0;
-        gbc.weighty = 0;     // *** Logo không có weighty ***
-        gbc.insets = new Insets(0, 5, 20, 5); // Khoảng cách dưới logo (20), trên (0 vì đã có spacer)
+        gbc.weighty = 0;
+        gbc.insets = new Insets(0, 5, 20, 5);
         mainPanel.add(logoLabel, gbc);
 
-        // --- 3. Thêm Username Label và Field (ở gridy = 2) ---
-        gbc.gridwidth = 1; // Reset
+        gbc.gridwidth = 1;
         gbc.fill = GridBagConstraints.NONE;
 
         gbc.gridx = 0;
-        gbc.gridy = 2;       // Hàng 2
+        gbc.gridy = 2;
         gbc.anchor = GridBagConstraints.LINE_END;
         gbc.insets = new Insets(5, 5, 5, 10);
         mainPanel.add(new JLabel("Username:"), gbc);
 
         gbc.gridx = 1;
-        gbc.gridy = 2;       // Hàng 2
+        gbc.gridy = 2;
         gbc.anchor = GridBagConstraints.LINE_START;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
         gbc.insets = new Insets(5, 0, 5, 5);
         mainPanel.add(usernameField, gbc);
 
-        // --- 4. Thêm Password Label và Field (ở gridy = 3) ---
-        gbc.weightx = 0.0; // Reset
+        gbc.weightx = 0.0;
 
         gbc.gridx = 0;
-        gbc.gridy = 3;       // Hàng 3
+        gbc.gridy = 3;
         gbc.anchor = GridBagConstraints.LINE_END;
         gbc.fill = GridBagConstraints.NONE;
         gbc.insets = new Insets(5, 5, 5, 10);
         mainPanel.add(new JLabel("Password:"), gbc);
 
         gbc.gridx = 1;
-        gbc.gridy = 3;       // Hàng 3
+        gbc.gridy = 3;
         gbc.anchor = GridBagConstraints.LINE_START;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
         gbc.insets = new Insets(5, 0, 5, 5);
         mainPanel.add(passwordField, gbc);
 
-        // --- 5. Thêm Button Panel (ở gridy = 4) ---
+        // Thêm Button Panel
         JPanel buttonPanel = new JPanel(new GridBagLayout());
         GridBagConstraints btnGbc = new GridBagConstraints();
         btnGbc.fill = GridBagConstraints.HORIZONTAL;
@@ -150,7 +145,7 @@ public class LoginView extends JFrame {
         buttonPanel.add(loginButton, btnGbc);
 
         gbc.gridx = 0;
-        gbc.gridy = 4;       // Hàng 4
+        gbc.gridy = 4;
         gbc.gridwidth = 2;
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.fill = GridBagConstraints.HORIZONTAL;
@@ -158,30 +153,26 @@ public class LoginView extends JFrame {
         gbc.insets = new Insets(20, 5, 5, 5);
         mainPanel.add(buttonPanel, gbc);
 
-        // --- 6. Thêm Status Label (ở gridy = 5) ---
         gbc.gridx = 0;
-        gbc.gridy = 5;       // Hàng 5
+        gbc.gridy = 5;
         gbc.gridwidth = 2;
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(10, 5, 5, 5); // Giảm khoảng cách dưới status label
+        gbc.insets = new Insets(10, 5, 5, 5);
         mainPanel.add(statusLabel, gbc);
 
-        // --- 7. THÊM SPACER Ở DƯỚI CÙNG (ở gridy = 6) ---
         gbc.gridx = 0;
-        gbc.gridy = 6;      // Hàng cuối cùng
+        gbc.gridy = 6;
         gbc.gridwidth = 2;
         gbc.weightx = 0;
-        gbc.weighty = 0.3;  // *** Trọng số nhỏ hơn ở dưới ***
+        gbc.weighty = 0.3;
         gbc.fill = GridBagConstraints.VERTICAL;
         mainPanel.add(Box.createVerticalGlue(), gbc);
 
-        // Thêm panel chính vào JFrame
         add(mainPanel);
     }
 
     private void setupActions() {
-        // Action for login button click
         loginButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -189,7 +180,6 @@ public class LoginView extends JFrame {
             }
         });
 
-        // Action for pressing Enter in password field
         passwordField.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
@@ -199,7 +189,6 @@ public class LoginView extends JFrame {
             }
         });
 
-        // Action for pressing Enter in username field (move focus to password)
         usernameField.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
@@ -226,9 +215,8 @@ public class LoginView extends JFrame {
         });
     }
 
-
     private void performLogin() {
-        String username = usernameField.getText().trim(); // Trim whitespace
+        String username = usernameField.getText().trim();
         String password = new String(passwordField.getPassword());
         statusLabel.setText(" ");
 
@@ -267,7 +255,7 @@ public class LoginView extends JFrame {
                         if (errorMessage == null) {
                              showLoginError("Invalid username or password.");
                         } else {
-                            showLoginError(errorMessage); // Hiển thị lỗi exception
+                            showLoginError(errorMessage);
                         }
                     }
                 } catch (Exception e) {
@@ -279,6 +267,7 @@ public class LoginView extends JFrame {
         worker.execute();
 
     }
+
     private void setLoginInProgress(boolean inProgress) {
         usernameField.setEnabled(!inProgress);
         passwordField.setEnabled(!inProgress);
