@@ -1,7 +1,6 @@
 package com.eduzk.model.dao.impl;
 
 import com.eduzk.model.exceptions.DataAccessException;
-
 import java.io.*;
 import java.util.Map;
 import java.util.Properties;

@@ -1,11 +1,11 @@
 #Next Available IDs for EduHub Entities
-#Thu May 08 15:41:16 ICT 2025
-educlass=1
-schedule=1
+#Thu May 08 21:17:04 ICT 2025
+educlass=4
+schedule=4
 teacher=1
-student=1
+student=51
 assignment=1
-academic_record=1
+academic_record=51
 course=1
-user=26
+user=84
 room=1

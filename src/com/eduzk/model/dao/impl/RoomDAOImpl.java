@@ -13,9 +13,12 @@ public class RoomDAOImpl extends BaseDAO<Room> implements IRoomDAO {
 
     private final IdGenerator idGenerator;
 
-    public RoomDAOImpl(String dataFilePath, String idFilePath) {
+    public RoomDAOImpl(String dataFilePath, IdGenerator idGenerator) {
         super(dataFilePath);
-        this.idGenerator = new IdGenerator(idFilePath);
+        if (idGenerator == null) {
+            throw new IllegalArgumentException("IdGenerator cannot be null");
+        }
+        this.idGenerator = idGenerator;
     }
 
     @Override

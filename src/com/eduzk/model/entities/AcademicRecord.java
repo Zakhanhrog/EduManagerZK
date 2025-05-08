@@ -42,7 +42,6 @@ public class AcademicRecord implements Serializable {
         if (subjectGrades == null) subjectGrades = new HashMap<>();
         return subjectGrades;
     }
-    public void setSubjectGrades(Map<String, Double> subjectGrades) { this.subjectGrades = subjectGrades; }
 
     public ArtStatus getArtStatus() { return artStatus; }
     public void setArtStatus(ArtStatus artStatus) { this.artStatus = artStatus; }

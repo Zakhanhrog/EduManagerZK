@@ -16,9 +16,12 @@ public class ScheduleDAOImpl extends BaseDAO<Schedule> implements IScheduleDAO {
 
     private final IdGenerator idGenerator;
 
-    public ScheduleDAOImpl(String dataFilePath, String idFilePath) {
+    public ScheduleDAOImpl(String dataFilePath, IdGenerator idGenerator) {
         super(dataFilePath);
-        this.idGenerator = new IdGenerator(idFilePath);
+        if (idGenerator == null) {
+            throw new IllegalArgumentException("IdGenerator cannot be null");
+        }
+        this.idGenerator = idGenerator;
     }
 
     @Override

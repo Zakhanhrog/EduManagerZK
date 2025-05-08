@@ -12,9 +12,12 @@ import com.eduzk.utils.ValidationUtils;
 public class CourseDAOImpl extends BaseDAO<Course> implements ICourseDAO {
 
     private final IdGenerator idGenerator;
-    public CourseDAOImpl(String dataFilePath, String idFilePath) {
+    public CourseDAOImpl(String dataFilePath, IdGenerator idGenerator) {
         super(dataFilePath);
-        this.idGenerator = new IdGenerator(idFilePath);
+        if (idGenerator == null) {
+            throw new IllegalArgumentException("IdGenerator cannot be null");
+        }
+        this.idGenerator = idGenerator;
     }
 
     @Override

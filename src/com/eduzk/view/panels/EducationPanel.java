@@ -11,7 +11,6 @@
     import com.eduzk.utils.UIUtils;
     import com.eduzk.model.entities.Assignment;
     import com.eduzk.utils.ValidationUtils;
-
     import javax.swing.table.DefaultTableCellRenderer;
     import java.time.format.DateTimeFormatter;
     import javax.swing.*;
@@ -29,7 +28,6 @@
     import java.awt.Toolkit;
     import java.awt.datatransfer.Clipboard;
     import java.awt.datatransfer.DataFlavor;
-    import java.awt.datatransfer.StringSelection;
     import java.awt.datatransfer.Transferable;
     import java.awt.event.ActionEvent;
     import java.awt.event.KeyEvent;

@@ -59,13 +59,13 @@ public class App {
                         Thread.sleep(200);
 
                         publish("Initializing Data Access Objects (DAO)...");
-                        IUserDAO userDAO = new UserDAOImpl(dataDir + "users.dat", idFile);
+                        IUserDAO userDAO = new UserDAOImpl(dataDir + "users.dat", sharedIdGenerator);
                         ITeacherDAO teacherDAO = new TeacherDAOImpl(dataDir + "teachers.dat", sharedIdGenerator);
                         IEduClassDAO eduClassDAO = new EduClassDAOImpl(dataDir + "educlasses.dat", sharedIdGenerator);
                         IStudentDAO studentDAO = new StudentDAOImpl(dataDir + "students.dat", sharedIdGenerator, eduClassDAO);
-                        ICourseDAO courseDAO = new CourseDAOImpl(dataDir + "courses.dat", idFile);
-                        IRoomDAO roomDAO = new RoomDAOImpl(dataDir + "rooms.dat", idFile);
-                        IScheduleDAO scheduleDAO = new ScheduleDAOImpl(dataDir + "schedules.dat", idFile);
+                        ICourseDAO courseDAO = new CourseDAOImpl(dataDir + "courses.dat", sharedIdGenerator);
+                        IRoomDAO roomDAO = new RoomDAOImpl(dataDir + "rooms.dat", sharedIdGenerator);
+                        IScheduleDAO scheduleDAO = new ScheduleDAOImpl(dataDir + "schedules.dat", sharedIdGenerator);
                         IAcademicRecordDAO academicRecordDAO = new AcademicRecordDAOImpl(dataDir + "academic_records.dat", sharedIdGenerator);
                         System.out.println("ALL DAOs initialized.");
                         Thread.sleep(200);

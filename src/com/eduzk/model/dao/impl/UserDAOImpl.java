@@ -10,9 +10,12 @@ public class UserDAOImpl extends BaseDAO<User> implements IUserDAO {
 
     private final IdGenerator idGenerator;
 
-    public UserDAOImpl(String dataFilePath, String idFilePath) {
+    public UserDAOImpl(String dataFilePath, IdGenerator idGenerator) {
         super(dataFilePath);
-        this.idGenerator = new IdGenerator(idFilePath);
+        if (idGenerator == null) {
+            throw new IllegalArgumentException("IdGenerator cannot be null");
+        }
+        this.idGenerator = idGenerator;
     }
 
     @Override
