@@ -20,7 +20,6 @@ import com.eduzk.model.dao.interfaces.IAcademicRecordDAO;
 import com.eduzk.model.dao.impl.AcademicRecordDAOImpl;
 import com.eduzk.utils.PasswordUtils;
 
-
 public class App {
     public static void main(String[] args) {
         try {
@@ -81,8 +80,6 @@ public class App {
                         Thread.sleep(200);
 
                         publish("Initializing Authentication Controller...");
-
-
                         AuthController authController = new AuthController(
                                 userDAO,
                                 teacherDAO,

@@ -76,9 +76,7 @@ public class SplashScreen extends JWindow {
         bottomPanel.setBorder(BorderFactory.createEmptyBorder(0, 20, 15, 20));
         bottomPanel.add(statusLabel, BorderLayout.CENTER);
         bottomPanel.add(progressBar, BorderLayout.SOUTH);
-
         contentPanel.add(bottomPanel, BorderLayout.SOUTH);
-
         setContentPane(contentPanel);
     }
 
@@ -86,15 +84,6 @@ public class SplashScreen extends JWindow {
         SwingUtilities.invokeLater(() -> {
             if (statusLabel != null) {
                 statusLabel.setText(status == null ? "" : status);
-            }
-        });
-    }
-
-    public void setProgress(int value) {
-        SwingUtilities.invokeLater(() -> {
-            if (progressBar != null) {
-                progressBar.setIndeterminate(false);
-                progressBar.setValue(value);
             }
         });
     }
