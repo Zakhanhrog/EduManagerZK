@@ -98,7 +98,7 @@
         private JLabel studentIdLabel;
         private JLabel studentDobLabel;
         private JLabel studentGenderLabel;
-        private JLabel studentClassLabel; // Sẽ lấy từ EduClass nếu có
+        private JLabel studentClassLabel;
         private JLabel studentPhoneLabel;
         private JLabel studentEmailLabel;
         private JLabel studentParentLabel;
@@ -115,11 +115,6 @@
         private Icon achievementTreeIcon;
         private Icon eduClassNodeIcon;
         private static final String ADMIN_TEACHER_ACHIEVEMENT_CARD = "AdminTeacherAchievements";
-
-        private void initializeAssignmentStatusUpdater() {
-            assignmentStatusTimer = new javax.swing.Timer(60000, e -> checkAndUpdateAssignmentStatuses());
-            assignmentStatusTimer.setInitialDelay(10000);
-        }
 
         public EducationPanel() {
             super(new BorderLayout());

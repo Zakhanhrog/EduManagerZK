@@ -102,5 +102,4 @@ public abstract class BaseDAO<T extends Serializable> {
             lock.writeLock().unlock();
         }
     }
-
 }

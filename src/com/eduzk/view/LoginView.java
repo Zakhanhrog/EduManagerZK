@@ -60,10 +60,9 @@ public class LoginView extends JFrame {
         setResizable(false);
 
         JPanel mainPanel = new JPanel(new GridBagLayout());
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 30, 15, 30)); // Giảm nhẹ padding trên/dưới tổng thể
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 30, 15, 30));
         GridBagConstraints gbc = new GridBagConstraints();
 
-        // THÊM SPACER Ở TRÊN CÙNG
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.gridwidth = 2;

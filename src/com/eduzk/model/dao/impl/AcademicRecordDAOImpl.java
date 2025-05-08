@@ -8,9 +8,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class AcademicRecordDAOImpl extends BaseDAO<AcademicRecord> implements IAcademicRecordDAO {
-
     private final IdGenerator idGenerator;
-
     public AcademicRecordDAOImpl(String dataFilePath, IdGenerator idGenerator) {
         super(dataFilePath);
         if (idGenerator == null) {
@@ -84,6 +82,7 @@ public class AcademicRecordDAOImpl extends BaseDAO<AcademicRecord> implements IA
             lock.writeLock().unlock();
         }
     }
+
     @Override
     public void delete(int recordId) throws DataAccessException {
         if (recordId <= 0) return;
@@ -99,6 +98,7 @@ public class AcademicRecordDAOImpl extends BaseDAO<AcademicRecord> implements IA
             lock.writeLock().unlock();
         }
     }
+
     private Optional<AcademicRecord> findByStudentAndClassInternal(int studentId, int classId) {
         return dataList.stream()
                 .filter(r -> r.getStudentId() == studentId && r.getClassId() == classId)
