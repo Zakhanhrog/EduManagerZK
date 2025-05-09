@@ -35,12 +35,9 @@ public class App {
         }
 
         SwingUtilities.invokeLater(() -> {
-
             SplashScreen splash = new SplashScreen(null);
             splash.setVisible(true);
-
             SwingWorker<AuthController, String> initializer = new SwingWorker<>() {
-
                 @Override
                 protected AuthController doInBackground() throws Exception {
                     try {

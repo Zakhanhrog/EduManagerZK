@@ -12,7 +12,6 @@
     import com.eduzk.model.entities.Assignment;
     import com.eduzk.utils.ValidationUtils;
     import com.formdev.flatlaf.extras.FlatSVGIcon;
-
     import javax.swing.table.DefaultTableCellRenderer;
     import java.net.URL;
     import java.time.LocalDate;
@@ -206,7 +205,7 @@
                 Icon signatureIcon = null;
                 URL signatureUrl = getClass().getResource("/icons/signature.svg");
                 if (signatureUrl != null) {
-                    signatureIcon = new FlatSVGIcon(signatureUrl).derive(130,  130);
+                    signatureIcon = new FlatSVGIcon(signatureUrl).derive(140,  130);
                 }
                 if (signatureIcon != null) {
                     directorSignatureLabel.setIcon(signatureIcon);
@@ -248,11 +247,11 @@
             contentPanel.setOpaque(false);
             contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-            JLabel lblChungNhanEm = new JLabel("Chứng nhận Em:", SwingConstants.CENTER);
+            JLabel lblChungNhanEm = new JLabel("Chứng nhận em", SwingConstants.CENTER);
             lblChungNhanEm.setFont(new Font("Serif", Font.PLAIN, 18));
             lblChungNhanEm.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-            JLabel lblDatThanhTich = new JLabel("Đã đạt thành tích học tập:", SwingConstants.CENTER);
+            JLabel lblDatThanhTich = new JLabel("Đã đạt thành tích học tập", SwingConstants.CENTER);
             lblDatThanhTich.setFont(new Font("Serif", Font.PLAIN, 18));
             lblDatThanhTich.setAlignmentX(Component.CENTER_ALIGNMENT);
 
@@ -502,9 +501,7 @@
                 public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
                     JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                     label.setHorizontalAlignment(SwingConstants.RIGHT);
-
                     Number numberToFormat = null;
-
                     if (value instanceof Number) {
                         numberToFormat = (Number) value;
                     } else if (value instanceof String) {
@@ -521,7 +518,6 @@
                     } else {
                         label.setText(value != null ? value.toString() : "");
                     }
-
                     return label;
                 }
             };
@@ -1873,33 +1869,22 @@
             }
         }
         public void updateTableDataForStudent(Student student, List<AcademicRecord> records) {
-            gradeTableModel.setRowCount(0); // Xóa dữ liệu cũ trong bảng
-
+            gradeTableModel.setRowCount(0);
             if (student == null || records == null || records.isEmpty()) {
                 System.out.println("EducationPanel: Không có dữ liệu sinh viên hoặc bảng điểm để hiển thị cho chế độ xem của sinh viên.");
-                // Cập nhật trạng thái các nút cho phù hợp (thường là vô hiệu hóa)
                 if (editButton != null) editButton.setEnabled(false);
                 if (exportButton != null) exportButton.setEnabled(false);
                 if (clearGradesButton != null) clearGradesButton.setEnabled(false);
                 return;
             }
-
-            // Thông thường, ở chế độ xem của sinh viên, chúng ta hiển thị một bản ghi (ví dụ: học kỳ hiện tại)
-            // nhưng List<AcademicRecord> cho phép sự linh hoạt nếu cần hiển thị nhiều hơn.
             for (int i = 0; i < records.size(); i++) {
                 AcademicRecord record = records.get(i);
                 if (record == null) {
-                    continue; // Bỏ qua nếu bản ghi null
+                    continue;
                 }
-
                 Vector<Object> rowData = new Vector<>();
-
-                // Ngay cả khi các cột "STT" và "Tên HS" bị ẩn trong TableColumnModel cho STUDENT,
-                // DefaultTableModel vẫn mong đợi dữ liệu cho các cột này nếu chúng được định nghĩa trong TABLE_COLUMNS.
-                // Thứ tự phải khớp với TABLE_COLUMNS.
-                rowData.add(i + 1); // STT (có thể là 1 nếu chỉ có một bản ghi)
-                rowData.add(student.getFullName()); // Tên Học Sinh
-
+                rowData.add(i + 1);
+                rowData.add(student.getFullName());
                 rowData.add(record.getGrade("Toán"));
                 rowData.add(record.getGrade("Văn"));
                 rowData.add(record.getGrade("Anh"));
@@ -1909,21 +1894,18 @@
                 rowData.add(record.getGrade("Sử"));
                 rowData.add(record.getGrade("Địa"));
                 rowData.add(record.getGrade("GDCD"));
-                rowData.add(record.getArtStatus()); // Nghệ thuật
-                rowData.add(record.calculateAvgNaturalSciences()); // TB KHTN
-                rowData.add(record.calculateAvgSocialSciences());  // TB KHXH
-                rowData.add(record.calculateAvgOverallSubjects()); // TB môn học
-                rowData.add(record.getConductRating()); // Hạnh kiểm
-
+                rowData.add(record.getArtStatus());
+                rowData.add(record.calculateAvgNaturalSciences());
+                rowData.add(record.calculateAvgSocialSciences());
+                rowData.add(record.calculateAvgOverallSubjects());
+                rowData.add(record.getConductRating());
                 gradeTableModel.addRow(rowData);
             }
-
-            // Chế độ xem của sinh viên thường không cho phép chỉnh sửa hoặc xuất trực tiếp từ bảng này
             setEditingMode(false);
             markChangesPending(false);
             if (editButton != null) editButton.setEnabled(false);
             if (clearGradesButton != null) clearGradesButton.setEnabled(false);
-            if (exportButton != null) exportButton.setEnabled(false); // Hoặc bật nếu có tính năng xuất cho sinh viên
+            if (exportButton != null) exportButton.setEnabled(false);
 
             System.out.println("EducationPanel: Đã cập nhật dữ liệu bảng điểm cho sinh viên: " + student.getFullName());
         }

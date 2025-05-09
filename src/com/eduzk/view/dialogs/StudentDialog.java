@@ -2,15 +2,12 @@ package com.eduzk.view.dialogs;
 
 import com.eduzk.controller.StudentController;
 import com.eduzk.model.entities.Student;
-import com.eduzk.utils.DateUtils;
 import com.eduzk.utils.UIUtils;
 import com.eduzk.utils.ValidationUtils;
 import com.eduzk.view.components.CustomDatePicker;
-
 import javax.swing.*;
 import java.awt.*;
 import java.time.LocalDate;
-import java.util.Objects;
 
 public class StudentDialog extends JDialog {
 

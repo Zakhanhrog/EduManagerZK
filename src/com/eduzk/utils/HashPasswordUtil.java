@@ -8,7 +8,7 @@ public class HashPasswordUtil {
         Scanner scanner = new Scanner(System.in);
         System.out.print("Enter password to hash: ");
         String plainPassword = scanner.nextLine();
-        String hashedPassword = BCrypt.hashpw(plainPassword, BCrypt.gensalt(12));
+        String hashedPassword = BCrypt.hashpw(plainPassword, BCrypt.gensalt(10));
         System.out.println("Hashed password: " + hashedPassword);
         scanner.close();
     }
