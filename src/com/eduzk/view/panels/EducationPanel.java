@@ -11,7 +11,11 @@
     import com.eduzk.utils.UIUtils;
     import com.eduzk.model.entities.Assignment;
     import com.eduzk.utils.ValidationUtils;
+    import com.formdev.flatlaf.extras.FlatSVGIcon;
+
     import javax.swing.table.DefaultTableCellRenderer;
+    import java.net.URL;
+    import java.time.LocalDate;
     import java.time.format.DateTimeFormatter;
     import javax.swing.*;
     import javax.swing.event.TableModelEvent;
@@ -31,6 +35,7 @@
     import java.awt.datatransfer.Transferable;
     import java.awt.event.ActionEvent;
     import java.awt.event.KeyEvent;
+    import javax.swing.border.LineBorder;
 
     public class EducationPanel extends JPanel {
 
@@ -109,10 +114,19 @@
         private TableColumn studentNameColumnHolder;
         private final int STT_ORIGINAL_INDEX = 0;
         private final int STUDENT_NAME_ORIGINAL_INDEX = 1;
-        private JLabel achievementTitleLabel;
         private Icon achievementTreeIcon;
         private Icon eduClassNodeIcon;
         private static final String ADMIN_TEACHER_ACHIEVEMENT_CARD = "AdminTeacherAchievements";
+        private JPanel certificatePanel;
+        private JLabel certTitleLabel;
+        private JLabel certStudentNameLabel;
+        private JLabel certStudentClassLabel;
+        private JLabel certAchievementTextLabel;
+        private JLabel certSchoolNameLabel;
+        private JLabel certDateLabel;
+        private JLabel achievementTitleLabel;
+        private JLabel directorSignatureLabel;
+        private JLabel directorNameLabel;
 
         public EducationPanel() {
             super(new BorderLayout());
@@ -140,6 +154,8 @@
         }
 
         private void initComponents() {
+            achievementTitleLabel = new JLabel();
+            achievementDisplayPanel = new JPanel(new GridBagLayout());
             clearGradesButton = new JButton("Xóa Điểm");
             clearGradesButton.setIcon(UIUtils.loadSVGIcon("/icons/clear.svg", 20));
             clearGradesButton.setToolTipText("Xóa tất cả điểm của các môn học chính để nhập lại.");
@@ -160,18 +176,153 @@
             achievementListTableScrollPane = new JScrollPane(achievementListTable);
             adminTeacherAchievementPanel = new JPanel(new BorderLayout());
             adminTeacherAchievementPanel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
-            adminTeacherAchievementPanel.add(new JLabel("Danh sách học lực học sinh", SwingConstants.CENTER), BorderLayout.NORTH); // Tiêu đề cho panel
+            adminTeacherAchievementPanel.add(new JLabel("Danh sách học lực học sinh", SwingConstants.CENTER), BorderLayout.NORTH);
             adminTeacherAchievementPanel.add(achievementListTableScrollPane, BorderLayout.CENTER);
 
-            achievementTitleLabel = new JLabel("Học lực: ");
-            achievementTitleLabel.setFont(achievementTitleLabel.getFont().deriveFont(Font.BOLD | Font.ITALIC));
-            achievementTitleLabel.setBorder(BorderFactory.createEmptyBorder(10, 5, 5, 5));
-            achievementTitleLabel.setVisible(false);
+            achievementDisplayPanel = new JPanel(new GridBagLayout());
+            achievementDisplayPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-            achievementDisplayPanel = new JPanel(new BorderLayout());
-            achievementDisplayPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-            achievementTitleLabel.setHorizontalAlignment(SwingConstants.CENTER);
-            achievementDisplayPanel.add(achievementTitleLabel, BorderLayout.CENTER);
+            certTitleLabel = new JLabel("GIẤY CHỨNG NHẬN", SwingConstants.CENTER);
+            certTitleLabel.setFont(new Font("Serif", Font.BOLD, 30));
+            certTitleLabel.setForeground(new Color(0, 70, 130));
+
+            certStudentNameLabel = new JLabel(" ", SwingConstants.CENTER);
+            certStudentNameLabel.setFont(new Font("Serif", Font.BOLD, 22));
+
+            certStudentClassLabel = new JLabel(" ", SwingConstants.CENTER);
+            certStudentClassLabel.setFont(new Font("Serif", Font.ITALIC, 18));
+
+            certAchievementTextLabel = new JLabel(" ", SwingConstants.CENTER);
+            certAchievementTextLabel.setFont(new Font("Serif", Font.PLAIN, 18));
+
+            certSchoolNameLabel = new JLabel("TRUNG TÂM ĐÀO TẠO EDUZAKHANH", SwingConstants.CENTER);
+            certSchoolNameLabel.setFont(new Font("Serif", Font.BOLD, 16));
+
+            certDateLabel = new JLabel(" ", SwingConstants.CENTER);
+            certDateLabel.setFont(new Font("Serif", Font.ITALIC, 13));
+
+            directorSignatureLabel = new JLabel();
+            try {
+                Icon signatureIcon = null;
+                URL signatureUrl = getClass().getResource("/icons/signature.svg");
+                if (signatureUrl != null) {
+                    signatureIcon = new FlatSVGIcon(signatureUrl).derive(130,  130);
+                }
+                if (signatureIcon != null) {
+                    directorSignatureLabel.setIcon(signatureIcon);
+                } else {
+                    directorSignatureLabel.setText("[Chữ ký Giám đốc]");
+                    System.err.println("Warning: Director signature image not found at /icons/signature.svg");
+                }
+            } catch (Exception e) {
+                System.err.println("Error loading director signature image: " + e.getMessage());
+                directorSignatureLabel.setText("[Lỗi tải chữ ký]");
+            }
+
+            directorNameLabel = new JLabel("Ngô Gia Khánh", SwingConstants.CENTER);
+            directorNameLabel.setFont(new Font("Serif", Font.BOLD, 16));
+
+            // Panel chính cho giấy chứng nhận
+            certificatePanel = new JPanel(new BorderLayout(10, 15));
+            certificatePanel.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createEmptyBorder(25, 50, 25, 50),
+                    new LineBorder(new Color(100, 100, 100), 3, true)
+            ));
+            certificatePanel.setBackground(new Color(250, 250, 245));
+
+            // Header Panel
+            JPanel headerPanel = new JPanel(new BorderLayout());
+            headerPanel.setOpaque(false);
+            certSchoolNameLabel.setBorder(BorderFactory.createEmptyBorder(15, 0, 10, 0));
+            headerPanel.add(certSchoolNameLabel, BorderLayout.NORTH);
+            headerPanel.add(certTitleLabel, BorderLayout.CENTER);
+            certificatePanel.add(headerPanel, BorderLayout.NORTH);
+
+            // Main Content và Signature Panel
+            JPanel mainContentAndSignaturePanel = new JPanel(new BorderLayout(0, 15));
+            mainContentAndSignaturePanel.setOpaque(false);
+
+            // Content Panel (tên, lớp, thành tích)
+            JPanel contentPanel = new JPanel();
+            contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+            contentPanel.setOpaque(false);
+            contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+            JLabel lblChungNhanEm = new JLabel("Chứng nhận Em:", SwingConstants.CENTER);
+            lblChungNhanEm.setFont(new Font("Serif", Font.PLAIN, 18));
+            lblChungNhanEm.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+            JLabel lblDatThanhTich = new JLabel("Đã đạt thành tích học tập:", SwingConstants.CENTER);
+            lblDatThanhTich.setFont(new Font("Serif", Font.PLAIN, 18));
+            lblDatThanhTich.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+            certStudentNameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+            certStudentClassLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+            certAchievementTextLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+            contentPanel.add(Box.createVerticalStrut(20));
+            contentPanel.add(lblChungNhanEm);
+            contentPanel.add(Box.createVerticalStrut(10));
+            contentPanel.add(certStudentNameLabel);
+            contentPanel.add(Box.createVerticalStrut(10));
+            contentPanel.add(certStudentClassLabel);
+            contentPanel.add(Box.createVerticalStrut(25));
+            contentPanel.add(lblDatThanhTich);
+            contentPanel.add(Box.createVerticalStrut(12));
+            contentPanel.add(certAchievementTextLabel);
+            contentPanel.add(Box.createVerticalGlue());
+
+            mainContentAndSignaturePanel.add(contentPanel, BorderLayout.CENTER);
+
+            // Signature Panel
+            JPanel signatureSectionPanel = new JPanel(new GridBagLayout());
+            signatureSectionPanel.setOpaque(false);
+            signatureSectionPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 30)); // Padding phải
+            GridBagConstraints gbcSign = new GridBagConstraints();
+
+            gbcSign.gridx = 1;
+            gbcSign.gridy = 0;
+            gbcSign.anchor = GridBagConstraints.NORTHEAST;
+            gbcSign.insets = new Insets(0, 0, 10, 0);
+            signatureSectionPanel.add(certDateLabel, gbcSign);
+
+            JLabel directorTitleLabel = new JLabel("GIÁM ĐỐC TRUNG TÂM", SwingConstants.CENTER);
+            directorTitleLabel.setFont(new Font("Serif", Font.BOLD, 14));
+            gbcSign.gridy = 1;
+            gbcSign.anchor = GridBagConstraints.PAGE_END;
+            gbcSign.insets = new Insets(20, 0, 5, 0);
+            signatureSectionPanel.add(directorTitleLabel, gbcSign);
+
+            gbcSign.gridy = 2;
+            gbcSign.anchor = GridBagConstraints.CENTER;
+            gbcSign.insets = new Insets(0, 0, 5, 0);
+            signatureSectionPanel.add(directorSignatureLabel, gbcSign);
+
+            gbcSign.gridy = 3;
+            gbcSign.anchor = GridBagConstraints.PAGE_START;
+            gbcSign.insets = new Insets(0, 0, 0, 0);
+            signatureSectionPanel.add(directorNameLabel, gbcSign);
+
+            gbcSign.gridx = 0;
+            gbcSign.gridy = 0;
+            gbcSign.gridheight = 4;
+            gbcSign.weightx = 1.0;
+            gbcSign.fill = GridBagConstraints.HORIZONTAL;
+            signatureSectionPanel.add(Box.createHorizontalGlue(), gbcSign);
+
+            mainContentAndSignaturePanel.add(signatureSectionPanel, BorderLayout.SOUTH);
+            certificatePanel.add(mainContentAndSignaturePanel, BorderLayout.CENTER);
+
+            GridBagConstraints gbcCertContainer = new GridBagConstraints();
+            gbcCertContainer.gridx = 0;
+            gbcCertContainer.gridy = 0;
+            gbcCertContainer.weightx = 1.0;
+            gbcCertContainer.weighty = 1.0;
+            gbcCertContainer.fill = GridBagConstraints.BOTH;
+            gbcCertContainer.insets = new Insets(10, 20, 10, 20);
+            achievementDisplayPanel.removeAll();
+            achievementDisplayPanel.add(certificatePanel, gbcCertContainer);
+
             achievementTreeIcon = UIUtils.loadSVGIcon("/icons/achievement.svg", 33);
 
             editButton = new JButton("Chỉnh Sửa");
@@ -776,8 +927,7 @@
                 } else if (("Academic Achievements".equals(nodeText) || "Danh hiệu học tập".equals(nodeText))) {
                     if (currentUserRole == Role.STUDENT) {
                         rightPanelLayout.show(rightPanel, ACHIEVEMENT_CARD);
-                        if (controller != null && achievementTitleLabel != null &&
-                                (achievementTitleLabel.getText().contains("(Chưa có dữ liệu)") || achievementTitleLabel.getText().contains("N/A") || achievementTitleLabel.getText().trim().equals("Danh hiệu:"))) {
+                        if (controller != null ) {
                             controller.loadDataForCurrentStudent();
                         }
                     } else if (currentUserRole == Role.ADMIN || currentUserRole == Role.TEACHER) {
@@ -1221,49 +1371,38 @@
             exportButton.setEnabled(hasData);
         }
 
-        public void updateTableDataForStudent(Student student, List<AcademicRecord> records) {
-            // Log thông tin đầu vào
-            System.out.println(">>> EducationPanel.updateTableDataForStudent called. student is null: " + (student == null) +
-                    ", records is null: " + (records == null) +
-                    (records != null ? ", record count: " + records.size() : ""));
+        public void updateAchievementCertificateDisplay(String studentName, String studentClassInfo, String achievementText) {
+            System.out.println(">>> EducationPanel.updateAchievementCertificateDisplay called. Name: [" + studentName +
+                    "], Class: [" + studentClassInfo + "], Achievement: [" + achievementText + "]");
 
-            gradeTableModel.setRowCount(0);
-            if (student == null) {
-                System.err.println("updateTableDataForStudent: Student object is null. Table cleared.");
-                return;
+            if (certificatePanel == null) return;
+            boolean hasData = studentName != null && !studentName.trim().isEmpty() &&
+                    achievementText != null && !achievementText.trim().isEmpty() &&
+                    !achievementText.contains("Không có dữ liệu") &&
+                    !achievementText.contains("Chưa có dữ liệu") &&
+                    !achievementText.equalsIgnoreCase("N/A") &&
+                    !achievementText.equalsIgnoreCase("(Không có học lực nổi bật)") &&
+                    !achievementText.contains("Không đủ điều kiện xét");
+
+            if (hasData) {
+                certStudentNameLabel.setText(studentName != null ? studentName.toUpperCase() : "N/A");
+                certStudentClassLabel.setText(studentClassInfo != null ? "Lớp: " + studentClassInfo : "Lớp: N/A");
+                String formattedAchievement = achievementText.replace("\"", "")
+                        .replace("Học lực: ", "")
+                        .replace(" , ", "<br>");
+                certAchievementTextLabel.setText("<html><center>" + formattedAchievement + "</center></html>");
+                certDateLabel.setText("Ngày " + LocalDate.now().getDayOfMonth() +
+                        " tháng " + LocalDate.now().getMonthValue() +
+                        " năm " + LocalDate.now().getYear());
+                certificatePanel.setVisible(true);
+            } else {
+                certStudentNameLabel.setText(studentName != null ? studentName.toUpperCase() : "N/A");
+                certStudentClassLabel.setText(studentClassInfo != null ? "Lớp: " + studentClassInfo : "Lớp: N/A");
+                certAchievementTextLabel.setText("<html><center>(Chưa có thành tích nổi bật để cấp chứng nhận)</center></html>");
+                certificatePanel.setVisible(true);
             }
-            if (records == null || records.isEmpty()) {
-                System.out.println("No academic records found for student: " + student.getFullName() + ". Table cleared.");
-                return;
-            }
-            AcademicRecord recordToDisplayInTable = records.get(0);
-
-            Vector<Object> rowData = new Vector<>();
-            rowData.add("");
-            rowData.add(student.getFullName());
-
-            for (int i = 2; i < TABLE_COLUMNS.length; i++) {
-                String subjectKeyOrCalculated = TABLE_COLUMNS[i];
-                Object cellValue = null;
-
-                if (subjectKeyOrCalculated.equals(ART_KEY)) {
-                    cellValue = recordToDisplayInTable.getArtStatus();
-                } else if (subjectKeyOrCalculated.equals(CONDUCT_KEY)) {
-                    cellValue = recordToDisplayInTable.getConductRating();
-                } else if (subjectKeyOrCalculated.equals("TB KHTN")) {
-                    cellValue = recordToDisplayInTable.calculateAvgNaturalSciences();
-                } else if (subjectKeyOrCalculated.equals("TB KHXH")) {
-                    cellValue = recordToDisplayInTable.calculateAvgSocialSciences();
-                } else if (subjectKeyOrCalculated.equals("TB môn học")) {
-                    cellValue = recordToDisplayInTable.calculateAvgOverallSubjects();
-                } else { // Các môn học chính
-                    cellValue = recordToDisplayInTable.getGrade(subjectKeyOrCalculated);
-                }
-                rowData.add(cellValue);
-            }
-            gradeTableModel.addRow(rowData);
-            setEditingMode(false);
-            markChangesPending(false);
+            achievementDisplayPanel.revalidate();
+            achievementDisplayPanel.repaint();
         }
 
         public void displayAssignments(List<Assignment> assignments) {
@@ -1732,6 +1871,61 @@
                     UIUtils.showErrorMessage(this, "Paste Error", "An error occurred while pasting data: " + ex.getMessage());
                 }
             }
+        }
+        public void updateTableDataForStudent(Student student, List<AcademicRecord> records) {
+            gradeTableModel.setRowCount(0); // Xóa dữ liệu cũ trong bảng
+
+            if (student == null || records == null || records.isEmpty()) {
+                System.out.println("EducationPanel: Không có dữ liệu sinh viên hoặc bảng điểm để hiển thị cho chế độ xem của sinh viên.");
+                // Cập nhật trạng thái các nút cho phù hợp (thường là vô hiệu hóa)
+                if (editButton != null) editButton.setEnabled(false);
+                if (exportButton != null) exportButton.setEnabled(false);
+                if (clearGradesButton != null) clearGradesButton.setEnabled(false);
+                return;
+            }
+
+            // Thông thường, ở chế độ xem của sinh viên, chúng ta hiển thị một bản ghi (ví dụ: học kỳ hiện tại)
+            // nhưng List<AcademicRecord> cho phép sự linh hoạt nếu cần hiển thị nhiều hơn.
+            for (int i = 0; i < records.size(); i++) {
+                AcademicRecord record = records.get(i);
+                if (record == null) {
+                    continue; // Bỏ qua nếu bản ghi null
+                }
+
+                Vector<Object> rowData = new Vector<>();
+
+                // Ngay cả khi các cột "STT" và "Tên HS" bị ẩn trong TableColumnModel cho STUDENT,
+                // DefaultTableModel vẫn mong đợi dữ liệu cho các cột này nếu chúng được định nghĩa trong TABLE_COLUMNS.
+                // Thứ tự phải khớp với TABLE_COLUMNS.
+                rowData.add(i + 1); // STT (có thể là 1 nếu chỉ có một bản ghi)
+                rowData.add(student.getFullName()); // Tên Học Sinh
+
+                rowData.add(record.getGrade("Toán"));
+                rowData.add(record.getGrade("Văn"));
+                rowData.add(record.getGrade("Anh"));
+                rowData.add(record.getGrade("Lí"));
+                rowData.add(record.getGrade("Hoá"));
+                rowData.add(record.getGrade("Sinh"));
+                rowData.add(record.getGrade("Sử"));
+                rowData.add(record.getGrade("Địa"));
+                rowData.add(record.getGrade("GDCD"));
+                rowData.add(record.getArtStatus()); // Nghệ thuật
+                rowData.add(record.calculateAvgNaturalSciences()); // TB KHTN
+                rowData.add(record.calculateAvgSocialSciences());  // TB KHXH
+                rowData.add(record.calculateAvgOverallSubjects()); // TB môn học
+                rowData.add(record.getConductRating()); // Hạnh kiểm
+
+                gradeTableModel.addRow(rowData);
+            }
+
+            // Chế độ xem của sinh viên thường không cho phép chỉnh sửa hoặc xuất trực tiếp từ bảng này
+            setEditingMode(false);
+            markChangesPending(false);
+            if (editButton != null) editButton.setEnabled(false);
+            if (clearGradesButton != null) clearGradesButton.setEnabled(false);
+            if (exportButton != null) exportButton.setEnabled(false); // Hoặc bật nếu có tính năng xuất cho sinh viên
+
+            System.out.println("EducationPanel: Đã cập nhật dữ liệu bảng điểm cho sinh viên: " + student.getFullName());
         }
 
     }

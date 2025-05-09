@@ -85,7 +85,7 @@ public class RegisterDialog extends JDialog {
         formPanel.add(roleComboBox, gbc);
         currentRow++;
 
-        // Teacher ID (row 4 - sẽ ẩn/hiện)
+        // Teacher ID (row 4)
         gbc.gridx = 0; gbc.gridy = currentRow; gbc.fill = GridBagConstraints.NONE;
         formPanel.add(idLabel, gbc);
         gbc.gridx = 1; gbc.gridy = currentRow; gbc.fill = GridBagConstraints.HORIZONTAL;

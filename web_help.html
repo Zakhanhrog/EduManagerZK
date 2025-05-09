@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EduZakhanh - Trợ giúp & Thông tin</title>
+    <style>
+        :root {
+            --bg-main: #2d2d2d;
+            --bg-sidebar: #3a3a3a;
+            --bg-header-footer: #1e1e1e;
+            --bg-table-header: #444444;
+            --bg-button: #555555;
+            --bg-button-hover: #666666;
+            --bg-active: #007aff;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --text-on-active: #ffffff;
+            --border-color: #4a4a4a;
+            --accent-blue: #007aff;
+            --accent-red: #ff3b30;
+            --accent-orange: #ff9500;
+            --accent-green: #34c759;
+            --shadow-color: rgba(0, 0, 0, 0.2);
+            --scrollbar-track: var(--bg-sidebar);
+            --scrollbar-thumb: var(--bg-button);
+            --scrollbar-thumb-hover: var(--bg-button-hover);
+            --scrollbar-border: var(--bg-sidebar);
+            --theme-toggle-bg: var(--bg-button);
+            --theme-toggle-text: var(--text-primary);
+            --theme-toggle-hover-bg: var(--bg-button-hover);
+            --body-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            --theme-transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        html.light-theme {
+            --bg-main: #f8f9fa;
+            --bg-sidebar: #e9ecef;
+            --bg-header-footer: #dee2e6;
+            --bg-table-header: #ced4da;
+            --bg-button: #dee2e6;
+            --bg-button-hover: #ced4da;
+            --bg-active: #007aff;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --text-on-active: #ffffff;
+            --border-color: #ced4da;
+            --accent-blue: #007aff;
+            --accent-red: #dc3545;
+            --accent-orange: #fd7e14;
+            --accent-green: #198754;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --scrollbar-track: var(--bg-sidebar);
+            --scrollbar-thumb: #adb5bd;
+            --scrollbar-thumb-hover: #6c757d;
+            --scrollbar-border: var(--bg-sidebar);
+            --theme-toggle-bg: var(--bg-button);
+            --theme-toggle-text: var(--text-primary);
+            --theme-toggle-hover-bg: var(--bg-button-hover);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: var(--theme-transition);
+        }
+
+        .no-transition,
+        .no-transition * {
+            transition: none !important;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            font-size: 100%;
+            color-scheme: light dark;
+        }
+
+        body {
+            font-family: var(--body-font-family);
+            line-height: 1.6;
+            color: var(--text-primary);
+            background-color: var(--bg-main);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            font-size: 1rem;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .page-wrapper {
+            display: flex;
+            flex-grow: 1;
+        }
+
+        .sidebar {
+            width: 260px;
+            background: var(--bg-sidebar);
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            padding: 25px 20px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: none;
+            border-right: 1px solid var(--border-color);
+            transition: width 0.3s ease, transform 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: var(--scrollbar-track);
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background-color: var(--scrollbar-thumb);
+            border-radius: 4px;
+            border: 2px solid var(--scrollbar-border);
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background-color: var(--scrollbar-thumb-hover);
+        }
+
+        .sidebar h3 {
+            font-size: 1.15em;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 25px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+            text-shadow: none;
+            background: none;
+            -webkit-text-fill-color: initial;
+        }
+
+        .sidebar ul {
+            list-style: none;
+        }
+
+        .sidebar li {
+            margin-bottom: 4px;
+        }
+
+        .sidebar a {
+            text-decoration: none;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            padding: 9px 12px;
+            border-radius: 6px;
+            font-size: 0.95em;
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid transparent;
+        }
+
+        .sidebar a:hover,
+        .sidebar a:focus {
+            background-color: var(--bg-button);
+            color: var(--text-primary);
+            transform: none;
+            box-shadow: none;
+            outline: none;
+        }
+
+        .sidebar a.active {
+            background: var(--bg-active);
+            color: var(--text-on-active) !important;
+            font-weight: 600;
+            box-shadow: none;
+            transform: none;
+            text-shadow: none;
+        }
+
+        .sidebar a.active:hover {
+            filter: brightness(90%);
+            background: var(--bg-active);
+            color: var(--text-on-active);
+        }
+
+        .sidebar ul ul {
+            margin-top: 4px;
+            margin-left: 10px;
+            border-left: 1px solid var(--border-color);
+            padding-left: 15px;
+            border-image: none;
+        }
+
+        .sidebar ul ul a {
+            padding-left: 10px;
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+
+        .sidebar ul ul a:hover,
+        .sidebar ul ul a:focus {
+            background-color: var(--bg-button);
+            color: var(--text-primary);
+        }
+
+        .sidebar ul ul a.active {
+            background: none;
+            color: var(--bg-active);
+            font-weight: 500;
+            box-shadow: none;
+        }
+
+        html.light-theme .sidebar ul ul a.active {
+            color: var(--bg-active);
+        }
+
+        .sidebar li:has(ul a.active) > a {
+            color: var(--text-primary);
+        }
+
+        .content-area {
+            flex-grow: 1;
+            margin-left: 260px;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-main);
+            min-height: 100vh;
+            transition: margin-left 0.3s ease, background-color 0.3s ease;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            padding: 30px 40px;
+            background-color: var(--bg-main);
+            border-radius: 0;
+            margin: 0;
+            box-shadow: none;
+        }
+
+        .main-content h1 {
+            font-size: 1.8em;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-align: left;
+            margin-bottom: 30px;
+            position: relative;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+            letter-spacing: normal;
+            text-shadow: none;
+        }
+
+        .main-content h1::after {
+            content: none;
+        }
+
+        .main-content h2 {
+            font-size: 1.4em;
+            font-weight: 600;
+            color: var(--accent-blue);
+            margin-top: 35px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-shadow: none;
+        }
+
+        .main-content h2::before {
+            content: none;
+        }
+
+        .main-content h2:first-of-type {
+            margin-top: 0;
+        }
+
+        .main-content h3 {
+            font-size: 1.15em;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 25px;
+            margin-bottom: 12px;
+            position: relative;
+            padding-left: 0;
+            text-shadow: none;
+        }
+
+        .main-content h3::before {
+            content: none;
+        }
+
+        .main-content p,
+        .main-content ul li {
+            color: var(--text-primary);
+        }
+
+        .main-content p {
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .main-content ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+            list-style-type: disc;
+            padding-left: 15px;
+            color: var(--text-primary);
+        }
+
+        .main-content ul li {
+            margin-bottom: 8px;
+            padding-left: 5px;
+            position: relative;
+        }
+
+        .main-content ul li::before {
+            content: none;
+        }
+
+        .main-content ul ul {
+            margin-top: 8px;
+            margin-left: 20px;
+            list-style-type: circle;
+        }
+
+        .main-content a {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-weight: 500;
+            position: relative;
+            background-image: none;
+            padding-bottom: 1px;
+            border-bottom: 1px solid transparent;
+        }
+
+        .main-content a:hover,
+        .main-content a:focus {
+            filter: brightness(1.2);
+            border-bottom: 1px solid var(--accent-blue);
+            color: var(--accent-blue);
+            outline: none;
+        }
+
+        .main-content b,
+        .main-content strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .action-add,
+        .action-edit,
+        .action-delete {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 5px;
+            font-weight: 500;
+            text-shadow: none !important;
+            border: none;
+            color: var(--text-on-active) !important;
+            margin: 0 2px;
+            vertical-align: baseline;
+            font-size: 0.9em;
+            line-height: 1.4;
+            cursor: default;
+            transition: filter 0.15s ease;
+        }
+
+        .action-add {
+            background-color: var(--accent-blue);
+        }
+
+        .action-edit {
+            background-color: var(--accent-orange);
+        }
+
+        .action-delete {
+            background-color: var(--accent-red);
+        }
+
+        .action-add:hover,
+        .action-edit:hover,
+        .action-delete:hover {
+            filter: brightness(115%);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .site-footer {
+            background-color: var(--bg-header-footer);
+            color: var(--text-secondary);
+            padding: 10px 0;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.85em;
+            margin-top: auto;
+            position: relative;
+            box-shadow: none;
+            width: 100%;
+        }
+
+        .footer-container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 0 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px 20px;
+        }
+
+        .footer-section {
+            flex-basis: auto;
+            flex-shrink: 0;
+            line-height: 1.5;
+        }
+
+        .footer-section.copyright {
+            flex-grow: 1;
+            text-align: left;
+        }
+
+        .footer-section.contact {
+            text-align: right;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+            flex-wrap: nowrap;
+        }
+
+        .footer-section.contact .contact-links {
+            margin: 0;
+        }
+
+        .footer-section.contact .version-info {
+            margin: 0;
+            white-space: nowrap;
+        }
+
+        .footer-section.theme-switcher {
+            margin-left: 15px;
+        }
+
+        .footer-section h4,
+        .footer-section ul {
+            display: none;
+        }
+
+        .footer-section p {
+            margin-bottom: 0;
+            color: var(--text-secondary);
+        }
+
+        .footer-section a {
+            color: var(--text-primary);
+            text-decoration: none;
+            font-weight: 500;
+            border: none;
+            padding-bottom: 0;
+        }
+
+        .footer-section a:hover {
+            color: var(--accent-blue);
+            text-decoration: underline;
+            transform: none;
+            text-shadow: none;
+            border: none;
+        }
+
+        .footer-section a::before {
+            content: none;
+        }
+
+        .footer-section strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .footer-section i b {
+            font-style: normal;
+            font-weight: bold;
+            color: var(--text-secondary);
+        }
+
+        html.light-theme .footer-section i b {
+            color: var(--text-secondary);
+        }
+
+        #theme-toggle {
+            background-color: var(--theme-toggle-bg);
+            color: var(--theme-toggle-text);
+            border: 1px solid var(--border-color);
+            padding: 4px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        #theme-toggle:hover {
+            background-color: var(--theme-toggle-hover-bg);
+            border-color: var(--accent-blue);
+        }
+
+        @media (max-width: 900px) {
+            .footer-container {
+                justify-content: center;
+                text-align: center;
+                gap: 15px;
+            }
+
+            .footer-section {
+                flex-basis: 100%;
+                text-align: center !important;
+                flex-grow: 0 !important;
+            }
+
+            .footer-section.contact {
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+
+            .footer-section.theme-switcher {
+                margin-left: 0;
+                display: flex;
+                justify-content: center;
+            }
+
+            .site-footer {
+                padding: 15px 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                font-size: 0.95rem;
+            }
+
+            .page-wrapper {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: static;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+                padding: 15px 20px;
+                overflow-y: visible;
+                box-shadow: 0 2px 5px var(--shadow-color);
+            }
+
+            .sidebar h3 {
+                margin-bottom: 15px;
+                font-size: 1.1em;
+            }
+
+            .sidebar ul ul {
+                border-left: 1px solid var(--border-color);
+                padding-left: 12px;
+                margin-left: 5px;
+            }
+
+            .content-area {
+                margin-left: 0;
+                min-height: auto;
+            }
+
+            .main-content {
+                padding: 20px 25px;
+            }
+
+            .main-content h1 {
+                font-size: 1.6em;
+                margin-bottom: 25px;
+                padding-bottom: 10px;
+            }
+
+            .main-content h2 {
+                font-size: 1.3em;
+                margin-top: 30px;
+            }
+
+            .main-content h3 {
+                font-size: 1.1em;
+                margin-top: 20px;
+            }
+
+            .main-content ul {
+                margin-left: 15px;
+                padding-left: 10px;
+            }
+
+            .footer-container {
+                padding: 0 25px;
+            }
+
+            .site-footer {
+                font-size: 0.8em;
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .main-content section {
+            animation: fadeIn 0.3s ease-out forwards;
+            opacity: 0;
+        }
+
+        .main-content section:nth-child(1) { animation-delay: 0.05s; }
+        .main-content section:nth-child(2) { animation-delay: 0.1s; }
+        .main-content section:nth-child(3) { animation-delay: 0.15s; }
+        .main-content section:nth-child(4) { animation-delay: 0.2s; }
+        .main-content section:nth-child(5) { animation-delay: 0.25s; }
+        .main-content section:nth-child(6) { animation-delay: 0.3s; }
+        .main-content section:nth-child(7) { animation-delay: 0.35s; }
+
+    </style>
+</head>
+<body>
+<div class="page-wrapper">
+    <nav class="sidebar">
+        <h3>Mục Lục</h3>
+        <ul>
+            <li><a href="#welcome">Chào mừng</a></li>
+            <li><a href="#navigation">Điều hướng chung</a></li>
+            <li><a href="#roles">Vai trò & Quyền hạn</a></li>
+            <li>
+                <a href="#features">Tính năng cốt lõi</a>
+                <ul>
+                    <li><a href="#admin-view">Quản trị viên</a></li>
+                    <li><a href="#teacher-view">Giáo viên</a></li>
+                    <li><a href="#student-view">Học viên</a></li>
+                </ul>
+            </li>
+            <li><a href="#common-actions">Hành động phổ biến</a></li>
+            <li><a href="#other-features">Tính năng khác</a></li>
+            <li><a href="#troubleshooting">Gỡ rối & Liên hệ</a></li>
+        </ul>
+    </nav>
+
+    <div class="content-area">
+        <main class="main-content">
+            <section id="welcome">
+                <h1>EduZakhanh - Trợ giúp & Thông tin</h1>
+                <h2>Chào mừng</h2>
+                <p>
+                    Chào mừng bạn đến với Hệ thống Quản lý Giáo dục EduZakhanh! Hướng dẫn này cung cấp thông tin chi tiết và hướng dẫn bạn cách điều hướng, sử dụng hiệu quả các tính năng mạnh mẽ của ứng dụng.
+                </p>
+            </section>
+
+            <section id="navigation">
+                <h2>Điều hướng chung</h2>
+                <ul>
+                    <li>Sử dụng các <b>tab điều hướng chính</b> (ví dụ: <b>Lịch trình</b>, <b>Lớp học</b>, <b>Học viên</b>...) được bố trí rõ ràng để truy cập các phân hệ quản lý khác nhau của hệ thống.</li>
+                    <li>Dữ liệu thường được trình bày trực quan dưới dạng <b>bảng biểu</b>. Bạn có thể nhấp vào <b>tiêu đề cột</b> để sắp xếp dữ liệu linh hoạt theo thứ tự tăng dần hoặc giảm dần.</li>
+                    <li>Các nút chức năng quan trọng như <b class="action-add">Thêm</b>, <b class="action-edit">Sửa</b>, và <b class="action-delete">Xóa</b> thường được đặt ở vị trí thuận tiện, gần bảng dữ liệu tương ứng để thao tác nhanh chóng.</li>
+                    <li>Truy cập thanh <b>menu chính</b> (<b>Chính</b>, <b>Xuất file</b>, <b>Xem</b>, <b>Trợ giúp</b>) ở góc trên cùng cho các tác vụ toàn cục như đăng xuất an toàn, xuất báo cáo đa dạng, tùy chỉnh giao diện, và truy cập trang trợ giúp này.</li>
+                </ul>
+            </section>
+
+            <section id="roles">
+                <h2>Vai trò và Quyền hạn</h2>
+                <p>Chức năng và dữ liệu bạn có thể xem và tương tác được cá nhân hóa dựa trên vai trò được gán cho tài khoản của bạn:</p>
+                <ul>
+                    <li><b>Quản trị viên (Administrator):</b> Sở hữu toàn quyền truy cập và kiểm soát mọi tính năng, bao gồm quản lý tài khoản người dùng, cấu hình hệ thống nâng cao, và xem nhật ký hoạt động chi tiết, minh bạch.</li>
+                    <li><b>Giáo viên (Teacher):</b> Dễ dàng xem lịch dạy cá nhân, quản lý điểm danh và thông tin học viên trong các lớp được phân công. Truy cập thông tin chi tiết về các khóa học liên quan.</li>
+                    <li><b>Học viên (Student):</b> Thuận tiện xem lịch học cá nhân, thông tin các lớp đã đăng ký, theo dõi kết quả học tập (nếu được kích hoạt) và tham khảo thông tin các khóa học chung của trung tâm.</li>
+                </ul>
+            </section>
+
+            <section id="features">
+                <h2>Tính năng cốt lõi theo từng vai trò</h2>
+
+                <h3 id="admin-view">Giao diện Quản trị viên</h3>
+                <ul>
+                    <li><b>Lịch trình (Schedule):</b> Quản lý toàn diện lịch học: xem, tạo mới, chỉnh sửa và xóa. Sử dụng bộ lọc ngày mạnh mẽ và nút 'Tải lịch trình' để xem lịch theo các khoảng thời gian tùy chỉnh. Hệ thống thông minh cảnh báo các xung đột tiềm ẩn (trùng thời gian/giáo viên/phòng học).</li>
+                    <li><b>Lớp học (Classes):</b> Quản lý chi tiết thông tin lớp học, phân công khóa học và giáo viên phụ trách. Thực hiện ghi danh (thêm/xóa) học viên vào lớp. Thiết lập sĩ số tối đa để đảm bảo chất lượng giảng dạy.</li>
+                    <li><b>Học viên (Students):</b> Quản lý hồ sơ học viên đầy đủ và chính xác (thêm, sửa, xóa). Đảm bảo thông tin liên hệ, đặc biệt là số điện thoại, luôn được cập nhật để hỗ trợ việc đăng ký tài khoản và liên lạc.</li>
+                    <li><b>Giáo viên (Teachers):</b> Quản lý hồ sơ giáo viên chuyên nghiệp. Mã ID Giáo viên (tự động tạo hoặc nhập thủ công) là thông tin cần thiết cho việc đăng ký tài khoản Giáo viên.</li>
+                    <li><b>Khóa học (Courses):</b> Định nghĩa và quản lý danh mục các khóa học đa dạng mà trung tâm cung cấp, bao gồm mô tả, học phí và các thông tin liên quan khác.</li>
+                    <li><b>Phòng học (Rooms):</b> Quản lý danh sách phòng học (bao gồm cả phòng vật lý và trực tuyến), với thông tin chi tiết về sức chứa, trang thiết bị và loại phòng.</li>
+                    <li><b>Tài khoản (Accounts):</b> Xem và quản lý danh sách tài khoản người dùng (Giáo viên, Học viên). Cung cấp chức năng đặt lại mật khẩu khi cần thiết để hỗ trợ người dùng.</li>
+                    <li><b>Nhật ký (Logs):</b> Theo dõi lịch sử chi tiết các hành động quan trọng được thực hiện trong hệ thống, cập nhật tự động theo thời gian thực để đảm bảo tính minh bạch và kiểm soát.</li>
+                    <li><b>Trợ giúp (Help):</b> Truy cập nhanh chóng và dễ dàng vào trang hướng dẫn sử dụng chi tiết này bất cứ lúc nào.</li>
+                </ul>
+
+                <h3 id="teacher-view">Giao diện Giáo viên</h3>
+                <ul>
+                    <li><b>Lịch trình của tôi (My Schedule):</b> Hiển thị rõ ràng lịch giảng dạy cá nhân của bạn trong khoảng thời gian đã chọn, giúp bạn dễ dàng sắp xếp công việc.</li>
+                    <li><b>Lớp học của tôi (My Classes):</b> Liệt kê danh sách các lớp bạn đang phụ trách, cho phép xem nhanh danh sách học viên đã ghi danh và các thông tin lớp học cần thiết.</li>
+                    <li><b>Học viên của tôi (My Students):</b> Cung cấp cái nhìn tổng quan, tiện lợi về danh sách học viên trong tất cả các lớp bạn đang giảng dạy.</li>
+                    <li><b>Khóa học (Courses):</b> Cho phép xem thông tin chi tiết về các khóa học hiện có trong hệ thống để nắm rõ nội dung giảng dạy.</li>
+                    <li><b>Trợ giúp (Help):</b> Truy cập nhanh vào trang hướng dẫn sử dụng này để nhận hỗ trợ khi cần.</li>
+                </ul>
+
+                <h3 id="student-view">Giao diện Học viên</h3>
+                <ul>
+                    <li><b>Lịch học của tôi (My Schedule):</b> Hiển thị lịch học cá nhân của bạn một cách trực quan theo tuần hoặc tháng, giúp bạn không bỏ lỡ buổi học nào.</li>
+                    <li><b>Lớp học của tôi (My Classes):</b> Liệt kê chi tiết các lớp học mà bạn đã đăng ký và đang theo học, cùng với thông tin giáo viên và phòng học.</li>
+                    <li><b>Khóa học (Courses):</b> Cho phép bạn duyệt và xem thông tin chi tiết về các khóa học hiện có của trung tâm để tham khảo hoặc đăng ký thêm.</li>
+                    <li><b>Trợ giúp (Help):</b> Truy cập nhanh vào trang hướng dẫn sử dụng này để tìm hiểu thêm về hệ thống.</li>
+                </ul>
+            </section>
+
+            <section id="common-actions">
+                <h2>Hành động phổ biến</h2>
+                <ul>
+                    <li><b>Thêm dữ liệu:</b> Nhấp vào nút <b class="action-add">Thêm</b> trong phần quản lý tương ứng. Một cửa sổ (dialog) thân thiện sẽ xuất hiện, hướng dẫn bạn nhập các thông tin cần thiết.</li>
+                    <li><b>Sửa dữ liệu:</b> Chọn một dòng (bản ghi) trong bảng dữ liệu bạn muốn chỉnh sửa, sau đó nhấp vào nút <b class="action-edit">Sửa</b>. Cửa sổ chỉnh sửa sẽ hiển thị với thông tin hiện tại đã được điền sẵn, giúp bạn dễ dàng cập nhật.</li>
+                    <li><b>Xóa dữ liệu:</b> Chọn một dòng trong bảng và nhấp nút <b class="action-delete">Xóa</b>. Để đảm bảo an toàn dữ liệu, hệ thống thường sẽ yêu cầu xác nhận trước khi thực hiện xóa vĩnh viễn. Lưu ý: Một số mục không thể xóa nếu đang có liên kết dữ liệu quan trọng (ví dụ: không thể xóa giáo viên đang được phân công dạy lớp).</li>
+                    <li><b>Lọc/Tải dữ liệu:</b> Sử dụng các bộ lọc thông minh (như chọn ngày, chọn trạng thái, tìm kiếm theo từ khóa) và nhấp vào các nút như 'Tải lịch trình', 'Lọc', 'Tìm kiếm' để giới hạn và hiển thị chính xác phạm vi dữ liệu bạn cần xem.</li>
+                </ul>
+            </section>
+
+            <section id="other-features">
+                <h2>Tính năng khác</h2>
+                <ul>
+                    <li><b>Xuất dữ liệu:</b> Quản trị viên và Giáo viên có thể dễ dàng xuất các bảng dữ liệu quan trọng (lịch trình, danh sách lớp, học viên...) sang định dạng Excel phổ biến thông qua menu <b>Xuất file > Xuất ra Excel...</b> để lưu trữ hoặc phân tích thêm.</li>
+                    <li><b>Thay đổi giao diện:</b> Cá nhân hóa trải nghiệm của bạn bằng cách tùy chỉnh màu sắc và chủ đề giao diện của ứng dụng thông qua menu <b>Xem > Giao diện</b> để phù hợp với sở thích cá nhân. <i>(Lưu ý: Nút chuyển đổi Sáng/Tối trên trang này là riêng biệt).</i></li>
+                    <li><b>Đăng xuất:</b> Luôn sử dụng tùy chọn <b>Chính > Đăng xuất</b> để kết thúc phiên làm việc một cách an toàn, bảo vệ tài khoản và dữ liệu cá nhân của bạn khỏi truy cập trái phép.</li>
+                    <li><b>Thoát ứng dụng:</b> Sử dụng tùy chọn <b>Chính > Thoát</b> hoặc nút đóng cửa sổ [X] để đóng hoàn toàn ứng dụng. Hệ thống sẽ hiển thị hộp thoại xác nhận để tránh việc thoát ứng dụng ngoài ý muốn.</li>
+                </ul>
+            </section>
+
+            <section id="troubleshooting">
+                <h2>Gỡ rối & Liên hệ</h2>
+                <p>
+                    Nếu bạn gặp phải vấn đề kỹ thuật, lỗi không mong muốn hoặc có câu hỏi chưa được giải đáp trong tài liệu hướng dẫn này:
+                </p>
+                <ul>
+                    <li>Hãy kiểm tra lại và đảm bảo rằng bạn đã nhập dữ liệu một cách chính xác, đầy đủ, đặc biệt là các trường thông tin bắt buộc (thường được đánh dấu * hoặc có chỉ dẫn cụ thể).</li>
+                    <li>Quan sát thanh trạng thái ở phía dưới cùng của cửa sổ ứng dụng để xem có bất kỳ thông báo lỗi hoặc cảnh báo nào được hiển thị hay không.</li>
+                    <li>Thử khởi động lại ứng dụng. Đôi khi, việc này có thể giải quyết các sự cố tạm thời hoặc xung đột nhỏ.</li>
+                    <li>Liên hệ trực tiếp với quản trị viên hệ thống được chỉ định để nhận hỗ trợ nhanh chóng: <strong>zakhanh</strong></li>
+                    <li>Tham khảo <a href="https://github.com/Zakhanhrog/EduManagerZK/issues" target="_blank" rel="noopener noreferrer">Kênh báo lỗi trên GitHub</a> để báo cáo lỗi mới hoặc kiểm tra xem vấn đề của bạn đã được người khác báo cáo và có giải pháp hay chưa.</li>
+                </ul>
+            </section>
+        </main>
+
+        <footer class="site-footer">
+            <div class="footer-container">
+                <div class="footer-section copyright">
+                    <p>© 2024 EduZakhanh. Phát triển bởi <strong>Zakhanh</strong>.</p>
+                </div>
+                <div class="footer-section contact">
+                    <p class="contact-links">
+                        Liên hệ: <a href="mailto:18khanh.2003@gmail.com">18khanh.2003@gmail.com</a> | <a href="https://github.com/Zakhanhrog/EduManagerZK" target="_blank" rel="noopener noreferrer">Source GitHub</a>
+                    </p>
+                    <p class="version-info">
+                         | Version: <i><b>1.1.0</b></i>
+                    </p>
+                </div>
+                <div class="footer-section theme-switcher">
+                    <button id="theme-toggle" aria-label="Chuyển đổi giao diện">
+                        <span>🌙</span><span>Chế độ Tối</span>
+                    </button>
+                </div>
+            </div>
+        </footer>
+    </div>
+</div>
+
+<script>
+    const themeToggle = document.getElementById('theme-toggle');
+    const themeToggleText = themeToggle?.querySelector('span:last-child');
+    const themeToggleIcon = themeToggle?.querySelector('span:first-child');
+    const htmlElement = document.documentElement;
+    const lightThemeClass = 'light-theme';
+    const currentThemeKey = 'eduzakhanh_help_theme_v2';
+
+    const applyTheme = (theme) => {
+        if (theme === 'light') {
+            htmlElement.classList.add(lightThemeClass);
+            if (themeToggleIcon) themeToggleIcon.textContent = '☀️';
+            if (themeToggleText) themeToggleText.textContent = 'Chế độ Sáng';
+        } else {
+            htmlElement.classList.remove(lightThemeClass);
+            if (themeToggleIcon) themeToggleIcon.textContent = '🌙';
+            if (themeToggleText) themeToggleText.textContent = 'Chế độ Tối';
+        }
+    };
+
+    const savedTheme = localStorage.getItem(currentThemeKey);
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    let currentTheme = savedTheme || (prefersDark ? 'dark' : 'light');
+
+    htmlElement.classList.add('no-transition');
+    applyTheme(currentTheme);
+    htmlElement.offsetHeight;
+    htmlElement.classList.remove('no-transition');
+
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            currentTheme = htmlElement.classList.contains(lightThemeClass) ? 'dark' : 'light';
+            applyTheme(currentTheme);
+            localStorage.setItem(currentThemeKey, currentTheme);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const sections = Array.from(document.querySelectorAll('main section[id]'));
+        const navLinks = Array.from(document.querySelectorAll('.sidebar a[href^="#"]'));
+        let lastActivatedByScroll = null;
+        let scrollTimeout;
+
+        const activateLink = (id) => {
+            if (!id) return;
+            let parentLinkActivated = false;
+            navLinks.forEach(link => {
+                const linkHref = link.getAttribute('href');
+                const isActive = linkHref === `#${id}`;
+                link.classList.toggle('active', isActive);
+
+                const parentLi = link.closest('ul')?.closest('li');
+                if (parentLi) {
+                    const parentLink = parentLi.querySelector(':scope > a[href^="#"]');
+                    if (parentLink && parentLink !== link && isActive) {
+                        parentLinkActivated = true;
+                    }
+                }
+            });
+        };
+
+        const onScroll = () => {
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                let bestVisibleSectionId = null;
+                let maxScore = -1;
+                const viewportHeight = window.innerHeight;
+
+                sections.forEach(section => {
+                    const rect = section.getBoundingClientRect();
+                    const topVisible = rect.top < viewportHeight && rect.top >= -rect.height * 0.5;
+                    const bottomVisible = rect.bottom > 0 && rect.bottom <= viewportHeight + rect.height * 0.5;
+
+                    if (topVisible || bottomVisible) {
+                        const distanceFromTop = Math.max(0, rect.top);
+                        const visibleHeight = Math.max(0, Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0));
+                        const visibleRatio = visibleHeight / rect.height;
+
+                        let score = 0;
+                        if (visibleRatio > 0.1) {
+                            score = visibleRatio * 100;
+                            if (rect.top >= 0 && rect.top < viewportHeight * 0.2) {
+                                score += 50;
+                            } else {
+                                score -= (distanceFromTop / viewportHeight) * 10;
+                            }
+                        }
+
+                        if (score > maxScore) {
+                            maxScore = score;
+                            bestVisibleSectionId = section.id;
+                        }
+                    }
+                });
+
+                if (bestVisibleSectionId && bestVisibleSectionId !== lastActivatedByScroll) {
+                    activateLink(bestVisibleSectionId);
+                    lastActivatedByScroll = bestVisibleSectionId;
+                }
+            }, 50);
+        };
+
+        const activateInitial = () => {
+            const hash = window.location.hash;
+            if (hash) {
+                const targetId = hash.substring(1);
+                if (document.getElementById(targetId)) {
+                    activateLink(targetId);
+                }
+                else if (sections.length > 0) {
+                    activateLink(sections[0].id);
+                }
+            } else if (sections.length > 0) {
+                activateLink(sections[0].id);
+            }
+            setTimeout(onScroll, 100);
+        };
+
+        activateInitial();
+        window.addEventListener('scroll', onScroll, { passive: true });
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                const href = link.getAttribute('href');
+                if (href && href.startsWith('#')) {
+                    const targetId = href.substring(1);
+                    activateLink(targetId);
+                    lastActivatedByScroll = targetId;
+                }
+            });
+        });
+    });
+</script>
+
+</body>
+</html>

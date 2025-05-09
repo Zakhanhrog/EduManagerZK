@@ -53,7 +53,6 @@ public class EducationController implements ClassListChangeListener {
         if (assignmentDAO == null) throw new IllegalArgumentException("AssignmentDAO cannot be null");
         if (eduClassController == null) System.err.println("Warning: EduClassController is null in EducationController constructor, cannot listen for class list changes.");
 
-
         this.currentUser = currentUser;
         this.classDAO = classDAO;
         this.recordDAO = recordDAO;
@@ -125,7 +124,6 @@ public class EducationController implements ClassListChangeListener {
                 System.err.println("Class not found for grade loading: " + classId);
                 return;
             }
-
             this.studentsForSelectedClass = studentDAO.getStudentsByClassId(classId);
             if (this.studentsForSelectedClass != null) {
                 this.studentsForSelectedClass.sort(Comparator.comparing(Student::getFullName, String.CASE_INSENSITIVE_ORDER));
@@ -134,16 +132,13 @@ public class EducationController implements ClassListChangeListener {
             }
             System.out.println("[Controller] Fetched Students count: " + this.studentsForSelectedClass.size());
 
-
             this.academicRecordsForSelectedClass = this.studentsForSelectedClass.stream()
                     .map(student -> findOrCreateRecordForStudent(student.getStudentId(), classId))
                     .collect(Collectors.toList());
             System.out.println("[Controller] Generated/Fetched Academic Records count: " + this.academicRecordsForSelectedClass.size());
 
-
             this.currentDisplayedStudents = this.studentsForSelectedClass;
             this.currentDisplayedRecords = this.academicRecordsForSelectedClass;
-
 
             if (educationPanel != null) {
                 System.out.println("[Controller] Calling educationPanel.updateTableData with " +
@@ -179,8 +174,8 @@ public class EducationController implements ClassListChangeListener {
             clearCurrentData();
             if (educationPanel != null) {
                 educationPanel.updateStudentInfoDisplay(null, null);
-                educationPanel.updateAchievementTitleDisplay(null);
-                educationPanel.updateTableDataForStudent(null, null);
+                educationPanel.updateAchievementCertificateDisplay(null, null, "Chưa có thông tin sinh viên.");
+                educationPanel.updateTableDataForStudent((Student) null, Collections.emptyList());
             }
             return;
         }
@@ -195,67 +190,85 @@ public class EducationController implements ClassListChangeListener {
                 clearCurrentData();
                 if (educationPanel != null) {
                     educationPanel.updateStudentInfoDisplay(null, null);
-                    educationPanel.updateAchievementTitleDisplay(null);
-                    educationPanel.updateTableDataForStudent(null, null);
+                    educationPanel.updateAchievementCertificateDisplay(null, null, "Không tìm thấy hồ sơ sinh viên.");
+                    educationPanel.updateTableDataForStudent((Student) null, Collections.emptyList());
                 }
                 UIUtils.showErrorMessage(null, "Error", "Could not find your student profile.");
                 return;
             }
+
             EduClass studentPrimaryClass = null;
             List<EduClass> studentClasses = classDAO.findByStudentId(studentId);
             if (studentClasses != null && !studentClasses.isEmpty()) {
                 studentPrimaryClass = studentClasses.get(0);
             }
-            List<AcademicRecord> studentRecordsFromDB = recordDAO.findAllByStudentId(studentId);
-            this.currentDisplayedRecords = (studentRecordsFromDB != null) ? new ArrayList<>(studentRecordsFromDB) : new ArrayList<>();
-            this.currentDisplayedStudents = List.of(currentStudent);
-            this.currentSelectedClassId = (studentPrimaryClass != null) ? studentPrimaryClass.getClassId() : -1;
-            AcademicRecord recordToDisplayAchievement = null;
-            if (!this.currentDisplayedRecords.isEmpty()) {
+
+            List<AcademicRecord> allStudentRecords = recordDAO.findAllByStudentId(studentId);
+            if (allStudentRecords == null) {
+                allStudentRecords = new ArrayList<>();
+            }
+
+            AcademicRecord recordForAchievementAndTable = null;
+            if (!allStudentRecords.isEmpty()) {
                 if (studentPrimaryClass != null) {
                     final int primaryClassId = studentPrimaryClass.getClassId();
-                    Optional<AcademicRecord> foundRecord = this.currentDisplayedRecords.stream()
+                    Optional<AcademicRecord> foundRecord = allStudentRecords.stream()
                             .filter(r -> r != null && r.getClassId() == primaryClassId)
                             .findFirst();
-                    recordToDisplayAchievement = foundRecord.orElse(this.currentDisplayedRecords.get(0));
+                    recordForAchievementAndTable = foundRecord.orElse(allStudentRecords.get(0));
                 } else {
-                    recordToDisplayAchievement = this.currentDisplayedRecords.get(0);
+                    recordForAchievementAndTable = allStudentRecords.get(0);
                 }
             }
 
             if (educationPanel != null) {
                 educationPanel.updateStudentInfoDisplay(currentStudent, studentPrimaryClass);
 
-                String achievementTitle = "Chưa có dữ liệu để xếp danh hiệu";
-                if (recordToDisplayAchievement != null) {
+                String studentNameForCert = currentStudent.getFullName();
+                String studentClassInfoForCert = (studentPrimaryClass != null) ? studentPrimaryClass.getClassName() : "Chưa có thông tin lớp";
+                String achievementText = "Chưa có dữ liệu để xếp loại.";
+
+                if (recordForAchievementAndTable != null) {
                     try {
-                        achievementTitle = recordToDisplayAchievement.getAchievementTitle();
-                        if (!achievementTitle.startsWith("Học lực:")) {
-                            achievementTitle = "Học lực: " + achievementTitle;
+                        achievementText = recordForAchievementAndTable.getAchievementTitle();
+                        if (achievementText != null && achievementText.toLowerCase().startsWith("học lực: ")) {
+                            achievementText = achievementText.substring("học lực: ".length()).trim();
+                        }
+                        if (achievementText == null || achievementText.trim().isEmpty() ||
+                                achievementText.equalsIgnoreCase("(Không có học lực nổi bật)") ||
+                                achievementText.contains("Không đủ điều kiện xét") ||
+                                achievementText.contains("Chưa xếp loại") ||
+                                achievementText.contains("Chưa đủ thông tin")) {
+                            achievementText = "(Chưa có thành tích nổi bật đáng ghi nhận)";
                         }
                     } catch (Exception calcEx) {
                         System.err.println("Error calculating achievement title: " + calcEx.getMessage());
-                        achievementTitle = "Học lực: Lỗi tính toán";
+                        achievementText = "(Lỗi khi tính toán thành tích)";
                     }
+                } else {
+                    achievementText = "(Chưa có bản ghi điểm để xét thành tích)";
                 }
-                educationPanel.updateAchievementTitleDisplay(achievementTitle);
+                educationPanel.updateAchievementCertificateDisplay(studentNameForCert, studentClassInfoForCert, achievementText);
 
-                educationPanel.updateTableDataForStudent(currentStudent, this.currentDisplayedRecords);
+                List<AcademicRecord> recordsForTableDisplay = (recordForAchievementAndTable != null) ?
+                        List.of(recordForAchievementAndTable) :
+                        Collections.emptyList();
+                educationPanel.updateTableDataForStudent(currentStudent, recordsForTableDisplay);
 
                 writeLog("Viewed Info & Results", "Student viewed their own info, grades and achievement.");
             }
-
         } catch (DataAccessException e) {
             System.err.println("Error loading grade data for student " + studentId + ": " + e.getMessage());
             UIUtils.showErrorMessage(null, "Data Load Error", "Failed to load your academic records.");
             clearCurrentData();
             if (educationPanel != null) {
                 educationPanel.updateStudentInfoDisplay(null, null);
-                educationPanel.updateAchievementTitleDisplay(null);
-                educationPanel.updateTableDataForStudent(null, null);
+                educationPanel.updateAchievementCertificateDisplay(null, null, "Lỗi tải dữ liệu.");
+                educationPanel.updateTableDataForStudent((Student) null, Collections.emptyList());
             }
         }
     }
+
 
     private AcademicRecord findOrCreateRecordForStudent(int studentId, int classId) {
         try {
@@ -279,12 +292,10 @@ public class EducationController implements ClassListChangeListener {
             System.err.println("Invalid row index for grade update: " + rowIndex);
             return;
         }
-
         AcademicRecord record = currentDisplayedRecords.get(rowIndex);
         Object oldValue = null;
         boolean changed = false;
         Object validatedValue = value;
-
         try {
             if ("Hạnh kiểm".equals(subjectKey)) {
                 oldValue = record.getConductRating();
@@ -386,7 +397,6 @@ public class EducationController implements ClassListChangeListener {
             if (cls != null) currentClassName = cls.getClassName();
         } catch (DataAccessException dae) { }
 
-
         System.out.println("Attempting to save " + currentDisplayedRecords.size() + " academic records for class: " + currentClassName);
 
         List<AcademicRecord> recordsToSave = new ArrayList<>(currentDisplayedRecords);
@@ -416,9 +426,7 @@ public class EducationController implements ClassListChangeListener {
                 e.printStackTrace();
             }
         }
-
         System.out.println("Save operation complete. Success: " + successCount + ", Errors: " + errorCount);
-
         String logDetails = String.format("Saved %d/%d records for Class '%s' (ID %d). Errors: %d",
                 successCount, recordsToSave.size(), currentClassName, currentSelectedClassId, errorCount);
         writeLog("Saved Grades", logDetails);
@@ -479,7 +487,6 @@ public class EducationController implements ClassListChangeListener {
             UIUtils.showErrorMessage(educationPanel, "Permission Denied", "Export function not available for your role.");
             return new Object[0][0];
         }
-
         List<Student> studentsForExport;
         List<AcademicRecord> recordsForExport;
         String className = "Class_ID_" + classId;
@@ -515,7 +522,6 @@ public class EducationController implements ClassListChangeListener {
         for (int i = 0; i < studentsForExport.size(); i++) {
             Student student = studentsForExport.get(i);
             AcademicRecord record = recordsForExport.get(i);
-
             exportData[i][0] = i + 1;
             exportData[i][1] = student.getFullName();
             exportData[i][2] = record.getGrade("Toán");
@@ -732,7 +738,6 @@ public class EducationController implements ClassListChangeListener {
             } else {
                 System.err.println("Attempting to delete assignment ID " + assignmentId + " which was not found.");
             }
-
 
             assignmentDAO.delete(assignmentId);
             UIUtils.showInfoMessage(educationPanel, "Success", "Assignment " + title + " deleted successfully.");

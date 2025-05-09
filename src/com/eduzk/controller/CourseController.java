@@ -19,7 +19,6 @@ public class CourseController {
     private final User currentUser;
     private final LogService logService;
     private CoursePanel coursePanel;
-
     public CourseController(ICourseDAO courseDAO, User currentUser, LogService logService) {
         this.courseDAO = courseDAO;
         this.currentUser = currentUser;
@@ -59,11 +58,9 @@ public class CourseController {
             UIUtils.showWarningMessage(coursePanel, "Validation Error", "Course code and name cannot be empty.");
             return false;
         }
-
         try {
             courseDAO.add(course);
             writeAddLog("Added Course", course);
-
             if (coursePanel != null) {
                 coursePanel.refreshTable();
                 UIUtils.showInfoMessage(coursePanel, "Success", "Course added successfully.");
@@ -111,7 +108,6 @@ public class CourseController {
         String courseInfoForLog = (courseToDelete != null)
                 ? ("ID: " + courseId + ", Code: " + courseToDelete.getCourseCode() + ", Name: " + courseToDelete.getCourseName())
                 : ("ID: " + courseId);
-
         try {
             courseDAO.delete(courseId);
 

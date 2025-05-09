@@ -78,7 +78,7 @@ public class HelpPanel extends JPanel {
         }
     }
     private void showError(String message) {
-        helpEditorPane.setContentType("text/plain"); // Chuyển sang text thường để hiển thị lỗi
+        helpEditorPane.setContentType("text/plain");
         helpEditorPane.setText("ERROR:\n\n" + message);
     }
     private class HyperlinkHandler implements HyperlinkListener {

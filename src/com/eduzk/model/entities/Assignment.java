@@ -74,8 +74,6 @@ public class Assignment implements Serializable {
         return createdAt;
     }
 
-    // Setter không cần thiết cho createdAt
-
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
@@ -84,12 +82,10 @@ public class Assignment implements Serializable {
         this.updatedAt = updatedAt;
     }
 
-    // --- Logic cập nhật thời gian ---
     public void touch() { // Gọi khi có cập nhật
         this.updatedAt = LocalDateTime.now();
     }
 
-    // Qua Han
     public boolean isOverdue() {
         if (this.dueDateTime == null) {
             return false; // Không có hạn, không bao giờ quá hạn

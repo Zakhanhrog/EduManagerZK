@@ -77,24 +77,53 @@ public class AuthController {
     public LogService getLogService() {
         return logService;
     }
-    public void setTeacherDAO(ITeacherDAO teacherDAO) { this.teacherDAO = teacherDAO; }
-    public void setStudentDAO(IStudentDAO studentDAO) { this.studentDAO = studentDAO; }
-    public void setCourseDAO(ICourseDAO courseDAO) { this.courseDAO = courseDAO; }
-    public void setRoomDAO(IRoomDAO roomDAO) { this.roomDAO = roomDAO; }
-    public void setEduClassDAO(IEduClassDAO eduClassDAO) { this.eduClassDAO = eduClassDAO; }
-    public void setScheduleDAO(IScheduleDAO scheduleDAO) { this.scheduleDAO = scheduleDAO; }
-    public void setAcademicRecordDAO(IAcademicRecordDAO recordDAO) { this.recordDAO = recordDAO; }
-    public IUserDAO getUserDAO() { return userDAO; }
-    public ITeacherDAO getTeacherDAO() { return teacherDAO; }
-    public IStudentDAO getStudentDAO() { return studentDAO; }
-    public ICourseDAO getCourseDAO() { return courseDAO; }
-    public IRoomDAO getRoomDAO() { return roomDAO; }
-    public IEduClassDAO getEduClassDAO() { return eduClassDAO; }
-    public IScheduleDAO getScheduleDAO() { return scheduleDAO; }
-    public IAcademicRecordDAO getAcademicRecordDAO() { return recordDAO; }
+    public void setTeacherDAO(ITeacherDAO teacherDAO) {
+            this.teacherDAO = teacherDAO;
+        }
+    public void setStudentDAO(IStudentDAO studentDAO) {
+            this.studentDAO = studentDAO;
+        }
+    public void setCourseDAO(ICourseDAO courseDAO) {
+            this.courseDAO = courseDAO;
+        }
+    public void setRoomDAO(IRoomDAO roomDAO) {
+            this.roomDAO = roomDAO;
+        }
+    public void setEduClassDAO(IEduClassDAO eduClassDAO) {
+            this.eduClassDAO = eduClassDAO;
+        }
+    public void setScheduleDAO(IScheduleDAO scheduleDAO) {
+            this.scheduleDAO = scheduleDAO;
+        }
+    public void setAcademicRecordDAO(IAcademicRecordDAO recordDAO) {
+            this.recordDAO = recordDAO;
+        }
+    public IUserDAO getUserDAO() {
+            return userDAO;
+        }
+    public ITeacherDAO getTeacherDAO() {
+            return teacherDAO;
+        }
+    public IStudentDAO getStudentDAO() {
+            return studentDAO;
+        }
+    public ICourseDAO getCourseDAO() {
+            return courseDAO; }
+    public IRoomDAO getRoomDAO() {
+            return roomDAO;
+        }
+    public IEduClassDAO getEduClassDAO() {
+            return eduClassDAO;
+        }
+    public IScheduleDAO getScheduleDAO() {
+            return scheduleDAO;
+        }
+    public IAcademicRecordDAO getAcademicRecordDAO() {
+            return recordDAO;
+        }
     public void setLoginView(LoginView loginView) {
         this.loginView = loginView;
-    }
+        }
 
     public boolean attemptLogin(String username, String password) {
         // Validation cơ bản đầu vào
@@ -111,7 +140,7 @@ public class AuthController {
                     if (user.isActive()) {
                         if (user.isRequiresPasswordChange()) {
                             System.out.println("User requires password change: " + user.getUsername());
-                            boolean passwordChanged = showForcePasswordChangeDialog(user); // Gọi hàm hiển thị dialog
+                            boolean passwordChanged = showForcePasswordChangeDialog(user);
 
                             if (passwordChanged) {
                                 System.out.println("Password changed successfully. Proceeding to login.");
@@ -158,7 +187,7 @@ public class AuthController {
         }
     }
     private boolean showForcePasswordChangeDialog(User user) {
-        final boolean[] successFlag = {false}; // Dùng mảng boolean để lấy kết quả từ EDT
+        final boolean[] successFlag = {false};
         try {
             SwingUtilities.invokeAndWait(() -> {
                 Frame parent = (loginView != null && loginView.isShowing()) ? loginView : null;
@@ -208,7 +237,6 @@ public class AuthController {
     private void loginSuccess() {
         if (loggedInUser != null) {
             String nameToShow = loggedInUser.getUsername();
-
             if (loggedInUser.getRole() == Role.TEACHER && loggedInUser.getTeacherId() != null && teacherDAO != null) {
                 try {
                     Teacher teacher = teacherDAO.getById(loggedInUser.getTeacherId());
@@ -225,7 +253,7 @@ public class AuthController {
                 try {
                     Student student = studentDAO.getById(loggedInUser.getStudentId());
                     if (student != null && student.getFullName() != null && !student.getFullName().isEmpty()) {
-                        nameToShow = student.getFullName(); // Lấy tên đầy đủ của Student
+                        nameToShow = student.getFullName();
                         System.out.println("Found Student Full Name: " + nameToShow);
                     } else {
                         System.err.println("Could not find full name for Student ID: " + loggedInUser.getStudentId());
@@ -234,7 +262,6 @@ public class AuthController {
                     System.err.println("Error getting student details for display name: " + e.getMessage());
                 }
             }
-            // Gán tên tìm được (hoặc username mặc định) vào đối tượng User
             loggedInUser.setDisplayName(nameToShow);
             System.out.println("Set displayName for loggedInUser: " + loggedInUser.getDisplayName());
         }
@@ -260,7 +287,6 @@ public class AuthController {
                         this.getAcademicRecordDAO(),
                         this.idGenerator
                 );
-
                 MainView mainView = new MainView(mainController);
                 mainController.setMainView(mainView);
                 mainView.setVisible(true);
@@ -272,10 +298,6 @@ public class AuthController {
                 showLoginView();
             }
         });
-    }
-
-    public User getLoggedInUser() {
-        return loggedInUser;
     }
 
     public void logout() {
@@ -310,7 +332,7 @@ public class AuthController {
 
 
         try {
-            // --- 2. Kiểm tra Username (hoặc SĐT) đã tồn tại trong bảng User chưa ---
+           // Kiem tra xem user da ton tai hay chua
             System.out.println("Checking if username/phone '" + username + "' already exists as a User account...");
             if (userDAO.findByUsername(username).isPresent()) {
                 UIUtils.showWarningMessage(null, "Registration Failed", "Username or Phone Number '" + username + "' is already registered. Please try logging in or use a different one.");
@@ -322,7 +344,7 @@ public class AuthController {
             Integer studentIdToLink = null;
             Integer teacherIdToLink = null;
 
-            // --- 3. Validation và Logic riêng theo từng Role ---
+            // Validation và Logic riêng theo từng Role
             if (role == Role.STUDENT) {
                 System.out.println("Processing STUDENT registration...");
                 if (!ValidationUtils.isValidPhoneNumber(username)) {
@@ -386,7 +408,6 @@ public class AuthController {
             System.out.println("Adding new user to database: " + newUser);
             userDAO.add(newUser);
             System.out.println("New user added successfully with ID: " + newUser.getUserId());
-
             return true;
 
         } catch (DataAccessException e) {

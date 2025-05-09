@@ -31,9 +31,9 @@ public class SchedulePanel extends JPanel {
     private CustomDatePicker endDatePicker;
     private TableRowSorter<DefaultTableModel> sorter;
     private Timer statusUpdateTimer;
-    private final Icon greenDot = new GreenDotIcon(12);
-    private final Icon redDot = new RedDotIcon(12);
-    private final Icon grayDot = new GrayDotIcon(12);
+    private final Icon greenDot = new GreenDotIcon(7);
+    private final Icon redDot = new RedDotIcon(7);
+    private final Icon grayDot = new GrayDotIcon(7);
     private final int ID_COL_MODEL = 0;
     private final int DATE_COL_MODEL = 1;
     private final int START_TIME_COL_MODEL = 2;
@@ -139,7 +139,7 @@ public class SchedulePanel extends JPanel {
     }
 
     private void setupLayout() {
-        // Top Panel (Filters and Actions)
+        // Top Panel
         JPanel topPanel = new JPanel(new BorderLayout(20, 0));
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         filterPanel.add(new JLabel("From:"));
@@ -165,9 +165,7 @@ public class SchedulePanel extends JPanel {
 
     private void setupActions() {
         filterButton.addActionListener(e -> refreshScheduleView());
-
         addButton.addActionListener(e -> openScheduleDialog(null));
-
         editButton.addActionListener(e -> {
             int selectedRow = scheduleTable.getSelectedRow();
             if (selectedRow >= 0) {
@@ -189,10 +187,10 @@ public class SchedulePanel extends JPanel {
             if (selectedRow >= 0) {
                 int modelRow = scheduleTable.convertRowIndexToModel(selectedRow);
                 int scheduleId = (int) tableModel.getValueAt(modelRow, 0);
-                String desc = tableModel.getValueAt(modelRow, 1) + " " + // Date
-                        tableModel.getValueAt(modelRow, 2) + "-" + // Start time
-                        tableModel.getValueAt(modelRow, 3) + " (" + // End time
-                        tableModel.getValueAt(modelRow, 4) + ")"; // Class name
+                String desc = tableModel.getValueAt(modelRow, 1) + " " +
+                        tableModel.getValueAt(modelRow, 2) + "-" +
+                        tableModel.getValueAt(modelRow, 3) + " (" +
+                        tableModel.getValueAt(modelRow, 4) + ")";
 
                 if (UIUtils.showConfirmDialog(this, "Confirm Deletion", "Delete schedule entry?\n" + desc)) {
                     if (controller != null) {
@@ -412,7 +410,7 @@ public class SchedulePanel extends JPanel {
         @Override public int getIconWidth() { return size + 4; }
         @Override public int getIconHeight() { return size + 4; }
     }
-    class GreenDotIcon extends AbstractDotIcon { public GreenDotIcon(int size) { super(new Color(0, 180, 0), size); } }
-    class RedDotIcon extends AbstractDotIcon { public RedDotIcon(int size) { super(new Color(220, 0, 0), size); } }
+    class GreenDotIcon extends AbstractDotIcon { public GreenDotIcon(int size) { super(new Color(83, 214, 83), size); } }
+    class RedDotIcon extends AbstractDotIcon { public RedDotIcon(int size) { super(new Color(214, 94, 94), size); } }
     class GrayDotIcon extends AbstractDotIcon { public GrayDotIcon(int size) { super(Color.LIGHT_GRAY, size); } }
 }

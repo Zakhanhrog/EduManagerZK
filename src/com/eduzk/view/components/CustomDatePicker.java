@@ -18,10 +18,8 @@ public class CustomDatePicker extends JPanel {
 
     public CustomDatePicker(LocalDate initialDate) {
         setLayout(new FlowLayout(FlowLayout.LEFT, 0, 0));
-
         dateModel = new SpinnerDateModel();
         dateSpinner = new JSpinner(dateModel);
-
         JSpinner.DateEditor dateEditor = new JSpinner.DateEditor(dateSpinner, "dd/MM/yyyy");
         dateSpinner.setEditor(dateEditor);
 
@@ -30,13 +28,9 @@ public class CustomDatePicker extends JPanel {
         } else {
             setDate(LocalDate.now());
         }
-
-
         Dimension d = dateSpinner.getPreferredSize();
         d.width = 100;
         dateSpinner.setPreferredSize(d);
-
-
         add(dateSpinner);
     }
 

@@ -58,7 +58,6 @@ public class AssignmentDialog extends JDialog {
             setFieldsEditable(true);
             saveButton.setEnabled(true);
         }
-
         pack();
         setMinimumSize(new Dimension(450, 400));
         setLocationRelativeTo(owner);

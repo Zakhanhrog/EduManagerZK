@@ -32,7 +32,7 @@ public class StudentPanel extends JPanel {
     public StudentPanel(StudentController controller) {
         this.controller = controller;
         setLayout(new BorderLayout(10, 10));
-        setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Add padding
+        setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         initComponents();
         setupLayout();
         setupActions();
