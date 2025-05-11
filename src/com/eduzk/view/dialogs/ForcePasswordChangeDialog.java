@@ -9,6 +9,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.List;
 
 public class ForcePasswordChangeDialog extends JDialog {
 
@@ -60,7 +61,7 @@ public class ForcePasswordChangeDialog extends JDialog {
         errorLabel.setForeground(UIManager.getColor("Label.errorForeground"));
         errorLabel.setHorizontalAlignment(SwingConstants.CENTER);
         errorLabel.setFont(errorLabel.getFont().deriveFont(Font.ITALIC));
-        newPasswordField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Enter new password (min 6 chars)");
+        newPasswordField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Mật khẩu mới (ít nhất 8 ký tự, hoa, thường, số, đặc biệt)");
         confirmPasswordField.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Confirm new password");
         newPasswordField.putClientProperty(FlatClientProperties.STYLE, "showRevealButton: true");
         confirmPasswordField.putClientProperty(FlatClientProperties.STYLE, "showRevealButton: true");
@@ -151,9 +152,17 @@ public class ForcePasswordChangeDialog extends JDialog {
              UIUtils.showWarningMessage(this, "Input Required", "Please enter and confirm the new password."); // Alternative
             return;
         }
-        if (!ValidationUtils.isValidPassword(newPassword)) {
-            errorLabel.setText("Password must be at least 6 characters long.");
-             UIUtils.showWarningMessage(this, "Invalid Password", "Password must be at least 6 characters long.");
+        List<String> passwordErrors = ValidationUtils.getPasswordValidationErrors(newPassword);
+        if (!passwordErrors.isEmpty()) {
+            StringBuilder errorMessage = new StringBuilder("<html>Mật khẩu không hợp lệ:<br>");
+            for (String error : passwordErrors) {
+                errorMessage.append(error).append("<br>");
+            }
+            errorMessage.append("</html>");
+
+            errorLabel.setText(errorMessage.toString());
+            UIUtils.showWarningMessage(this, "Mật khẩu không hợp lệ", errorMessage.toString().replace("<br>", "\n").replace("<html>", "").replace("</html>", ""));
+            newPasswordField.requestFocusInWindow();
             return;
         }
         if (!newPassword.equals(confirmPassword)) {

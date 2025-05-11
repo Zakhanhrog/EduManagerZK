@@ -3,7 +3,6 @@ package com.eduzk.model.dao.impl;
 import com.eduzk.model.dao.interfaces.ICourseDAO;
 import com.eduzk.model.entities.Course;
 import com.eduzk.model.exceptions.DataAccessException;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;

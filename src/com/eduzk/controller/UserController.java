@@ -69,8 +69,13 @@ public class UserController {
             UIUtils.showWarningMessage(accountsPanel, "Error", "Invalid User ID.");
             return false;
         }
-        if (!ValidationUtils.isValidPassword(newPassword)) {
-            UIUtils.showWarningMessage(accountsPanel, "Validation Error", "Password must be at least 6 characters long.");
+        List<String> passwordErrors = ValidationUtils.getPasswordValidationErrors(newPassword);
+        if (!passwordErrors.isEmpty()) {
+            StringBuilder errorMessage = new StringBuilder("Mật khẩu mới không hợp lệ cho người dùng:\n");
+            for (String error : passwordErrors) {
+                errorMessage.append(error.replace("- ", "  ")).append("\n");
+            }
+            UIUtils.showWarningMessage(accountsPanel, "Mật khẩu không hợp lệ", errorMessage.toString());
             return false;
         }
 

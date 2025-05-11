@@ -1,4 +1,3 @@
-// src/com/eduzk/model/dao/impl/AssignmentDAOImpl.java
 package com.eduzk.model.dao.impl;
 
 import com.eduzk.model.dao.interfaces.IAssignmentDAO;
@@ -11,7 +10,7 @@ import java.util.stream.Collectors;
 
 public class AssignmentDAOImpl extends BaseDAO<Assignment> implements IAssignmentDAO {
 
-    private static final String DATA_FILE_PATH = "data/assignments.dat"; // Path to store assignment data
+    private static final String DATA_FILE_PATH = "data/assignments.dat";
     private final IdGenerator idGenerator;
 
     public AssignmentDAOImpl(IdGenerator idGenerator) {
@@ -43,14 +42,12 @@ public class AssignmentDAOImpl extends BaseDAO<Assignment> implements IAssignmen
             return dataList.stream()
                     .filter(a -> a.getEduClassId() == classId)
                     .sorted(Comparator.comparing(Assignment::getDueDateTime, Comparator.nullsLast(Comparator.naturalOrder())) // Sort by due date
-                            .thenComparing(Assignment::getCreatedAt)) // Then by creation date
+                            .thenComparing(Assignment::getCreatedAt))
                     .collect(Collectors.toList());
         } finally {
             lock.readLock().unlock();
         }
     }
-
-    // getAll() is inherited from BaseDAO
 
     @Override
     public void add(Assignment assignment) throws DataAccessException {
@@ -66,8 +63,8 @@ public class AssignmentDAOImpl extends BaseDAO<Assignment> implements IAssignmen
 
         lock.writeLock().lock();
         try {
-            assignment.setAssignmentId(idGenerator.getNextAssignmentId()); // Assign new ID
-            assignment.touch(); // Set create/update time (touch sets update time)
+            assignment.setAssignmentId(idGenerator.getNextAssignmentId());
+            assignment.touch();
             this.dataList.add(assignment);
             saveData();
             System.out.println("Added new assignment: ID=" + assignment.getAssignmentId() + ", Title=" + assignment.getTitle());
@@ -99,12 +96,11 @@ public class AssignmentDAOImpl extends BaseDAO<Assignment> implements IAssignmen
 
             if (existingOpt.isPresent()) {
                 Assignment existing = existingOpt.get();
-                // Update fields (keeping original createdAt)
                 existing.setEduClassId(assignment.getEduClassId());
                 existing.setTitle(assignment.getTitle());
                 existing.setDescription(assignment.getDescription());
                 existing.setDueDateTime(assignment.getDueDateTime());
-                existing.touch(); // Update the 'updatedAt' timestamp
+                existing.touch();
                 saveData();
                 System.out.println("Updated assignment: ID=" + assignment.getAssignmentId());
             } else {

@@ -13,6 +13,7 @@ import com.eduzk.view.LoginView;
 import com.eduzk.view.MainView;
 import javax.swing.SwingUtilities;
 import javax.swing.JOptionPane;
+import java.util.List;
 import java.util.Optional;
 import com.eduzk.model.dao.impl.LogService;
 import com.eduzk.model.entities.LogEntry;
@@ -207,7 +208,16 @@ public class AuthController {
         return successFlag[0];
     }
     public boolean performForcedPasswordChange(User user, String newPassword) {
-        try {
+        List<String> passwordErrors = ValidationUtils.getPasswordValidationErrors(newPassword);
+        if (!passwordErrors.isEmpty()) {
+            StringBuilder errorMessage = new StringBuilder("Mật khẩu không hợp lệ:\n");
+            for (String error : passwordErrors) {
+                errorMessage.append(error.replace("- ", "  ")).append("\n");
+            }
+            System.err.println("AuthController: Password validation failed during forced change - " + errorMessage.toString().replace("\n", " "));
+            return false;
+        }
+            try {
             String hashedPassword = PasswordUtils.hashPassword(newPassword);
             user.setPassword(hashedPassword);
             user.setRequiresPasswordChange(false);
