@@ -26,7 +26,6 @@ public class CoursePanel extends JPanel {
     private JTextField searchField;
     private TableRowSorter<DefaultTableModel> sorter;
 
-
     public CoursePanel(CourseController controller) {
         this.controller = controller;
         setLayout(new BorderLayout(10, 10));
@@ -116,7 +115,6 @@ public class CoursePanel extends JPanel {
 
     private void setupActions() {
         addButton.addActionListener(e -> openCourseDialog(null));
-
         editButton.addActionListener(e -> {
             int selectedRow = courseTable.getSelectedRow();
             if (selectedRow >= 0) {
@@ -138,7 +136,7 @@ public class CoursePanel extends JPanel {
             if (selectedRow >= 0) {
                 int modelRow = courseTable.convertRowIndexToModel(selectedRow);
                 int courseId = (int) tableModel.getValueAt(modelRow, 0);
-                String courseName = (String) tableModel.getValueAt(modelRow, 2); // Name column
+                String courseName = (String) tableModel.getValueAt(modelRow, 2);
 
                 if (UIUtils.showConfirmDialog(this, "Confirm Deletion", "Are you sure you want to delete course '" + courseName + "' (ID: " + courseId + ")?")) {
                     if (controller != null) {
@@ -155,7 +153,7 @@ public class CoursePanel extends JPanel {
         refreshButton.addActionListener(e -> {
             System.out.println("CoursePanel: Refresh button clicked.");
             refreshTable();
-            UIUtils.showInfoMessage(this,"Refreshed", "Course list updated."); // Thông báo (tùy chọn)
+            UIUtils.showInfoMessage(this,"Refreshed", "Course list updated.");
         });
     }
 
@@ -172,7 +170,6 @@ public class CoursePanel extends JPanel {
         populateTable(courses);
     }
 
-
     private void openCourseDialog(Course course) {
         if (controller == null) {
             UIUtils.showErrorMessage(this, "Error", "Course Controller is not initialized.");
@@ -182,7 +179,6 @@ public class CoursePanel extends JPanel {
         CourseDialog dialog = new CourseDialog((Frame) parentWindow, controller, course);
         dialog.setVisible(true);
     }
-
 
     public void refreshTable() {
         if (controller == null) return;
@@ -211,7 +207,6 @@ public class CoursePanel extends JPanel {
         if (addButton != null) addButton.setVisible(canModify);
         if (editButton != null) editButton.setVisible(canModify);
         if (deleteButton != null) deleteButton.setVisible(canModify);
-
         if (searchButton != null) searchButton.setVisible(true);
         if (searchField != null) searchField.setVisible(true);
         if (refreshButton != null) refreshButton.setVisible(true);

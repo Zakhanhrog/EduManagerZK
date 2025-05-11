@@ -61,7 +61,4 @@ public class CustomDatePicker extends JPanel {
         dateSpinner.setEnabled(enabled);
     }
 
-    public String getFormattedDate() {
-        return DateUtils.formatDate(getDate());
-    }
 }

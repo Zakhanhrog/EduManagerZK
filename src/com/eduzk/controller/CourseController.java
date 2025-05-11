@@ -14,7 +14,6 @@ import java.util.Collections;
 import java.util.List;
 
 public class CourseController {
-
     private final ICourseDAO courseDAO;
     private final User currentUser;
     private final LogService logService;
@@ -52,7 +51,6 @@ public class CourseController {
         }
     }
 
-    // --- SỬA addCourse ĐỂ GHI LOG ---
     public boolean addCourse(Course course) {
         if (course == null || !ValidationUtils.isNotEmpty(course.getCourseCode()) || !ValidationUtils.isNotEmpty(course.getCourseName())) {
             UIUtils.showWarningMessage(coursePanel, "Validation Error", "Course code and name cannot be empty.");

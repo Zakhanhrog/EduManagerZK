@@ -107,8 +107,7 @@ public class AuthController {
     public IStudentDAO getStudentDAO() {
             return studentDAO;
         }
-    public ICourseDAO getCourseDAO() {
-            return courseDAO; }
+    public ICourseDAO getCourseDAO() { return courseDAO; }
     public IRoomDAO getRoomDAO() {
             return roomDAO;
         }

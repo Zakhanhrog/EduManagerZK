@@ -2,7 +2,6 @@ package com.eduzk.controller;
 
 import java.io.IOException;
 import javax.swing.*;
-
 import com.eduzk.model.dao.impl.AssignmentDAOImpl;
 import com.eduzk.model.dao.impl.IdGenerator;
 import com.eduzk.model.dao.interfaces.*;
@@ -232,14 +231,6 @@ public class MainController {
             System.exit(1);
         }
     }
-
-    public StudentController getStudentController() { return studentController; }
-    public TeacherController getTeacherController() { return teacherController; }
-    public CourseController getCourseController() { return courseController; }
-    public RoomController getRoomController() { return roomController; }
-    public EduClassController getEduClassController() { return eduClassController; }
-    public ScheduleController getScheduleController() { return scheduleController; }
-    public EducationController getEducationController() { return educationController; }
 
     public void requestExcelExport(String exportType, int associatedId) {
         Role currentUserRole = getUserRole();
