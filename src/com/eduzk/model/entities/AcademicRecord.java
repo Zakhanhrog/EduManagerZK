@@ -45,10 +45,8 @@ public class AcademicRecord implements Serializable {
 
     public ArtStatus getArtStatus() { return artStatus; }
     public void setArtStatus(ArtStatus artStatus) { this.artStatus = artStatus; }
-
     public ConductRating getConductRating() { return conductRating; }
     public void setConductRating(ConductRating conductRating) { this.conductRating = conductRating; }
-
     public Double getGrade(String subjectKey) {
         return getSubjectGrades().get(subjectKey);
     }

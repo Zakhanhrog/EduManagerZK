@@ -10,7 +10,6 @@ import com.eduzk.view.panels.ClassPanel;
 import com.eduzk.model.dao.impl.LogService;
 import com.eduzk.model.dao.interfaces.ClassListChangeListener;
 import javax.swing.event.EventListenerList;
-
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -21,14 +20,10 @@ public class EduClassController {
     private final ICourseDAO courseDAO;
     private final ITeacherDAO teacherDAO;
     private final IStudentDAO studentDAO;
-
     private ClassPanel classPanel;
-
     private final LogService logService;
     private final User currentUser;
-
     private final EventListenerList listenerList = new EventListenerList();
-
 
     public EduClassController(
             IEduClassDAO eduClassDAO,
@@ -160,7 +155,6 @@ public class EduClassController {
             UIUtils.showWarningMessage(classPanel, "Validation Error", "Cannot assign inactive teacher '" + selectedTeacher.getFullName() + "' to the class.");
             return false;
         }
-
         try {
             eduClassDAO.add(eduClass);
             writeAddLog("Added Class", eduClass);
@@ -197,7 +191,6 @@ public class EduClassController {
                         + existingClass.getCurrentEnrollment() + ").");
                 return false;
             }
-
             eduClassDAO.update(eduClass);
             writeUpdateLog("Updated Class", eduClass);
             fireClassListChanged();
@@ -234,8 +227,6 @@ public class EduClassController {
                 UIUtils.showWarningMessage(classPanel, "Not Found", "Class with ID " + classId + " not found for deletion.");
                 return false;
             }
-
-
             eduClassDAO.delete(classId);
             writeDeleteLog("Deleted Class", classInfoForLog);
             fireClassListChanged();
@@ -328,7 +319,6 @@ public class EduClassController {
                                 availableSpots + " spot(s) remaining in class '" + eduClass.getClassName() + "'.");
                 return false;
             }
-
             try {
                 int addedCount = eduClassDAO.addStudentsToClass(classId, studentIds);
                 successCount = addedCount;

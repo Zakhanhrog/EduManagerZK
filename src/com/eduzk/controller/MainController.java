@@ -16,7 +16,6 @@ import java.io.File;
 import java.util.List;
 import com.eduzk.model.dao.impl.LogService;
 import com.eduzk.model.dao.interfaces.IAcademicRecordDAO;
-
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class MainController {
@@ -138,7 +137,6 @@ public class MainController {
             );
 
             System.out.println("Child Controllers initialized successfully.");
-
         } catch (Exception e) {
             System.err.println("!!! CRITICAL ERROR INITIALIZING CHILD CONTROLLERS !!!");
             e.printStackTrace();

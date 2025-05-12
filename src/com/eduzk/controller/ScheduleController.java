@@ -18,7 +18,6 @@ import com.eduzk.model.dao.impl.LogService;
 import com.eduzk.utils.DateUtils;
 import java.time.LocalDateTime;
 
-
 public class ScheduleController {
 
     private final IScheduleDAO scheduleDAO;

@@ -274,7 +274,6 @@ public class AuthController {
             loggedInUser.setDisplayName(nameToShow);
             System.out.println("Set displayName for loggedInUser: " + loggedInUser.getDisplayName());
         }
-
         System.out.println("AuthController: Login successful. Closing LoginView and opening MainView...");
         if (loginView != null) {
             loginView.dispose();
@@ -418,7 +417,6 @@ public class AuthController {
             userDAO.add(newUser);
             System.out.println("New user added successfully with ID: " + newUser.getUserId());
             return true;
-
         } catch (DataAccessException e) {
             System.err.println("Registration DAO Error: " + e.getMessage());
             UIUtils.showErrorMessage(null, "Registration Failed", "Could not save registration data: " + e.getMessage());

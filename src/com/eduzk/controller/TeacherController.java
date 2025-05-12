@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.HashMap;
 import com.eduzk.model.dao.impl.LogService;
 import com.eduzk.utils.PasswordUtils;
-
 import com.eduzk.view.MainView;
 
 public class TeacherController {

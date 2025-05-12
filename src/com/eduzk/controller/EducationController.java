@@ -42,9 +42,6 @@ public class EducationController implements ClassListChangeListener {
             LogService logService,
             EduClassController eduClassController,
             IAssignmentDAO assignmentDAO) {
-        if (recordDAO == null) {
-            throw new IllegalArgumentException("AcademicRecordDAO parameter cannot be null");
-        }
         if (currentUser == null) throw new IllegalArgumentException("CurrentUser cannot be null");
         if (recordDAO == null) throw new IllegalArgumentException("AcademicRecordDAO cannot be null");
         if (classDAO == null) throw new IllegalArgumentException("EduClassDAO cannot be null");
@@ -150,7 +147,6 @@ public class EducationController implements ClassListChangeListener {
             } else {
                 System.err.println("[Controller] Error: educationPanel is null!");
             }
-
         } catch (DataAccessException e) {
             System.err.println("[Controller] DataAccessException in loadDataForClass: " + e.getMessage());
             UIUtils.showErrorMessage(educationPanel, "Data Load Error", "Failed to load student or grade data for the selected class.");
@@ -269,7 +265,6 @@ public class EducationController implements ClassListChangeListener {
         }
     }
 
-
     private AcademicRecord findOrCreateRecordForStudent(int studentId, int classId) {
         try {
             Optional<AcademicRecord> existingRecord = recordDAO.findByStudentAndClass(studentId, classId);
@@ -387,7 +382,6 @@ public class EducationController implements ClassListChangeListener {
         if (!UIUtils.showConfirmDialog(educationPanel, "Confirm Save", "Save all grade and conduct changes for the current class?")) {
             return;
         }
-
         int successCount = 0;
         int errorCount = 0;
         List<String> errorMessages = new ArrayList<>();
@@ -471,7 +465,6 @@ public class EducationController implements ClassListChangeListener {
         return false;
     }
 
-
     public boolean canCurrentUserManageAssignments() {
         if (currentUser == null) return false;
         if (currentUser.getRole() == Role.ADMIN) return true;
@@ -480,7 +473,6 @@ public class EducationController implements ClassListChangeListener {
         }
         return false;
     }
-
 
     public Object[][] getGradeDataForExport(int classId) {
         if (currentUser.getRole() == Role.STUDENT) {
@@ -634,7 +626,6 @@ public class EducationController implements ClassListChangeListener {
             UIUtils.showWarningMessage(educationPanel, "Error", "Cannot add assignment without a selected class.");
             return;
         }
-
         AssignmentDialog dialog = new AssignmentDialog(
                 (Frame) SwingUtilities.getWindowAncestor(educationPanel),
                 "Add New Assignment for " + selectedClass.getClassName(),
@@ -870,7 +861,6 @@ public class EducationController implements ClassListChangeListener {
                         achievement = "Chưa nhập điểm";
                     }
                 }
-
                 achievementDisplayData.add(new Object[]{
                         stt++,
                         selectedClass.getClassName(),
